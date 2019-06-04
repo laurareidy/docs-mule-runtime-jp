@@ -1,0 +1,47 @@
+= グラフィカルなマッピングの構築 (Anypoint Studio)
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Transform Message コンポーネントのグラフィカル UI を使用して、以下の作業を行うことができます。それぞれの作業を行うと、アクションを記述した行が DataWeave コードに追加されます。
+
+== 項目のマッピング
+
+入力構造の要素を出力構造上の別の要素までドラッグすると、それらの要素を連結するラインが作成されます。
+
+image::using-dataweave-in-studio-8e6e0.png[]
+
+
+
+== 構造のマッピング
+
+要素のリストまたは内部項目を含むハイレベル構造を出力の要素にドラッグします。マップされた構造を覆うように影付きの領域が作成されます。これらの構造で同じ名前を持つ項目も自動的にマップされます。
+
+image::using-dataweave-in-studio-6b171.png[]
+
+
+== 固定値または関数の設定
+
+
+. 出力ツリー上の項目をダブルクリックします。関数アイコン image:using-dataweave-in-studio-66cdc.png[] が隣に表示されます。
+
+. デフォルトの `null` 値を項目に割り当てるための新しい行が DataWeave コードに追加されます。この行はハイライトされています。値を好きなように変更してください。
++
+image::<missing>dw_click.png[クリック]
++
+次の値を追加できます。
+
+* " "で囲んだ固定文字列値
+* 入力項目への参照
+* 関数を含む DataWeave ステートメント
+
+
+
+
+== 関連情報
+
+xref:transform-component-about.adoc[Transform Message コンポーネント]
+
+xref:transform-workflow-create-mapping-ui-studio.adoc[ワークフロー: マッピングの作成]
+
+xref:dataweave.adoc[DataWeave 言語]

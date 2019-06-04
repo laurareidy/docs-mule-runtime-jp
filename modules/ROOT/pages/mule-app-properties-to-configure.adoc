@@ -1,0 +1,38 @@
+= Mule アプリケーションのプロパティプレースホルダの設定
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Mule アプリケーションで接続をはじめとする設定に静的値を使用する代わりに、ここで説明している手順を使用して、`.yaml` または `.properties` 設定ファイルで定義するプロパティプレースホルダを作成して使用することができます。
+
+YAML ファイルでは、プロパティは次の形式になります。
+----
+http:
+  path: service
+  port: "10000"
+----
+
+`.properties` ファイルでは、プロパティは次の形式になります。
+----
+http.path=service
+http.port="10000"
+----
+
+ファイルは Mule アプリケーションのプロジェクトディレクトリに保存する必要があります。
+
+* `/src/main/resources`
+
+YAML ファイルを Mule アプリケーションに追加するには、設定プロパティと呼ばれるグローバル要素を使用します。この要素の XML は次のようになります。
+
+`<configuration-properties file="myConfiguration.yaml" doc:name="Configuration properties" doc:id="872422be-3571-4a52-a383-a2b0e16859d7" />`
+
+属性を設定したら、次のような構文を使用して参照できます: `${http.path}` および `${http.port}`。
+
+たとえば、HTTP Listener は次のようにポートを渡す場合があります:
+`<http:listener-connection host="0.0.0.0" port="${http.port}" />`
+
+//Note that Spring configurations cannot use these properties. They must use a `.properties` file.
+
+== 関連情報
+
+* xref:configuring-properties.adoc[プロパティの設定]

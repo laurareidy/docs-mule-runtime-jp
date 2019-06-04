@@ -1,0 +1,18 @@
+= Diff 型 (dw::util::Diff)
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+|===
+a| 型 a| 定義 a| 説明
+
+a| Diff (差分)
+a| `type Diff = { matches: Boolean, diffs: Array<Difference&#62; }`
+a| 2 つの値の間の違い全体を表します。
+
+
+a| Difference (差)
+a| `type Difference = { expected: String, actual: String, path: String }`
+a| 指定された構造の 2 つの値の間の 1 つの違いを表します。
+
+|===

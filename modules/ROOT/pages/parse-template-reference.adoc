@@ -1,0 +1,85 @@
+= Parse Template リファレンス
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Anypoint Studio, 解析
+
+Parse Template はテンプレートを処理して結果を得るために使用する Mule コンポーネントです。テンプレートはテキストとして定義され、埋め込まれた Mule 式は評価され、結果に置き換えられます。
+
+外部ファイル参照を使用してテンプレートを設定することも、コンポーネント定義自体に埋め込むこともできます。
+
+<<code_example>>
+
+== Parse Template の設定
+
+. Studio で、Parse Template メッセージプロセッサをパレットからキャンバスまでドラッグします。
+. この表で説明している項目を設定します。
++
+image::parse.png[]
++
+[%header,cols="20a,20a,60a"]
+|===
+|項目 |値 |説明
+|*Content (コンテンツ)* |テンプレート文字列 |テンプレートとして使用する文字列。外部ファイルでテンプレートを定義する代わりに、この項目を使用してインラインで記述できます。評価され、結果に置き換えられる式を埋め込むことができます。
+|*Display Name (表示名)* |Parse Template |アプリケーションのトランスフォーマの一意な名前を表示するためにカスタマイズします。
+|*場所* |ファイルパス |メッセージプロパティまたは変数から抽出された値を挿入するテンプレートとして Mule が使用するファイルの場所を定義します。
+|*Target Variable (対象変数)* | 変数名 | [Target Value (対象値)] で定義された式を評価した結果を保存する変数の名前。
+|*Target Value (対象値)* | 式 | Parse Template の実行後に評価される Mule 式。この式の結果は、[Target Variable (対象変数)] 項目で定義された名前の変数に保存されます。
+|===
+
+
+Studio または Standalone Mule インスタンスで XML エディタを使用している場合:
+
+* `parse-template` 要素をフローに追加してから、下の表に従って設定します。
++
+[source,xml]
+----
+<parse-template location="users/administrator/desktop/hrweb/confirmation.html" doc:name="Parse Template"/>
+----
+
+`parse-template` 要素の属性:
+
+[%header,cols="30a,70a"]
+|===
+|要素属性 |値
+|`content`     |使用するテンプレートを表す文字列であり、このテンプレートでは埋め込まれた式が評価され、その結果に置き換えられます。
+|`location`    |メッセージプロパティまたは変数から抽出された値を挿入するテンプレートとして Mule が使用するファイルの場所を定義するファイルパス。
+|`doc:name`    |アプリケーションのトランスフォーマの一意な名前を表示するためにカスタマイズします。(注意: Mule スタンドアロンでは不要)
+|`target`      |Parse Template が実行された後に `targetValue` で定義された式の結果が保存される変数の名前。
+|`targetValue` |Parse Template が実行された後に評価され、結果が `target` 属性で定義された名前の変数に保存される Mule 式。
+|===
+
+
+[[code_example]]
+== コード例
+
+次の例では、`employeeID` によるクエリを受け入れて従業員に関するデータを取得するアプリケーション
+における Parse Template の使用を示しています。
+
+この場合、Parse Template はメッセージペイロードから抽出した項目 (`name`、`department`、`job title`、`start date`、`employee type`) の値を挿入するテンプレートとして、フロー外部のファイルをテンプレートとして使用します。続いて、フローが template-built (テンプレート構築) ペイロードをコール元に返します。
+
+image::parse-template-flow.png[]
+
+[source,html,linenums]
+----
+include::{examplesdir}/responseHtml.template[]
+----
+
+[source,xml,linenums]
+----
+include::{examplesdir}/parse-template-reference.xml[]
+----
+
+この例でアプリケーションを使用するには、URL に +「http://localhost:8081/getEmployee?id=12345」+ などの ID クエリパラメータが含まれる HTTP 要求を送信する必要があります。
+
+==== 特殊文字
+
+Parse Template はネストされた式および式内のリテラルの使用をサポートしています。特殊な用途の文字がいくつかあります。 
+* シーケンス `#[` で開始する式には、ネストされた式を含むことができます。式内で、文字 `[` は式の開始を定義できます。`[` には先行の `#` は必要ありません。`[` は式内で特殊文字として扱われます。
+* 式内で、一重引用符はテキストを引用する目的とテキストをリテラルとして扱う目的の両方に使用されます。そのため、式 `#['[']` は有効な式であり、評価は `[` となります。式外で、一重引用符はリテラルとして使用されます。 
+* 式内で一重引用符を使用したときにテキストに引用符が付くのを避けるには、バックスラッシュを追加してエスケープする必要があります。たとえば、`#['this isn\'t an expression']` のようにします。
+* 式外では、文字 `#` と `[` が組み合わされている場合を除き、引用符を付ける必要はありません。たとえば、`to create an expression just write \#[ the-expression-to-resolve ]` のようにします。 
+
+== 関連情報
+
+xref:variable-transformer-reference.adoc[Set Variable トランスフォーマ]

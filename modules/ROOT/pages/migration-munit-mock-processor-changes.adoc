@@ -1,0 +1,71 @@
+= モックプロセッサの移行 (Munit)
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+. プロセッサの名前が when から mock-when に変更されました。
+. 属性 messageProcessor が processor に変更されました。
+. 子ノード with-attribute では、属性 name が attributeName に変更されました。
+. 子ノード then-return では、属性 payload を子ノードにする必要があります。
+. 子ノード invocation-properties には変更された変数があります。
+. セッションプロパティ、属性、エラーのサポートを追加しました。
+
+.MUnit 1.x のモックプロセッサの構文
+[source,xml,linenums]
+----
+<mock:when messageProcessor="mule:set-payload">
+  <mock:with-attributes>
+    <mock:with-attribute name="doc:name" whereValue="#['Hello world!']" />
+  </mock:with-attributes>
+  <mock:then-return payload="#['mocked_payload']">
+    <mock:invocation-properties>
+      <mock:invocation-property key="property_name" value="#['property_value']"/>
+    </mock:invocation-properties>
+    <mock:inbound-properties>
+      <mock:inbound-property key="property" value="#['propertyValue']"/>
+    </mock:inbound-properties>
+    <mock:outbound-properties>
+	  <mock:outbound-property key="property" value="#['propertyValue']"/>
+	</mock:outbound-properties>
+  </mock:then-return>
+</mock:when>
+----
+
+.MUnit 2.x のモックプロセッサの構文
+[source,xml,linenums]
+----
+<munit-tools:mock-when processor="mule:set-payload">
+  <munit-tools:with-attributes>
+    <munit-tools:with-attribute attributeName="value" whereValue="#['Hello world!']"/>
+  </munit-tools:with-attributes>
+  <munit-tools:then-return>
+    <munit-tools:payload value="#['expectedPayload']"/>
+    <munit-tools:attributes value=""/>
+    <munit-tools:error id="" exception=""/>
+    <munit-tools:variables>
+       <munit-tools:variable key="#['aVariable']" value="#['aVariableValue']"/>
+    </munit-tools:variables>
+    <munit-tools:session-properties>
+    	<munit-tools:property key="#['aSessionProperty']" value="#['aSessionPropertyValue']"/>
+    </munit-tools:session-properties>
+    <munit-tools:inbound-properties>
+       <munit-tools:property key="#['aInboundProperty']" value="#['aInboundPropertyValue']"/>
+    </munit-tools:inbound-properties>
+    <munit-tools:outbound-properties>
+      <munit-tools:property key="#['aOutboundProperty']" value="#['aOutboundPropertyValue']"/>
+    </munit-tools:outbound-properties>
+    <munit-tools:inbound-attachments>
+      <munit-tools:attachment key="#['aInboundAttachment']" value="#['aInboundAttachmentValue']"/>
+    </munit-tools:inbound-attachments>
+    <munit-tools:outbound-attachments>
+      <munit-tools:attachment key="#['aOutboundAttachment']" value="#['aOutboundAttachmentValue']"/>
+    </munit-tools:outbound-attachments>
+  </munit-tools:then-return>
+</munit-tools:mock-when>
+----
+
+== 関連情報
+
+* xref:2.0@munit::munit-2-changes.adoc[Mule 2.0 の変更]
+* xref:2.0@munit::assert-processor-changes.adoc[アサートプロセッサの変更]
+* xref:2.0@munit::set-message-processor-changes.adoc[メッセージプロセッサの設定の変更]

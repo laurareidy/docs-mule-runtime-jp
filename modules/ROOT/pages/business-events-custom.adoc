@@ -1,0 +1,41 @@
+= Custom Business Event コンポーネント
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Custom Business Event (`tracking:custom-event`) コンポーネントを使用して、メタデータおよび重要業績評価指標 (KPI) をフローに追加できます。
+
+. Mule アプリケーションで、Custom Business Event コンポーネントをフローに追加します。
+. クリックしてコンポーネントを開きます。
+. [Display Name (表示名)] と [Event Name (イベント名)] の値を入力します。
+. 必要に応じて、重要業績評価指標 (KPI) を追加して、メッセージペイロードから情報をキャプチャします。
++
+* KPI (`tracking:meta-data` 要素) の名前 (`key`)
++
+Runtime Manager の検索インターフェースで使用できる名前と値 (任意の Mule 式を使用可能) を入力します。
++
+* KPI の式/値 (`value`)
++
+KPI のリストの例:
++
+[%header,cols="2*a"]
+|===
+|Name (名前) |式/値
+|Employee ID (従業員 ID) |`#[payload['ID']]`
+|Employee Email (従業員メール) |`#[payload['Email']]`
+|Employee Git ID (従業員 Git ID) |`#[payload['GITHUB_ID']]`
+|===
+
+キー/値ペアは、ビジネスニーズによって異なります。他の例を次に示します。
+
+[%header,cols="2*a"]
+|===
+|Name (名前) |式/値
+|`price` |`700`
+|`price-after-discount` |`#[vars.price]`
+|`order-id` | `#[payload.order.header.orderID]`
+|===
+
+== 関連情報
+
+xref:business-events.adoc[ビジネスイベント]

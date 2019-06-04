@@ -1,0 +1,14 @@
+= 主要概念
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, サーバ, コンポーネント, コネクタ, 要素, 全体像, アーキテクチャ
+
+このセクションでは、Mule Runtime に関する主な概念について説明します。
+
+* xref:about-mule-event.adoc[Mule イベント]
+* xref:about-mule-message.adoc[Mule メッセージ構造]
+* xref:about-components.adoc[Core コンポーネント]
+* xref:about-flows.adoc[フローおよびサブフロー]
+* xref:index.adoc[Mule Runtime]
+* xref:mule-application-about.adoc[Mule アプリケーション]

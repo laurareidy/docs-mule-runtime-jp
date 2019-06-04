@@ -1,0 +1,12 @@
+= MUnit の移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+// Explain generally how and why things changed between Mule 3 and Mule 4.
+
+MUnit の移行について説明します。
+
+* xref:migration-munit-assert-processor-changes.adoc[アサートプロセッサの移行 (Munit)]
+
+* xref:migration-munit-mock-processor-changes.adoc[モックプロセッサの移行 (Munit)]

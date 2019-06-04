@@ -1,0 +1,49 @@
+= 再接続戦略
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Anypoint, Studio, 再接続戦略, 再接続戦略, 再試行ポリシー, 再試行
+
+Mule アプリケーションが起動すると、HTTP コネクタや FTP コネクタなどのコンポーネントで接続テストが実行されるため、外部サーバに接続する必要があります。テストに失敗した場合、デフォルトの動作が警告メッセージにログ記録され、アプリケーションのデプロイメントはブロックされることなく続行されます。
+
+初回の失敗後に試行する再接続の回数を設定し、すべての接続試行に失敗した場合はデプロイメントを強制的に失敗させることで、この動作を変更できます。
+
+* Fail Deployment (デプロイメントに失敗) (`failsDeployment`): 接続に失敗し、設定されている再接続試行回数に達した場合にデプロイメントを強制的に失敗させます。
+* Reconnect (再接続) (`reconnect`): 再接続試行回数と再接続を実行する間隔を制限します。たとえば、`count` が `5` 回 の再接続試行を `4000` ミリ秒 (ms) ごとの `frequency` に設定することもできます。デフォルトは、`2` 回の再接続試行で頻度は `2000` ms ごとです。
++
+.`5` 回の再接続試行回数に達した後に失敗した場合の例:
+[source,xml,linenums]
+----
+<ftp:config name="FTP_Config" doc:name="FTP Config" >
+  <ftp:connection host="ftp.someftphost.com" port="21" username="myusername" password="mypassword" >
+    <reconnection failsDeployment="true" >
+      <reconnect count="3"/>
+    </reconnection>
+  </ftp:connection>
+</ftp:config>
+<flow name="reconnectionsFlow" >
+  <ftp:listener doc:name="On New or Updated File" config-ref="FTP_Config">
+    <scheduling-strategy >
+      <fixed-frequency />
+    </scheduling-strategy>
+  </ftp:listener>
+</flow>
+----
++
+* Reconnect Forever (繰り返し再接続) (`reconnect-forever`): アプリケーションが実行されている限り、たとえば `4000` ms ごとなど、指定された間隔で再接続を試行します。デフォルトは `2000` ms ごとです。
++
+
+.再接続試行回数に制限を設定していない例:
+[source,xml,linenums]
+----
+<ftp:connection host="ftp.someftphost.com" port="21" username="myusername" password="mypassword" >
+  <reconnection>
+    <reconnect-forever frequency="4000"/>
+  </reconnection>
+</ftp:connection>
+----
+
+== 関連情報
+
+* xref:about-components.adoc[Core コンポーネント]
+* xref:connectors::index.adoc[コネクタおよびモジュール]

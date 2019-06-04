@@ -1,0 +1,36 @@
+= Round Robin ルータ
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: ルータ, フロー, プロセッサチェーン, 非同期, アグリゲータ, リシーケンサ
+
+Round Robin ルータは、リストに指定されている複数のルートを順番に繰り返し選択しますが、実行時に使用するルートは  _1 つ_ だけです。前回のルートを記録し、同じルートを連続して使用することはありません。たとえば、Round Robin を最初に実行すると、リストの最初のルートが使用されます。次回の実行時には 2 番目のルートが選択されます。前回のルートがリストで最後のルートであれば、次は最初のルートが再び選択されます。
+
+[source,xml,linenums]
+----
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	<flow name="round-robinFlow" doc:id="95d79691-4142-43b1-9719-7d6dc19c40bd" >
+		<scheduler doc:name="Scheduler" doc:id="77a281f1-7643-422d-be72-25456b767d68" >
+			<scheduling-strategy >
+				<fixed-frequency />
+			</scheduling-strategy>
+		</scheduler>
+		<round-robin doc:name="Round Robin" doc:id="6fe1f667-05b2-47d3-81d2-e9ef27f7c9b6" >
+			<route>
+				<logger level="ERROR" doc:name="Logger" doc:id="e38d4396-d4ea-4eec-88dc-2bf60f579d5d" message="Route1"/>
+			</route>
+			<route>
+				<logger level="ERROR" doc:name="Logger" doc:id="6127fe32-0bc0-48e9-bb18-a9f3bfc45d0b" message="Route2"/>
+			</route>
+		</round-robin>
+	</flow>
+</mule>
+----
+
+上の例では、Round Robin を最初に実行すると、`Route1` と出力されます。次回は `Route2` を表示します。リストには 2 つのルートしかないため、3 回目は再び最初のルートが選択され、`Route1` と出力されます。
+
+==== スロー
+
+* `MULE:ROUTING`

@@ -1,0 +1,79 @@
+= Mule 4 の概要: アプリケーションのパッケージ化
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+== アプリケーションの構造
+Mule 4 では、Mule アプリケーションのパッケージ化の方法にいくつかの重要な変更が行われています。Mule アプリケーションは JAR としてパッケージ化されるようになり、構造が異なります。Mule Maven プラグインを使用すると、ソースコードを簡単にこの構造にパッケージ化できます。
+
+[%header,cols="3,2"]
+|===
+|場所 |説明
+
+|`META-INF/mule-artifact/mule-artifact.json`
+|Mule アプリケーションの説明 (<<mule-artifact.json>> を参照)。
+
+|`META-INF/mule-src/yourapp/`
+|ソースコードの場所 (省略可能)。
+
+|`repository`
+|Maven レイアウトにあるアプリケーションのすべての連動関係のリポジトリ。アプリケーションのすべてのコネクタが含まれます。(例: `repository/commons-collections/commons-collections/3.2.2/commons-collections-3.2.2.jar`)。
+
+|`yourapp.xml`
+|Mule の XML コード。|
+|===
+
+[[app_descriptor]]
+== アプリケーション記述子
+Mule 4 のアプリケーションの `META-INF/mule-artifact/` に `mule-artifact.json` ファイルがあります。このファイルにアプリケーション、設定、必要な Mule バージョン、クラスローダ設定が説明されています。
+
+[source,json,linenums]
+----
+{
+  "configs": [
+    "ch-usage-sync.xml"
+  ],
+  "redeploymentEnabled": true,
+  "name": "ch-usage-sync",
+  "minMuleVersion": "4.0.0",
+  "requiredProduct": "MULE_EE",
+  "classLoaderModelLoaderDescriptor": {
+    "id": "mule",
+    "attributes": {
+      "exportedResources": []
+    }
+  },
+  "bundleDescriptorLoader": {
+    "id": "mule",
+    "attributes": {}
+  }
+}
+----
+
+[cols=“1,3”]
+|===
+| `configs` | Array of String (文字列の配列) | Mule の設定ファイルのセット。 |
+| `redeploymentEnabled` | Boolean (ブール) | アプリケーション設定ファイルを変更すると再デプロイメントがトリガされるかどうか。 |
+| `name` | String (文字列) | アプリケーションのわかりやすい名前。 |
+| `minMuleVersion` | String (文字列) | アプリケーションのデプロイに必要な Mule Runtime の最小バージョン。 |
+| `requiredProduct` | String (文字列) | アプリケーションのデプロイに必要な製品種別。`MULE` は、アプリケーションを Community Edition (CE) バージョンまたは Enterprise Edition (EE) バージョンにデプロイできることを示します。`MULE_EE` は、アプリケーションを EE バージョンにのみデプロイできることを示します。 |
+| `classLoaderModelLoaderDescriptor` | Object (オブジェクト) | アプリケーションのクラスローディングモデルの記述子。`id` 項目は、アプリケーションの連動関係とパッケージ/リソースの使用目的を理解するためにランタイムが使用するメカニズムを特定します。Mule はデフォルトで `mule` ID を使用します。つまり、アプリケーションからエクスポートされたパッケージとリソースが `attributes` 項目で説明され、連動関係は `/META-INF/mule-artifact/classloader-model.json` ファイルで説明されます。. |
+| `bundleDescriptorLoader` | Object (オブジェクト) | アプリケーションのバンドル座標の記述子。`id` 項目は、アプリケーションのバンドル座標を理解するためにランタイムが使用するメカニズムを特定します。デフォルトは `mule` で、POM ファイルからアーティファクトグループ ID、アーティファクト ID、バージョンを読み込みます。 |
+| `secureProperties` | Array of String (文字列の配列) | プラットフォームで安全に管理する必要があるアーティファクトの一連の設定プロパティを宣言します。 |
+|===
+
+== アプリケーションのバージョン管理
+
+Mule Runtime はすべてのアーティファクトで https://semver.org/[セマンティックバージョン管理]に従います。セマンティックバージョン管理に従うと、リリースされるアセットの新バージョンがどのようなものかを API のクライアントが容易に想像できます。たとえば、Mule のコネクタの場合について考えてみます。パッチバージョンが更新されれば、バグ修正 (つまりバグの修正のみ) であることが予想できます。マイナーバージョンが更新された場合は新機能を期待できます。このどちらの変更も後方互換性があると予想されるため、問題なくアップグレードできます。他方、コネクタのメジャーバージョンが更新される場合は、新しい機能を追加したり、はるかに優れた UX を提供したりするために必然的に後方互換性が失われることになります。
+
+また、Mule アーティファクト (アプリケーション、ドメイン、ポリシー) はセマンティックバージョン管理に従うため、Mule アプリケーションを操作するときに何らかの検証が必要になることがあります。Anypoint Platform がセマンティックバージョン管理に従うことで、新しいアセットが整理され、エクスペリエンスが向上します。たとえば、Mule ドメインに新しいメジャーバージョンがある場合、そのバージョンで定義されている一連のグローバルコンポーネントが前回のメジャーバージョンとは異なることを期待できます。そして、新しいドメインを使用するならば、元のドメインに属する Mule アプリケーションの更新が必要になることが予想されます。
+
+== Mule Maven プラグイン
+
+Mule 4 の Mule Maven プラグインはアプリケーションを規定のフォーマットでパッケージ化し、対象の環境にデプロイできるようにします。このプラグインは Studio 7 によって自動的に `pom.xml` に追加されます。このプラグインを使用してアプリケーションをデプロイする方法については、Mule Maven プラグインのドキュメントを参照してください。
+
+IMPORTANT: ドメイン、ポリシー、Mule アーティファクトプラグイン (コネクタ、モジュールなど) はすべて Mule アプリケーションと同じ構造です。アーティファクトの種類ごとに、アーティファクト記述子 (`mule-artifact.json`) のプロパティ数が異なりますが、どれもよく似ており、すべてセマンティックバージョン管理に従う必要があります。
+
+== 関連情報
+ * xref:mmp-concept.adoc#mule-application-packaging[Mule Maven プラグインを使用した Mule アプリケーションのパッケージ化]
+ * xref:mmp-concept.adoc#mule-application-deployment[Mule Maven プラグインを使用した Mule アプリケーションのデプロイ]

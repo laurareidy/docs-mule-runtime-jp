@@ -1,0 +1,157 @@
+= VM トランスポートの移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+VM トランスポートは完全に書き換えられました。Mule 3 トランスポートモデルを操作ベースのコネクタへと進化させました。このため、多数の新しい機能が可能になります。
+
+* ポーリングインバウンドエンドポイントのみが提供された古いトランスポートとは異なり、オンデマンドでキューからメッセージをコンシュームする機能。
+* 拡張された xref:7.1@studio::datasense-explorer.adoc[DataSense]。
+
+[[whats_covered_here]]
+== このトピックの内容
+
+* <<file_configs>>
+* <<vm_listener>>
+* <<vm_outbound>>
+
+[[file_configs]]
+== VM トランスポート設定の移行
+
+Mule 3 では、トランスポート設定はすべて `<vm:connector />` と呼ばれる最上位レベルの要素の下に設定されます。各設定は複数のキューを処理できますが、それらはすべて一時的キューか永続的キューのいずれかでなければならないという制限がありました。一時的と永続的を組み合わせるには、個別に 2 つのトランスポート設定が必要でした。
+
+.Mule 3 の例: 永続的 VM トランスポートの定義
+[source,xml,linenums]
+----
+<vm:connector name="persistentVmConnector" queueTimeout="1000">
+    <vm:queue-profile>
+        <default-persistent-queue-store/>
+    </vm:queue-profile>
+</vm:connector>
+----
+
+Mule 4 では、各コネクタ設定が処理を行うキューを事前に定義します。これらのキューのそれぞれに、明確で柔軟な独自の設定を使用することができます。ただし、設定がアクセスできるのは、それぞれが定義したキューのみです。これは、誰もリスンしていないキューにメッセージをパブリッシュしないように設けられた制限です。
+
+.Mule 4 の例: VM コネクタ設定の定義
+[source,xml,linenums]
+----
+<vm:config name="vm">
+    <vm:queues>
+        <vm:queue queueName="transientQueue" queueType="TRANSIENT" />
+        <vm:queue queueName="persistentQueue" queueType="PERSISTENT" />
+    </vm:queues>
+</vm:config>
+----
+
+[[vm_listener]]
+== インバウンドエンドポイントの移行
+
+Mule 3 では、`<vm:inbound-endpoint>` メッセージソースを使用して、特定のキューのメッセージをリスンしていました。キュー内の要素ごとに、新しいメッセージがトリガされました。
+
+.Mule 3 の例: VM インバウンドエンドポイント
+[source,xml,linenums]
+----
+<flow name="persistentVM">
+    <vm:inbound-endpoint path="persistentQueue" exchange-pattern="request-response">
+        <vm:transaction action="ALWAYS_BEGIN"/>
+    </vm:inbound-endpoint>
+
+    ...
+</flow>
+----
+
+この設定では、`persistentQueue` と呼ばれるキューをリスンするトランザクションのインバウンドエンドポイントが定義されています。また、フローが応答を送信するものなのかどうかを判断するために、`exchange-pattern` パラメータが使用されました。`request-response` に設定すると、エンドポイントはフローの最後に取得されたメッセージで応答します (この詳細は「<<vm_outbound>>」セクションで説明します)。
+
+Mule 4 では代わりに `<vm:listener>` メッセージソースが使用されます。
+
+.Mule 4 の例: VM リスナ
+[source,xml,linenums]
+----
+<flow name="persistentVM">
+    <vm:listener queueName="persistentQueue" transactionalAction="ALWAYS_BEGIN" config-ref="vm">
+        <vm:response>
+            <vm:content>
+                #[lower(payload.salute)]
+            </vm:content>
+        </vm:response>
+    </vm:listener>
+
+    ...
+</flow>
+----
+
+主な違いは次のとおりです。
+
+* リスナは config を参照しており、その config で定義されたキューのみをリスンできます。
+* `<vm:response>` 要素を使用して応答を制御できるようになりました。指定しない場合、フローの最後に生成されるメッセージペイロードが設定になります。
+* 応答が送信されるかどうかを制御するために `exchange-pattern` を使用する必要がなくなりました。コネクタでは、`<vm:publish>` または `<vm:publish-response>` 操作で生成されるメッセージに応じて、送信が自動的に判断されます。
+
+=== メッセージの順次リスン
+
+インバウンドエンドポイントのもう 1 つのユースケースは、メッセージの順次リスンです。Mule 3 では、これは `numberOfConcurrentTransactedReceivers` パラメータを使用してコネクタレベルで設定する必要がありました。
+
+.Mule 3 の例: メッセージの順次リスン
+[source,xml,linenums]
+----
+    <vm:connector name="vmConnector" numberOfConcurrentTransactedReceivers="1"/>
+----
+
+Mule 4 では、これをリスナレベルで行うことができます。
+
+.Mule 4 の例: メッセージの順次リスン
+[source,xml,linenums]
+----
+<flow name="synchronousQueue" maxConcurrency="1">
+    <vm:listener queueName="synchronousQueue" numberOfConsumers="1" config-ref="vm" transactionalAction="ALWAYS_BEGIN"/>
+    ...
+</flow>
+----
+
+フローの `maxConcurrency` とリスナの `numberOfConsumers` を両方とも 1 に設定することで、メッセージを順次処理できます。
+
+[[vm_outbound]]
+== アウトバウンドエンドポイントの移行
+
+Mule 3 トランスポートでは、`<vm:outbound-endpoint>` コンポーネントを使用してメッセージをキューにパブリッシュします。
+
+.Mule 3 の例: キューへのメッセージの投稿
+[source,xml,linenums]
+----
+<vm:outbound-endpoint path="sendAsync" exchange-pattern="one-way"/>
+<vm:outbound-endpoint path="sendAndWait" exchange-pattern="request-response"/>
+----
+
+`exchange-pattern` パラメータが上記の例の動作で重要な役割を果たします。パターンが `one-way` の場合はメッセージが送信され、同じメッセージペイロードを使用して実行が続行されます。`request-response` が使用されている場合、同じキューでリスンしている `<vm:inbound-endpoint>` を使用するフローからの応答を待機し、取得した応答は次のメッセージプロセッサに伝搬されます。
+
+Mule 4 ではこれを 2 つの異なる操作を使用して行います。
+
+.Mule 4 の例: キューへのメッセージの投稿
+
+[source,xml,linenums]
+----
+<vm:publish queueName="sendAsync" config-ref="vm">
+    <vm:content>#[upper(payload)]</vm:content>
+</vm:publish>
+
+<vm:publish-consume queueName="sendAndWait" config-ref="vm">
+    <vm:content>#[upper(payload)]</vm:content>
+</vm:publish-consume>
+----
+
+両方の操作は同じように設定になっており、DataWeave を使用して、送信されるメッセージのコンテンツを構築できます。ただし、`<vm:publish>` 操作はコンテンツをパブリッシュし、同じメッセージを使用して続行されるのに対し、`<vm:publish-consume>` 操作は参照するキューの `<vm:listener>` から応答が生成されるのを待機します。
+
+VM コネクタを使用するには、Studio のパレットを使用してアプリケーションに追加するか、`pom.xml` ファイルで次の連動関係を追加します。
+
+[source,xml,linenums]
+----
+<dependency>
+    <groupId>org.mule.connectors</groupId>
+    <artifactId>mule-vm-connector</artifactId>
+    <version>1.1.0</version> <!-- or newer -->
+    <classifier>mule-plugin</classifier>
+</dependency>
+----
+
+== 関連情報
+
+* xref:connectors::file/file-connector.adoc[ファイルコネクタについて]

@@ -1,0 +1,22 @@
+= Objects (dw::core::Objects)
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+このモジュールには、オブジェクトを操作するヘルパー関数が含まれます。
+
+このモジュールを使用するには、DataWeave コードにインポートする必要があります。その方法として、たとえば、行 `import * from dw::core::Objects` を DataWeave スクリプトの
+ヘッダーに追加します。
+
+== 関数
+|===
+| Name (名前)
+| xref:dw-objects-functions-divideby.adoc[divideBy]
+| xref:dw-objects-functions-entryset.adoc[entrySet]
+| xref:dw-objects-functions-keyset.adoc[keySet]
+| xref:dw-objects-functions-mergewith.adoc[mergeWith]
+| xref:dw-objects-functions-nameset.adoc[nameSet]
+| xref:dw-objects-functions-valueset.adoc[valueSet]
+|===
+
+

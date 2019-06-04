@@ -1,0 +1,108 @@
+= Poll コンポーネントの移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Mule 3 では、`<poll>` 要素を使用して特定のフローを固定頻度でトリガしました。この要素はスコープでもあり、その内部にメッセージプロセッサが 1 つだけ含まれている必要がありました。そのプロセッサから出力されるのは、フローが受信するメッセージです。
+
+.Mule 3 の例: Poll
+[source,xml,linenums]
+----
+<flow name="poll>
+    <poll frequency="1000">
+        <db:select config-ref="MySQL_Configuration">
+            <db:parameterized-query>SELECT * FROM PERSON></db:parameterized-query>
+        <db:select>
+    </poll>
+
+    <flow-ref name="doProcess" />
+</flow>
+----
+
+Mule 4 では `<poll>` 要素が `<scheduler>` 要素に置き換わりました。主な違いは次のとおりです。
+
+* ただフローをトリガします。スコープではなくなりました。
+* 固定頻度と cron 式の両方がサポートされます。
+
+.Mule 4 の例: Scheduler
+[source,xml,linenums]
+----
+<flow name="poll>
+    <scheduler>
+        <scheduling-strategy>
+            <fixed-frequency frequency="1000"/>
+        </scheduling-strategy>
+    </scheduler>
+
+    <db:select config-ref="MySQL_Configuration">
+        <db:sql>SELECT * FROM PERSON></db:sql>
+    <db:select>
+
+    <flow-ref name="doProcess" />
+</flow>
+----
+
+`<scheduler>` 要素の詳細については、xref:scheduler-concept.adoc[スケジューラに関するドキュメント]を参照してください。
+
+== 透かしの移行
+
+`<poll>` 要素では、同期を補助、スケジュールするために使用される `<watermark>` 要素もサポートされていました。その要素はなくなりました。代わりに、xref:migration-patterns-watermark.adoc[「透かしの移行」]ページを参照してください。
+
+[[qz]]
+== Quartz トランスポート
+
+Mule 3 では、`quartz` トランスポートが非推奨となり、代わりに `poll` が使用されました。したがって、Mule 4 でもそのほとんどが `scheduler` に置き換わる可能性があります。
+
+`quartz` トランスポートの一部の機能は Mule 4 には存在しないので、それらのユースケースを移行するには違うアプローチが必要です。
+
+[[qz_repeat_count]]
+=== repeatCount
+
+Mule 4 では、`repeatCount` は `scheduler` でサポートされていません。
+
+フェッチする必要がある場合は、xref:connectors::object-store/object-store-connector.adoc[オブジェクトストア]でカウンタを比較し保存します。
+
+[[qz_outbound_endpoint]]
+=== quartz:outbound-endpoint
+
+このエンドポイントは、Mule 4 ではサポートされていません。
+
+代替のアプローチとして、キュー (JMS や VM など) にイベントを書き込み、キューのすべてのメッセージをコンシュームして処理するスケジューラを含む、別のフローを使用します。
+
+[[qz_job_endpoint]]
+=== サポートされていない job-endpoint
+
+`job-endpoint` で使用されるトランスポートは、Mule 4 に移行するとき、ポーリングソースのあるコネクタ (ファイルコネクタなど) に移行できます。その場合、スケジューラ設定を直接ポーリングソースに含めることができます。 
+
+.Mule 3 の例: ポーリングソース
+[source,xml,linenums]
+----
+<flow name="poll>
+    <quartz:inbound-endpoint name="quartzInboundEndpoint"
+        cronExpression="0/3 * * * * ?" jobName="cronJob">
+        <quartz:endpoint-polling-job>
+            <quartz:job-endpoint address="sftp://.../~/data" />
+        </quartz:endpoint-polling-job>
+    </quartz:inbound-endpoint>
+
+    <flow-ref name="doProcess" />
+</flow>
+----
+
+.Mule 4 の例: ポーリングソース
+[source,xml,linenums]
+----
+<flow name="poll>
+    <sftp:listener config-ref="inboundEndpointConfig" directory="data">
+        <scheduling-strategy>
+            <cron expression="0/3 * * * * ?"/>
+        </scheduling-strategy>
+    </sftp:listener>
+
+    <flow-ref name="doProcess" />
+</flow>
+----
+
+== 関連情報
+
+* xref:scheduler-concept.adoc[スケジューラエンドポイント (トリガ)]

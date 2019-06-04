@@ -1,0 +1,18 @@
+= Diff (dw::util::Diff)
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+このユーティリティモジュールは、2 つの値の差を計算し、差のリストを返します。
+
+このモジュールは Mule Runtime に含まれています。使用するには、DataWeave コードにインポートする必要があります。たとえば、ヘッダーに行 `import dw::util::Diff` または `import * from dw::util::Diff` を追加するなどします。
+
+== 関数
+|===
+| Name (名前)
+| xref:dw-diff-functions-diff.adoc[diff]
+|===
+
+== 型
+* xref:dw-diff-types.adoc[Diff の型]
+

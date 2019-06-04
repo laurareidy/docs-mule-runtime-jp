@@ -1,0 +1,24 @@
+= ヒント: Transform Message コンポーネント UI (Anypoint Studio)
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+* マッピングを作成する前に、入力と出力が予測できるように、フローの他の部分をすべて設定してください。
+
+* 入力または出力構造から表示されるすべてのデータを絞り込むには、それぞれのセクションの一番上にある虫眼鏡のアイコン image:tips-transform-message-ui-studio-69e11.png[] をクリックして、項目名を入力します。
+
+
+* 出力ペインで要素を選択すると、DataWeave コードの対応する行がハイライトされます。
+
+* 入力項目が複数の出力項目にマップされている場合は、入力項目を右クリックして、DataWeave コードでハイライトしたい出力を選択できます。
+
+
+
+
+== 関連情報
+
+xref:transform-component-about.adoc[Transform Message コンポーネント]
+
+xref:transform-workflow-create-mapping-ui-studio.adoc[ワークフロー: マッピングの作成]
+
+xref:dataweave.adoc[DataWeave 言語]

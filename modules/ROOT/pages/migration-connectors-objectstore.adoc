@@ -1,0 +1,251 @@
+= Object Store Connector の移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Mule 4 の Object Store Connector は、Mule 3 の Object Store Connector と非常に似ています。これらのメジャーバージョンの主な違いは次のとおりです。
+
+* カスタムオブジェクトストアの作成方法。Mule 4 でのカスタムオブジェクトストアの作成では、Spring の使用や、特定の Java クラスの存在を知っている必要がありません。
+
+* キーは必ず文字列であること。以前の Object Store Connector では `Serializable` をキーとして使用できました。
+Mule 4 では、すべてのキーは `String` 型である必要があります。
+
+== このセクションの内容
+
+* <<namespace>>
+* <<configs-object-stores>>
+* <<custom-object-store>>
+* <<change-on-keys>>
+* <<storing-values>>
+* <<persistent-default-value>>
+* <<dispose-clear>>
+* <<dual-store>>
+* <<remove-behavior>>
+
+[[namespace]]
+== 名前空間の変更
+
+Mule 3 の Object Store Connector で使用されていた名前空間は `objectstore` でした。Mule 4 の新しいコネクタでは、この名前空間が `os` に変更されました。
+
+.Mule 3 の例
+[source,xml,linenums]
+----
+<objectstore:contains config-ref="ObjectStoreConnector" key="#[flowVars.userId]"/>
+----
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<os:contains key="#[vars.userId]" objectStore="customObjectStore"/>
+----
+
+[[configs-object-stores]]
+== 最上位レベルオブジェクトの使用
+
+前述の例では、`config-ref` パラメータが削除され、代わりに `objectStore` パラメータが使用されていました。これは、Mule 3 ではほとんどのコネクタ操作に_コネクタ設定の参照_が必要であるのに対し、Mule 4 のほとんどの操作では代わりに _Object Store の最上位レベルの要素_の参照を受け取るからです。
+
+[[custom-object-store]]
+== カスタムオブジェクトストアの作成
+
+カスタムオブジェクトストアは、操作で使用するために名前で参照できる OS のグローバル定義で、オブジェクトストアの動作をニーズに応じて調整し、設定することができます。
+
+Mule 3 では、新しい ObjectStore を作成するには、Spring bean を作成し、ObjectStore に使用する特定の Java クラスを知っている必要がありました。Mule 4 では、これがかなり容易になり、`os:object-store` コンポーネントを使用して ObjectStore を宣言するグローバル要素を作成するだけですみます。
+
+次の例は、永続的なカスタムブジェクトストアを使用して HTTP エンドポイント経由で `store` と `retrieve` が公開される簡単なケースを、Mule 3 で行われていた方法と Mule 4 で行う方法を示しています。
+
+.Mule 3 の例
+[source,xml,linenums]
+----
+<spring:beans>
+  <spring:bean id="myCustomObjectStore" class="org.mule.util.store.SimpleMemoryObjectStore"/> // <1>
+</spring:beans>
+
+<objectstore:config name="ObjectStoreConnector" objectStore-ref="myCustomObjectStore"  partition="users" entryTtl="3600000" expirationInterval="10000" maxEntries="1000" persistent="true"/> // <2>
+<http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="8080"/>
+
+<flow name="storeBook">
+  <http:listener config-ref="HTTP_Listener_Configuration" path="/store"/>
+  <dw:transform-message>
+    <dw:set-payload><![CDATA[%dw 1.0 // <3>
+%output application/java
+---
+{
+	id: inboundProperties.'http.query.params'.id,
+	book: inboundProperties.'http.query.params'.book,
+	author: inboundProperties.'http.query.params'.author
+}]]></dw:set-payload>
+  </dw:transform-message>
+  <objectstore:store config-ref="ObjectStoreConnector" key="#[payload.id]" value-ref="#[payload]"/> // <4>
+</flow>
+
+<flow name="retrieveBook">
+  <http:listener config-ref="HTTP_Listener_Configuration" path="/retrieve"/>
+  <objectstore:retrieve config-ref="ObjectStoreConnector" key="#[message.inboundProperties.'http.query.params'.id]/>
+  <json:object-to-json-transformer/>
+</flow>
+----
+
+このスニペットでは、次の点に注目します。
+
+<1> Spring bean と Java クラスへの参照を使用してカスタムオブジェクトストアを作成します。
+
+<2> 設定でカスタムオブジェクトストアを参照します。
+
+<3> store 操作を使用する前に DataWeave 変換を使用して、ペイロードに何が保存されるのかを設定します。
+
+<4> ペイロードはオブジェクトストアに保存されます。
+
+Mule 4 で同じアプリケーションを実装すると次のようになります。
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<http:listener-config name="HTTP_Listener_config">
+  <http:listener-connection host="localhost" port="8080" />
+</http:listener-config>
+
+<os:object-store name="booksObjectStore" maxEntries="1000" entryTtl="1" entryTtlUnit="HOURS" expirationIntervalUnit="SECONDS" expirationInterval="10"/> // <1>
+
+<flow name="storeBook">
+  <http:listener config-ref="HTTP_Listener_config" path="/store"/>
+  <os:store key="#[attributes.queryParams.id]" objectStore="booksObjectStore" failIfPresent="true"> // <2>
+    <os:value>
+    #[{
+      id: attributes.queryParams.id,
+      book: attributes.queryParams.book,
+      author: attributes.queryParams.author
+    }]
+    </os:value>
+  </os:store>
+</flow>
+
+<flow name="retrieveBook">
+  <http:listener config-ref="HTTP_Listener_config" path="/retrieve"/>
+  <os:retrieve key="#[attributes.queryParams.id]" objectStore="booksObjectStore"/>
+  <set-payload value="#[output application/json --- payload]">
+</flow>
+----
+
+主な違いは次のとおりです。
+
+<1> 新しいオブジェクトは Spring bean と Java クラスを知らずに作成されます。ここで定義されているのは、設定ではなく、オブジェクトストアの最上位レべルの要素です。
+
+<2> 変数またはペイロードに値を保存する必要がなく、インライン記述でオブジェクトストアに何が保存されるのかが定義されます。
+
+Mule 3 では、オブジェクトストアのパーティションを指定する必要がありました。Mule 4 では、パーティションを指定する必要がなくなり、代わりに別のオブジェクトストアを使用します。
+また、エントリの存続時間と、エントリの有効期限またはエントリ最大数を超えたどうかをチェックする頻度の両方に、時間単位を指定することができます。
+
+[[change-on-keys]]
+== キーの変更
+
+Mule 3 では、オブジェクトストアの値を参照するために使用するキーに任意の `Serializable` を使用できました。Mule 4 では、この目的に使用できるのは `String` オブジェクトのみです。
+
+`String` ではなく `Serializable` をキーとして使用している場合は、`String` 値に変換してください。
+
+[[storing-values]]
+== 値の保存
+
+Mule 4 では、値のパラメータがコンテンツのパラメータとして取得されるようになりました。つまり、インラインで定義する必要があります。これは、Mule 3 では属性として設定されていました。
+
+また、オブジェクトストアの値を更新する方法が若干変更されました。Mule 3 には、デフォルトで false になる `overwrite` というフラグがありました。Mule 4 には、デフォルトで false になる `failIfPresent` というフラグがあります。つまり、すでに使用されているキーを指定した store 操作を使用する場合、デフォルトの動作はその値の上書きです。
+
+WARNING: Mule 4 では、キーがすでに存在し、フラグ `failIfPresent` が true に設定されると、OS:KEY_ALREADY_EXISTS エラーがスローされます。
+
+移行するときには、デフォルトの動作が異なるため、フラグがどのように設定されているかに注意してください。
+
+.Mule 3 の例
+[source,xml,linenums]
+----
+<http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="8080"/>
+<objectstore:config name="ObjectStoreConnector" partition="users"/>
+
+<flow name="storeClient">
+  <http:listener config-ref="HTTP_Listener_Configuration" path="/put"/>
+  <dw:transform-message>
+    <dw:set-variable variableName="client"><![CDATA[%dw 1.0
+      %output application/java
+      ---
+      {
+        id: payload.id,
+        name: payload.name,
+        lname: payload.lname
+      }]]></dw:set-variable>
+    </dw:transform-message>
+  <objectstore:store config-ref="ObjectStoreConnector" key="#[flowVars.client.id]" value-ref="#[flowVars.client]"/> // <1>
+</flow>
+----
+
+<1> Mule 3 では DataWeave 式をインラインで挿入できないので、コンテンツを変数に保存するか、ペイロードを変更するかのいずれかになります。この例では、クライアント変数に割り当てられました。
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<http:listener-config name="HTTP_Listener_config">
+  <http:listener-connection host="localhost" port="8080" />
+</http:listener-config>
+
+<os:object-store name="Object_store" persistent="false"/>
+
+<flow name="storeClient">
+  <http:listener config-ref="HTTP_Listener_config" path="/put"/>
+  <os:store key="#[payload.id]" objectStore="Object_store" failIfPresent="true">
+    <os:value >#[{ // <1>
+      id: payload.id,
+      name: payload.name,
+      lname: payload.lname,
+      age: payload.age
+    }]</os:value>
+  </os:store>
+</flow>
+----
+
+<1> Mule 4 では、保存するコンテンツをインラインで挿入できます。この操作の後、ペイロードは変更されないままです。
+
+[[persistent-default-value]]
+== Persistent (永続) 属性のデフォルト値
+
+Mule 4 のオブジェクトストアはデフォルトで永続的なのに対し、Mule 3 コネクタではデフォルトでオンメモリに保存されます。このため、実装を移行するときには注意が必要です。オブジェクトストアの永続性を明示的に指定しないと、違うことを意味するようになります。
+
+この例は、移行後に persistent (永続) 属性をどのように明示的に追加する必要があるかを示しています。
+
+.Mule 3 の例
+[source,xml,linenums]
+----
+<objectstore:config name="ObjectStoreConnector" partition="users"/>
+----
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<os:object-store name="customObjectStore" persistent="false"/>
+----
+
+[[dispose-clear]]
+== オブジェクトストアのクリーンアップ
+
+オブジェクトストアの特定のパーティションをクリアするには、Mule 3 では dispose 操作が使用されていました。
+Mule 4 には、オブジェクトストア全体をクリアする clear 操作があります。パーティションという概念は使用されなくなりした。
+
+.Mule 3 の例
+[source,xml,linenums]
+----
+<objectstore:dispose-store config-ref="ObjectStoreConnector" partitionName="users"/>
+----
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<os:clear objectStore="customObjectStore"/>
+----
+
+WARNING: Mule 4 の clear 操作は、オブジェクトストア全体をクリアします。
+
+[[dual-store]]
+== Dual Store 操作の削除
+
+Mule 3 の Object Store Connector には、キーを使用して値を保存し、また値を保存して同じキーを保存する `dual-store` 操作がありました。Mule 4 ではキーは `String` に限定されるため、この操作は意味がないので削除されました。
+
+[[remove-behavior]]
+== Remove 操作の動作
+
+Mule 3 の `remove` 操作には、デフォルトで false に設定される `ignoreNotExists` というフラグがありました。これは、削除されるキーが存在しなかった場合に操作が失敗するかどうかを示します。Mule 4 では、キーが存在しない場合、`OS:KEY_NOT_FOUND` エラーがスローされ、エラー処理で必要に応じて処理することができます。

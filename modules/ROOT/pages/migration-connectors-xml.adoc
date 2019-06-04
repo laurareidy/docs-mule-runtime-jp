@@ -1,0 +1,267 @@
+= XML モジュールの移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Mule 3 にバンドルされていた XML モジュールが、Mule 4 で新しい XML モジュールに置き換わります。主な変更は次のとおりです。
+
+* Mule 3.6 で非推奨となったコンポーネント、式、関数、エバリュエータの削除。
+** jxpath-filter
+** jaxen-filter
+** jxpath-extractor-transformer
+** is-xml-filter
+** xpath-filter
+* 新しい Mule 4 コンポーネントとの一貫性を保つために、主に次に関して XPath、XSLT、XQuery コンポーネントで行われた変更。
+** `mxml` から `xml-module` に変更された DSL 名前空間プレフィックス
+** 戻り値の型の一貫性
+** 構文と UX の変更
+* `xpath()` 関数と `xpath3()` 関数が `XmlModule::xpath()` 関数に置き換わりました。
+* スキーマ検証機能のエラーレポートが改善されました。
+* `schema-validation-filter` が `schema-validator` に置き換わりました。
+* Java との関連付けがなくなり、SAX、StaX、DOM 型は使用されなくなりました。Mule 4 では、厳密に型指定されるようになり、どのデータが XML 形式なのかについて MIME タイプの情報を把握しています。残りは Runtime によって自動的に行われます。すべての XML ドキュメントは、文字列またはストリームのいずれかとして表されます。つまり、次は存在しません (不要になりました)。
+** dom-to-xml-transformer
+** dom-to-output-handler-transformer
+** xml-to-dom-transformer
+** xml-prettyprinter-transformer
+** jaxb-object-to-xml-transformer
+** jaxb-xml-to-object-transformer
+** jaxb-context
+** object-to-xml-transformer
+** xml-to-object-transformer
+
+== XSLT 操作の移行
+
+=== 外部ファイルでの XSL スタイルシートの使用
+
+.Mule 3 の例: 外部ファイルでの XSL シートの使用方法
+[source,xml,linenums]
+----
+<mulexml:xslt-transformer xsl-file="cities-xslt.xsl" />
+----
+
+Mule 4 の場合:
+
+.Mule 4 の例: 外部ファイルでの XSL シートの使用方法
+[source,xml,linenums]
+----
+<xml-module:xslt-transform>
+    <xml-module:xslt>${file:::cities.xslt}</xml-module:xslt>
+</xml-module:xslt-transform>
+----
+
+=== コンテキストプロパティの使用
+
+.Mule 3 の例: コンテキストプロパティの設定方法
+[source,xml,linenums]
+----
+<mulexml:xslt-transformer xsl-file="cities-result-document-xslt.xsl">
+    <mulexml:context-property key="output_location" value="#[flowVars['outputFile']" />
+    <mulexml:context-property key="user_id" value="#[flowVars['userId']" />
+</mulexml:xslt-transformer>
+----
+
+.Mule 4 の例: コンテキストプロパティの設定方法
+[source,xml,linenums]
+----
+<xml-module:xslt-transform>
+    <xml-module:xslt>${file::cities.xslt}</xml-module:xslt>
+    <xml-module:context-properties>#[{'output_location': vars.outputFile, 'user_id': vars.userId}]</xml-module:context-properties>
+</xml-module:xslt-transform>
+----
+
+== XPath 操作と式の移行
+
+=== XPath 抽出器トランスフォーマの使用
+
+XPath extractor (XPath エクストラクタ) では、カスタム `resultType` パラメータがサポートされなくなりました。一致するすべての要素を含む文字列のリストが常に返されるようになります。
+
+.Mule 3 の例: XPath extractor (Xpath エクストラクタ) の使用方法
+[source,xml,linenums]
+----
+<mule-xml:xpath-extractor-transformer expression="//book" resultType="STRING"/>
+----
+
+.Mule 4 の例: XPath extractor (Xpath エクストラクタ) の使用方法
+[source,xml,linenums]
+----
+<xml-module:xpath-extract xpath="//book" />
+----
+
+=== XPath 式関数の使用
+
+Mule 3 には元々、`xpath()` MEL 関数がありました。それが Mule 3.6 で非推奨となり、新しい `xpath3()` 関数が使用されました。今回は、両方の関数が新しい `XmlModule::xpath()` DataWeave 関数に置き換わります。これは、アプリケーションにモジュールを追加すると使用可能になります。
+
+.Mule 3 の例: xpath3 関数の使用
+[source,xml,linenums]
+----
+<set-payload value="#[xpath3('//book', payload, 'NODESET')]" />
+----
+
+Mule 3 の `xpath3()` 関数では、XPath 式と入力値を指定でき、予期される出力では、`BOOLEAN`、`STRING`、`NUMBER`、`NODESET`、または `NODE` というさまざまなオプションが用意されていました。`NODESET` と `NODE` の場合は、Java の DOM ツリー表現を理解している必要がありました。
+
+また、新しい関数は XPath 式と入力を受け入れますが、次の点で異なります。
+
+* カスタムコンテキストプロパティのサポートが追加される。
+* 出力タイプを指定できない。`<xml-module:xpath-extract>` と同様に、常に文字列のリストが返される。
+
+.Mule 4 の例: xpath 関数の使用
+[source,xml,linenums]
+----
+<set-payload value="#[XmlModule::xpath('//book', payload, {})]" />
+----
+
+[TIP]
+この関数は、どの DataWeave 変換内でも使用できます。
+
+=== カスタム名前空間を指定した XPath の使用
+
+Mule 3 でカスタム名前空間プレフィックスをマップするには `<mxml:namespace-manager>` が必要です。
+
+.Mule 3 の例: カスタム名前空間の使用
+[source,xml,linenums]
+----
+ <mulexml:namespace-manager includeConfigNamespaces="true">
+      <mulexml:namespace prefix="soap" uri="http://schemas.xmlsoap.org/soap/envelope/"/>
+      <mulexml:namespace prefix="mule" uri="http://simple.component.mule.org/"/>
+  </mulexml:namespace-manager>
+
+  <flow name="xpathWithNamespace">
+      <expression-transformer expression="xpath3('/soap:Envelope/soap:Body/mule:echo/mule:echo')" />
+  </flow>
+----
+
+このアプローチには、アプリケーションごとに使用できる namespace-manager は 1 つだけという制限があります。Mule 4 では、必要な数だけ `namespace-directory` 要素を宣言し、各操作で必要なものを参照できます。
+
+.Mule 4 の例: カスタム名前空間の使用
+[source,xml,linenums]
+----
+<xml-module:namespace-directory name="fullNs">
+    <xml-module:namespaces>
+        <xml-module:namespace prefix="soap" uri="http://schemas.xmlsoap.org/soap/envelope/"/>
+        <xml-module:namespace prefix="mule" uri="http://simple.component.mule.org/"/>
+    </xml-module:namespaces>
+</xml-module:namespace-directory>
+
+<flow name="xpathWithFullNs">
+    <xml-module:xpath-extract xpath="/soap:Envelope/soap:Body/mule:echo/mule:echo" namespaceDirectory="fullNs"/>
+</flow>
+----
+
+さらに、'namespace-directory' を宣言しないことも可能で、代わりに名前空間をインラインでマップできます。
+
+.Mule 4 の例: インラインのカスタム名前空間マッピング
+[source,xml,linenums]
+----
+
+<flow name="xpathWithFullNs">
+    <xml-module:xpath-extract xpath="/soap:Envelope/soap:Body/mule:echo/mule:echo">
+      <xml-module:namespaces>
+          <xml-module:namespace prefix="soap" uri="http://schemas.xmlsoap.org/soap/envelope/"/>
+          <xml-module:namespace prefix="mule" uri="http://simple.component.mule.org/"/>
+      </xml-module:namespaces>
+    </xml-module:xpath-extract>
+</flow>
+----
+
+== XQuery 操作の移行
+
+主な違いは、Mule 3 ではこのトランスフォーマの出力タイプは変換の結果に応じて異なるということです。
+
+* 変換で要素が多数生成される場合は、リストが返されます。
+* 変換に応じて、そのリストの要素は文字列になるか、`Node` などの汎用 Java 表現になります。
+* 変換により要素が 1 つだけ生成される場合は、その要素が返されます。
+
+Mule 4 では、常に文字列のリストが返されます。
+
+それ以外の変更は、構文に関するもののみです。
+
+.Mule 3 の例: XQuery トランスフォーマの使用
+[source,xml,linenums]
+----
+<mxml:xquery-transformer>
+    <mxml:context-property key="books" value="#[flowVars['books']]" />
+    <mxml:context-property key="cities" value="#[flowVars['cities']]" />
+    <mxml:xquery-text>
+        <![CDATA[
+            xquery version "3.0";
+            declare variable $document external;
+            declare variable $cities external;
+            declare variable $books external;
+            <mixes>
+            {
+                for $b in $books/BOOKLIST/BOOKS/ITEM,
+                    $c in $cities/cities/city
+
+                return <mix title="{$b/TITLE/text()}" city="{$c/@name}" />
+            }
+            </mixes>
+        ]]>
+    </mxml:xquery-text>
+</mxml:xquery-transformer>
+----
+
+Mule 4 の場合:
+
+.Mule 4 の例: XQuery トランスフォーマの使用
+[source,xml,linenums]
+----
+<xml-module:xquery-transform>
+    <xml-module:xquery>
+        <![CDATA[
+            xquery version "3.0";
+            declare variable $document external;
+            declare variable $cities external;
+            declare variable $books external;
+            <mixes>
+            {
+                for $b in fn:doc($books)/BOOKLIST/BOOKS/ITEM,
+                    $c in fn:doc($cities)/cities/city
+
+                return <mix title="{$b/TITLE/text()}" city="{$c/@name}" />
+            }
+            </mixes>
+        ]]>
+    </xml-module:xquery>
+    <xml-module:context-properties>#[{'books' : vars.books, 'cities': vars.cities}] </xml-module:context-properties>
+</xml-module:xquery-transform>
+----
+
+== スキーマに対する XML の検証 
+
+Mule 3 では、フィルタを使用してスキーマの検証が行われていました。
+
+.Mule 3 の例: Schema validation filter (スキーマ検証フィルタ)
+[source,xml,linenums]
+----
+<mxml:schema-validation-filter schemaLocations="schema1.xsd, schema2.xsd"/>
+----
+
+検証が失敗すると、メッセージは放棄されます。
+
+Mule 4 では、フィルタがバリデータに置き換わりました。
+
+.Mule 4 の例: スキーマバリデータ
+[source,xml,linenums]
+----
+<xml-module:validate-schema schemas="schema1.xsd, schema2.xsd"/>
+----
+
+このバリデータは、`XML-MODULE:SCHEMA_NOT_HONOURED` エラーを発生させます。
+
+== XML モジュールのインストール
+
+XML モジュールを使用するには、Studio のパレットまたは Flow Designer のカードを使用してアプリケーションに追加するか、`pom.xml` ファイルで次の連動関係を追加します。
+
+[source,xml,linenums]
+----
+<dependency>
+    <groupId>org.mule.modules</groupId>
+    <artifactId>mule-xml-module</artifactId>
+    <version>1.1.0</version> <!-- or newer -->
+    <classifier>mule-plugin</classifier>
+</dependency>
+----
+
+== 関連情報
+
+* xref:connectors::xml/xml-module.adoc[XML モジュール]

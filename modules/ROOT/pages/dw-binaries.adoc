@@ -1,0 +1,20 @@
+= Binaries (dw::core::Binaries)
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+このモジュールには、バイナリを処理するためのヘルパー関数が含まれます。
+
+このモジュールを使用するには、DataWeave コードにインポートする必要があります。その方法として、たとえば、行 `import * from dw::core::Binaries` を DataWeave スクリプトの
+ヘッダーに追加します。
+
+== 関数
+|===
+| Name (名前)
+| xref:dw-binaries-functions-frombase64.adoc[fromBase64]
+| xref:dw-binaries-functions-fromhex.adoc[fromHex]
+| xref:dw-binaries-functions-tobase64.adoc[toBase64]
+| xref:dw-binaries-functions-tohex.adoc[toHex]
+|===
+
+

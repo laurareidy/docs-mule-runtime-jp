@@ -1,0 +1,47 @@
+= maxBy
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[maxby1]]
+== maxBy&#40;Array<T&#62;, &#40;item: T&#41; &#45;&#62; Comparable&#41;: T &#124; Null
+
+特定のリスト (配列) 内の比較可能な要素の最大値を返します。
+
+
+リストが空の場合は null を返します。リスト内の項目が比較可能でない場合は、
+エラーを返します。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `item` | 特定の配列内の要素 (型が `Number` (数値)、`Boolean` (ブール)、`DateTime` (日時)、`LocalDateTime` (ローカル日時)、`Date` (日付)、`LocalTime` (ローカル時刻)、`Time` (時刻)、`TimeZone` (タイムゾーン) のいずれか)。`&#36;` で参照できます。
+|===
+
+=== 例
+
+次の例では、配列のオブジェクト (キー-値ペア) 内の最大値を返します。`item.a` を使用してオブジェクトの値にアクセスしています。ソースの式を
+次のように記述することもできます。
+`[ { "a" : 1 }, { "a" : 3 }, { "a" : 2 } ] maxBy &#36;.a`
+
+==== ソース
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+output  application/json
+---
+[ { "a" : 1 }, { "a" : 3 }, { "a" : 2 } ] maxBy ((item) -> item.a)
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "a" : 3 }
+----
+

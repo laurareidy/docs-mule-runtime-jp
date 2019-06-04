@@ -1,0 +1,42 @@
+= typeOf
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[typeof1]]
+== typeOf&#40;T&#41;: Type<T&#62;
+
+入力値の型を返します。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `value` | string (文字列)、object (オブジェクト)、array (配列)、number (数値) などのサポートされている型。
+|===
+
+=== 例
+
+次の例では、入力文字列の型を識別します。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+typeOf("A Text")
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+"String"
+----
+

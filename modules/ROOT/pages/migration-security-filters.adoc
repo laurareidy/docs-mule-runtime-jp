@@ -1,0 +1,90 @@
+= セキュリティ検索条件の移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Mule 3 では、セキュリティ検索条件は Mule モジュールセキュリティの一部でした。Mule 4 では、xref:connectors::validation/validation-connector.adoc[Mule 検証モジュール]に移行されました。
+
+== IP 検索条件
+
+Mule 3 では、IP で絞り込むための 3 つの異なるオプションがありました:
+* `<filters:filter-by-ip>`
+* `<filters:filter-by-ip-range>`
+* `<filters:filter-by-ip-range-cidr>`
+
+=== 1 つの IP による絞り込み
+
+.例: Mule 3 での 1 つの IP による絞り込み
+[source,xml,linenums]
+----
+<filters:filter-by-ip regex="127.0.0.1"/>
+----
+
+これにより、正規表現に一致する IP に絞り込まれます。Mule 4 では次のようになります。
+
+.例: Mule 4 での 1 つの IP による絞り込み
+[source,xml,linenums]
+----
+<validation:is-blacklisted-ip blacklist="iplist" ip="#[vars.ip]">
+<validation:ip-filter-list>
+	<validation:ips>
+		<validation:ip value="127.0.0.1"/>
+	</validation:ips>
+</validation:ip-filter-list>
+----
+
+この場合、その `ip` 変数を設定する必要があります (または、適合するいずれかの変数)。
+
+=== IP の範囲による絞り込み
+
+Mule 3 では、サブネットマスクを定義して絞り込む 2 つの方法がありました。
+
+.例: Mule 3 での IP 範囲による絞り込み
+[source,xml,linenums]
+----
+<filters:filter-by-ip-range net="127.0.0.1" mask="255.255.255.0"/>
+<!-- or -->
+<filters:filter-by-ip-range-cidr cidr="127.0.0.1/24"/>
+----
+
+いずれも、次の方法によって置き換えられます。
+
+.例: Mule 4 での IP 範囲による絞り込み
+[source,xml,linenums]
+----
+<validation:is-blacklisted-ip blacklist="iplist" ip="#[vars.ip]">
+<validation:ip-filter-list>
+	<validation:ips>
+		<validation:ip value="127.0.0.1/24"/>
+	</validation:ips>
+</validation:ip-filter-list>
+----
+
+この場合、その `ip` 変数を設定する必要があります (または、適合するいずれかの変数)。
+
+[qanda]
+他に Mule 4 で追加された同様の検証はありますか? :: はい、IP 検索条件リストに記載された IP のみを許可するホワイトリスト検証もあります。
+
+== 時間経過検索条件
+
+Mule 3 では、開始日から定義された一定期間を経過したメッセージを絞り込むことができました。例:
+
+.例: Mule 3 での経過時間による絞り込み
+[source,xml,linenums]
+----
+<filters:filter-expired dateTime="#[vars.startingTime]" expiresIn="1000"/>
+----
+
+Mule 4 では、この検証は検証モジュールにあります。
+
+.例: Mule 4 での経過時間による絞り込み
+[source,xml,linenums]
+----
+<validation:is-not-elapsed time="1" timeUnit="SECONDS" since="#[vars.startingTime]"/>
+----
+
+[qanda]
+他に Mule 4 で追加された同様の検証はありますか? :: はい、経過時間が一定の時間を超えた場合に検証する経過時間検証もあります。
+
+== 関連情報
+xref:connectors::validation/validation-documentation.adoc[Validation Connector テクニカルリファレンス]

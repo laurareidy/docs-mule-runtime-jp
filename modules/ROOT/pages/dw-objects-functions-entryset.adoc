@@ -1,0 +1,57 @@
+= entrySet
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[entryset1]]
+== entrySet&#40;T&#41;
+
+入力オブジェクトのキー、値、任意の属性を表すキー - 値ペアのリストを返します。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `obj` | 表す対象の `Object`。
+|===
+
+=== 例
+
+次の例では、変数 `myVar` で指定されたオブジェクトのキー、値、属性を返します。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+import * from dw::core::Objects
+var myVar = read('<xml attr="x"><a>true</a><b>1</b></xml>', 'application/xml')
+output application/json
+---
+{ "entrySet" : entrySet(myVar) }
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "entrySet": [
+    {
+       "key": "xml",
+       "value": {
+         "a": "true",
+         "b": "1"
+       },
+       "attributes": {
+         "attr": "x"
+       }
+    }
+  ]
+}
+----
+

@@ -1,0 +1,64 @@
+= flatMap
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[flatmap1]]
+== flatMap&#40;Array<T&#62;, &#40;item: T, index: Number&#41; &#45;&#62; Array<R&#62;&#41;: Array<R&#62;
+
+リスト (配列) 内の各要素に変換関数を適用し、
+結果をフラット化します。
+
+
+`map` のように配列の配列を返すのではなく、
+フラット化した配列を返します (`flatten` 関数を参照)。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `items` | マップするリスト (`Array` (配列) 型)。
+| `mapper` | フラット化するリスト内の `item` (項目) および/または `index` (インデックス)。
+|===
+
+=== 例
+
+次の例では、各インデックスと項目が順序どおりに含まれる配列を返します。この例を
+次のように記述することもできます。
+`{ "users" : ["joe", "pete", "matt"] flatMap ([$$ as String, $]) }`
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{ "users" : ["joe", "pete", "matt"] flatMap (item, index) -> ([index as String, item]) }
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+   "users": [
+     "0",
+     "joe",
+     "1",
+     "pete",
+     "2",
+     "matt"
+   ]
+ }
+----
+
+
+[[flatmap2]]
+== flatMap&#40;Null, &#40;item: Nothing, index: Nothing&#41; &#45;&#62; Any&#41;: Null
+
+`flatMap` を null 値に使用できるようにするヘルパー関数。
+

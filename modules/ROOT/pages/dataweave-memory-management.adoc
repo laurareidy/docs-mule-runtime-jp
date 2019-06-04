@@ -1,0 +1,27 @@
+= DataWeave メモリ管理
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, esb, 変換, トランスフォーマ, 形式, 集約, 名前変更, 分割, 変換の絞り込み, xml, json, csv, pojo, java オブジェクト, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング, ストリーミング, weaveoutputhandler
+
+Mule で DataWeave を介して大きなファイルを処理する場合、どれだけのメモリをいつ使用するかを詳細に調整するためにセットアップできるいくつかの項目があります。
+
+[[buffersize]]
+== メモリの使用とディスクの使用
+
+DataWeave は、変換の処理中に、特定のしきい値を超えない限り、システムのメモリをバッファとして使用します。しきい値を超えた場合、システムのハードディスクをバッファとして使用します。デフォルトでは、このしきい値は *1572864 バイト*に設定されますが、この値を変更できます。この値は、各 Transform コンポーネントのメモリ使用量を参照します。プロジェクト内のすべての Transform コンポーネントのメモリ使用量を集約するものではありません。
+
+メモリがバッファとして使用されなくなるしきい値を変更するには、システムプロパティ `com.mulesoft.dw.buffersize` を追加して、そのプロパティに新しいしきい値の数値 (バイト単位) を割り当てる必要があります。  システムプロパティはいくつかの方法で定義できます。システムプロパティの詳細および設定方法については、xref:configuring-properties.adoc#system-properties[システムプロパティ]を参照してください。
+
+このプロパティに割り当てた値は、Mule アプリケーション全体に影響し、Transform コンポーネントの各インスタンスに個別に影響します。
+
+Mule Runtime バージョン 3.8.3 以前では、すべてのインデックス付きリーダーは 2 GB の最大制限でペイロードを処理できます。また、1 つの項目のテキスト長が 1 MB を超えることはできません (これは CSV、JSON、および XML に対して適用されます)。
+
+
+
+== 関連情報
+
+
+
+* xref:dataweave-language-introduction.adoc[DataWeave スクリプト]
+* xref:dataweave-selectors.adoc[DataWeave セレクタ]

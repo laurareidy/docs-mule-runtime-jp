@@ -1,0 +1,140 @@
+= sizeOf
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[sizeof1]]
+== sizeOf&#40;Array<Any&#62;&#41;: Number
+
+配列内の要素数を返します。
+
+
+配列が空の場合は `0` を返します。
+
+=== 例
+
+次の例では、入力配列内の要素数を返します。
+
+==== ソース
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  "arraySize": sizeOf([1,2,3])
+}
+----
+
+==== 出力
+[source,JSON,linenums]
+----
+{
+  "arraySize": 3
+}
+----
+
+
+[[sizeof2]]
+== sizeOf&#40;Object&#41;: Number
+
+入力オブジェクト内のキー-値ペア数を返します。
+
+
+オブジェクトが空の場合は `0` を返します。
+
+=== 例
+
+次の例では、入力オブジェクト内のキー-値ペア数をカウントします。
+
+==== ソース
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  objectSize: sizeOf({a:1,b:2})
+}
+----
+
+==== 出力
+[source,JSON,linenums]
+----
+{
+  "objectSize": 2
+}
+----
+
+
+[[sizeof3]]
+== sizeOf&#40;Binary&#41;: Number
+
+バイナリのバイト長を返します。
+
+
+=== 例
+
+次の例では、変数を使用して渡されるバイナリ値のサイズを
+返します。バイナリは、`core::Binaries` の関数によって返されます。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+import * from dw::core::Binaries
+var var1 = fromBase64(000000)
+output application/json
+---
+
+{ "size" : sizeOf(var1) }
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "size": 4
+}
+----
+
+
+[[sizeof4]]
+== sizeOf&#40;String&#41;: Number
+
+文字列内の文字数 (空白を含む) を返します。
+
+
+文字列が空の場合は `0` を返します。
+
+=== 例
+
+次の例では、入力配列内の文字数を返します。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  "sizeOfString1" : sizeOf("MuleSoft"),
+  "sizeOfSting2" : sizeOf("my string")
+}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "sizeOfString1": 8,
+  "sizeOfSting2": 9
+}
+----
+

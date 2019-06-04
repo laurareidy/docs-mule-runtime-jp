@@ -1,0 +1,991 @@
+= データの抽出
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, 変換, トランスフォーマ, メタデータ, DataWeave, data weave, datawave, datamapper, dwl, dfl, dw, payload, 属性, 変数, フロー, エラー, メッセージ
+
+DataWeave は、データをオブジェクトや配列、そのデータを保存する変数、および DataWeave 関数の出力 (その出力が配列またはオブジェクトの場合) から選択できます。DataWeave 式を使用できる Mule モジュール、コネクタ、コンポーネントのセレクタを使用できます。
+
+セレクタは、データを保存する変数、オブジェクトリテラル、配列リテラル、DataWeave 関数の呼び出しへの参照になるコンテキスト内で動作します。例については、「<<single_value>>」を参照してください。
+
+== 配列やオブジェクトでのセレクタの使用
+
+配列またはオブジェクトを参照する場合、セレクタ式を使用して、データ構造内から特定の値を抽出します。
+
+Studio および Design Center では、次のようにハッシュ (ポンド) 記号に続く角括弧内に DataWeave 式を配置する必要があります。
+
+```
+#[.]
+```
+
+有効なキーは文字で始まる必要があり、その後に省略可能な数値、文字、アンダースコア (`&#95;`) の任意の組み合わせが続きます。
+
+* データの有効なキーの場合、キーとセレクタを囲む引用符は_省略可能_です。`{"name" : "somebody"}.name`、`{"name" : "somebody"}."name"`、`{name : "somebody"}.name`、`{name : "somebody"}."name"` の例はすべて機能します。
+*  _無効な_ キーの場合、キーとセレクタを一重引用符または二重引用符で囲む必要があります。たとえば、`some-name` のような無効なキーの場合、`{ "some-name" : "somebody" }."some-name"` は機能しますが、`{ some-name : "somebody" }.some-name` では `Invalid input '-'` というエラーが発生します。
+キーとセレクタの両方に引用符が必要です。
+
+
+[cols="1,5", options="header"]
+|===
+| 抽出するデータ | 例
+
+| *単一値* (`.`)
+a|`.` セレクタは、配列やオブジェクトで動作します。
+
+* オブジェクトの `name` 値を選択:
++
+```
+{ "id" : "1234", "name" : "me" }.name
+```
++
+`output` ディレクティブが `application/json` の場合、`"me"` を返します。
++
+* 配列の `name` 値を選択:
++
+```
+[ { "id" : "1234", "name" : "me" } ].name
+```
++
+```
+[ { "id" : "1234" }, { "name" : "me" } ].name
+```
++
+それぞれの例では、`output` ディレクティブが `application/json` の場合に `[ "me" ]` を返します。
++
+* 最初の `name` 値を選択:
++
+```
+{ user : "a", "user" : "b" }.user
+```
++
+`output` ディレクティブが `application/json` に設定されている場合、最初の `user` 値 `"a"` のみを返します。
+
+その他の例については、「<<single_value>>」を参照してください。
+
+| *複数* (`*`)
+a|
+`*` セレクタは、配列やオブジェクトで動作します。
+
+* 配列のすべての `user` 値を選択:
++
+```
+[ { "user" : "a", "user" : "b" } ].*user
+```
++
+`output` ディレクティブが `application/json` の場合、`["a", "b"]` を返します。
+
+* オブジェクトのすべての `user` 値を選択:
++
+```
+{ user : "a", "user" : "b" }.*user
+```
++
+`output` ディレクティブが `application/json` の場合、`["a", "b"]` を返します。
+
+* `users` キーのすべての `user` 値を選択:
++
+```
+{ "users" : [ { "user" : "a" }, { "user" : "b" } ] }.users.*user`
+```
++
+`output` ディレクティブが `application/json` の場合、`[ "a", "b" ]` を返します。
+
+その他の例については、「<<multi_value>>」を参照してください。
+
+| *キー - 値ペア* (`&amp;`)
+a|
+`&amp;` セレクタは、配列やオブジェクトで動作します。
+
+* `&amp;` キーの値を選択:
++
+```
+{ "users" : [ "user" : "ale", "something": "else", "user" : "joe" ] }.users.&user
+```
++
+`output` ディレクティブが `application/json` の場合、`[ { "user": "ale" }, { "user": "joe" } ]` を返します。
+
+その他の例については、「<<key_value>>」を参照してください。
+
+| *子孫* (`..`)
+a|
+`..` セレクタは、配列やオブジェクトで動作します。
+
+* `c` キーの値を選択:
++
+```
+{ "user" : [{ "a" : "b"}, {"c" : [ {"aa" : "bb"}, { "cc": "dd" } ] } ] , "user" : "d" }..c
+```
++
+`[ [ { "aa": "bb" }, { "cc": "dd" } ] ]` を返します。
+
+その他の例については、「<<descendants>>」を参照してください。
+
+| *インデックス* (`[]`)
+a|
+`[]` セレクタは、配列のインデックスで動作します。
+
+* 配列のインデックスを選択:
+** `[1,2,3,4][0]` は `[1]` を返します。
++
+配列の最初の要素のインデックスは常に `0` です。
++
+** `[1,2,3,4][4]` は `[3]` を返します。
+
+その他の例については、「<<range>>」を参照してください。
+
+| *範囲* `[index1 to index2]`
+a| `[index1 to index2]` セレクタは、選択したインデックスの値を使用して配列を生成します。
+
+* インデックスの範囲を選択:
+** `[0,1,2][0 to 1]` は `[ 0, 1 ]` を返します。
+** `[0,1,2][-1 to 0]` は、反転したリスト `[ 2, 1, 0 ]` を返します。
+
+その他の例については、xref:dataweave-selectors#range-selector.adoc[「範囲セレクタ」]を参照してください。
+
+| *XML 属性* `.@keyName`
+a| `.@keyName` セレクタは、選択した属性の値を返します。
+
+例については、「<<xml_attribute>>」を参照してください。
+
+| *名前空間セレクタ* `keyName.#`
+a| `keyName.#` セレクタは、選択した XML 要素の名前空間を返します。
+
+例については、「<<namespace>>」を参照してください。
+
+| *セレクタ修飾子* `?` および `!`
+a| `?` および `!` は、指定したキーをチェックします。`?` は、`true` または `false` を返します。
+`!` は、キーが存在しない場合にエラーを返します。
+
+* `{ "a": "b" }.a?` は `true` を返します。`{ "a": "b" }.c?` は `false` を返します。
+* `{ "a": "b" }.a!` は `"b"` を返します。`{ "a": "b" }.c!` では `There is no name 'c'` というエラーが発生します。  `{ "a": "b" }.c` (`!` なし) は `null` を返します。
+
+その他の例については、「<<selector_modifiers>>」を参照してください。
+
+| *絞り込みセレクタ* `keyName[?(booleanExpression)]]`
+a| `keyName[?(booleanExpression)]` は、ブール式で `true` が返されて、指定した `key` が存在する場合に、選択した項目を返します。式が false か、キーが存在しない場合、`null` を返します。
+
+例については、「<<filter_selectors>>」を参照してください。
+|===
+
+
+[[single_value]]
+== 単一値セレクタ
+
+`.keyName` セレクタは、オブジェクトまたは配列で動作します。
+
+* オブジェクト `{ "aString": "hello", "aNum": 2, "aBool" : false }` の場合、単一値セレクタは次のようにオブジェクトのいずれかのキー - 値ペアの値を選択できます。
++
+`{ "aString": "hello", "aNum": 2, "aBool" : false }.aString`
++
+`"hello"` という文字列を返します。
++
+* 配列 `[ "aString": "hello", "aNum": 2, "aBool" : false, "aString" : "world" ]` の場合、単一値セレクタは次のように配列のキー - 値ペアの値を選択できます。
++
+`[ "aString": "hello", "aNum": 2, "aBool" : false, "aString" : "world" ].aString`
++
+`[ "hello", "world" ]` という配列を返します。
++
+* サポートされている変数参照は、`payload` や `attributes` などの xref:dataweave-variables-context.adoc[Mule Runtime 変数]と、配列またはオブジェクトを保存する xref:dataweave-variables.adoc[DataWeave 変数]です。簡単な例として `payload.someKey` が挙げられます。payload はオブジェクト `{"someKey" : 1234 }` であるため、結果は `1234` になります。
+* セレクタは、DataWeave
+`read` などの関数の呼び出しで動作します。たとえば、`read('{"A":"B"}','application/json')."A"` は `"B"` を返します。
+
+=== オブジェクトに対する単一値セレクタ
+
+`.keyName` は、 _最初_ に一致するキーの値を返します。後続の重複キーの値は返しません。たとえば、`{ "aString": "hello", "aNum": 2, "aBool" : false, "aString" : "world" }.aString`は `[ "hello", "world" ]`  _ではなく_  `[ "hello" ]` を返します。
+
+DataWeave は、セレクタを処理するときに後続のセレクタの新しいコンテキスト (スコープ) を設定するため、セレクタのチェーンを使用して配列やオブジェクトの複雑な構造を移動できます。選択の深さは、現在のコンテキストの深さに制限されます。
+
+この例の `payload.people.person.address` は `address` 要素の値を返します。
+
+.DataWeave スクリプト
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/xml
+---
+{ address: payload.people.person.address }
+----
+
+.入力ペイロード
+[source,json,linenums]
+----
+{
+  "people": {
+    "size" : 1,
+    "person": {
+      "name": "Nial",
+      "address": {
+        "street": {
+          "name": "Italia",
+          "number": 2164
+        },
+        "area": {
+          "zone": "San Isidro",
+          "name": "Martinez"
+        }
+      }
+    }
+  }
+}
+----
+
+.出力
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<address>
+  <street>
+    <name>Italia</name>
+    <number>2164</number>
+  </street>
+  <area>
+    <zone>San Isidro</zone>
+    <name>Martinez</name>
+  </area>
+</address>
+----
+
+[[single_value_array]]
+=== 配列に対する単一値セレクタ
+
+`.keyName` は、入力配列の一致するすべてのキーの値が含まれる配列を返します。
+
+配列で動作する場合、一致する値が 1 つのみの場合でも、単一値セレクタは配列を返します。たとえば、`["a":"b"]."a"` は `["b"]` を返します。
+
+次の例では、入力ペイロード `people` の値が、2 つのオブジェクトが含まれる配列になっています。セレクタは、両方のオブジェクトを移動し、両方の `street` キーの値を返します。
+
+.DataWeave スクリプト
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+payload.people.person.address.street
+----
+
+.入力ペイロード
+[source,dataweave,linenums]
+----
+{
+  "people": [
+    {
+      "person": {
+        "name": "Nial",
+        "address": {
+          "street": {
+            "name": "Italia",
+            "number": 2164
+          },
+          "area": {
+            "zone": "San Isidro",
+            "name": "Martinez"
+          }
+        }
+      }
+    },
+    {
+      "person": {
+        "name": "Coty",
+        "address": {
+          "street": {
+            "name": "Monroe",
+            "number": 323
+          },
+          "area": {
+            "zone": "BA",
+            "name": "Belgrano"
+          }
+        }
+      }
+    }
+  ]
+}
+----
+
+.出力
+[source,json,linenums]
+----
+[
+  {
+    "name": "Italia",
+    "number": 2164
+  },
+  {
+    "name": "Monroe",
+    "number": 323
+  }
+]
+----
+
+[[multi_value]]
+== 複数値セレクタ
+
+`.*` は、オブジェクトや配列をトラバースして、一致するすべてのキーの値を選択し、一致する結果を配列で返します。
+
+=== オブジェクトに対する複数値セレクタ
+
+`.*` は、キーが式に一致するすべての値が含まれる配列を返します。
+
+たとえば、`{ "aString": "hello", "aNum": 2, "aBool" : false, "aString" : "world" }.*aString` は `[ "hello", "world" ]` を返します。
+
+次の例では、入力ペイロードのすべての `user` 要素の値を返します。
+
+.DataWeave スクリプト
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+payload.users.*user
+----
+
+.入力ペイロード
+[source,xml,linenums]
+----
+<users>
+  <user>Mariano</user>
+  <user>Martin</user>
+  <user>Leandro</user>
+</users>
+----
+
+.出力
+[source,json,linenums]
+----
+[ "Mariano", "Martin", "Leandro" ]
+----
+
+=== 配列に対する複数値セレクタ
+
+配列では、`.*` は単一値セレクタ (`.`) と同じように動作します。たとえば、`payload.people.person.address.*street` と `payload.people.person.address.street` (「<<single_value_array>>」の例) は同じ結果を返します。
+
+
+[[descendants]]
+== 子孫セレクタ
+
+このセレクタは、`..<field-name>` という形式を使用してコンテキストに適用され、現在のコンテキストのサブツリーの一致するすべてのキー - 値ペアの値を取得します。これらの項目は、編成されている階層構造に関係なく、出力ではすべて同じレベルに配置されます。
+
+この例では、入力データのツリーのカーディナリティに関係なく、キー `name` に一致するすべての項目が `names` というリストに配置されます。
+
+
+.DataWeave スクリプト
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{ names: payload.people..name }
+----
+
+.入力ペイロード
+[source,json,linenums]
+----
+{
+  "people": {
+    "person": {
+      "name": "Nial",
+      "address": {
+        "street": {
+          "name": "Italia",
+          "number": 2164
+        },
+        "area": {
+          "zone": "San Isidro",
+          "name": "Martinez"
+        }
+      }
+    }
+  }
+}
+----
+
+.出力
+[source,json,linenums]
+----
+{
+  "names": [
+    "Nial",
+    "Italia",
+    "Martinez"
+  ]
+}
+----
+
+[[key_value]]
+== キー - 値ペアセレクタ
+
+
+`&` セレクタは、現在のコンテキストの一致するすべてのキーペアのキーと値の両方を取得します。これらは、取得されたキーと値が含まれるオブジェクトとして返されます。
+
+.DataWeave スクリプト
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/xml
+---
+{
+  users: payload.users.&user
+}
+----
+
+
+.入力ペイロード
+[source,xml,linenums]
+----
+<?xml version='1.0' encoding='US-ASCII'?>
+<users>
+  <user>Mariano</user>
+  <user>Martin</user>
+  <user>Leandro</user>
+  <admin>Admin</admin>
+  <admin>org_owner</admin>
+</users>
+----
+
+.出力
+[source,xml,linenums]
+----
+<?xml version='1.0' encoding='US-ASCII'?>
+<users>
+  <user>Mariano</user>
+  <user>Martin</user>
+  <user>Leandro</user>
+</users>
+----
+
+複数値セレクタとは異なり、このセレクタの出力はオブジェクトになっており、各値の元のキーも抽出されています。
+
+=== すべての子孫のキー - 値ペアの選択
+
+.DataWeave スクリプト
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{ names: payload.people..&name }
+----
+
+.入力ペイロード
+[source,json,linenums]
+----
+{
+  "people": {
+    "person": {
+      "name": "Nial",
+      "address": {
+        "street": {
+          "name": "Italia",
+          "number": 2164
+        },
+        "area": {
+          "zone": "San Isidro",
+          "name": "Martinez"
+        }
+      }
+    }
+  }
+}
+----
+
+.出力
+[source,json,linenums]
+----
+{
+  "names": [
+    { "name": "Nial" },
+    { "name": "Italia" },
+    { "name": "Martinez" }
+  ]
+}
+----
+
+==== オブジェクトの配列からオブジェクトのオブジェクトへの変換
+
+.DataWeave スクリプト
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/xml
+---
+{
+  names: (payload.people..&name) reduce (value, aggregator) -> aggregator ++ value
+  //Alternative methods
+  //names: payload.people..&name reduce ($$ ++ $)
+  //names: {(payload.people..&name)}
+}
+----
+
+.入力ペイロード
+[source,json,linenums]
+----
+{
+  "people": {
+    "person": {
+      "name": "Nial",
+      "address": {
+        "street": {
+          "name": "Italia",
+          "number": 2164
+        },
+        "area": {
+          "zone": "San Isidro",
+          "name": "Martinez"
+        }
+      }
+    }
+  }
+}
+----
+
+.出力
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<names>
+  <name>Nial</name>
+  <name>Italia</name>
+  <name>Martinez</name>
+</names>
+----
+
+[[index]]
+== インデックスセレクタ
+
+インデックスセレクタは、指定した位置にある要素を返します。これは、配列、オブジェクト、文字列に対して適用できます。
+
+=== 配列に対するインデックスセレクタ
+
+このセレクタは、文字列リテラル、配列、オブジェクトに適用できます。オブジェクトの場合、インデックスの位置にあるキー - 値ペアの値が返されます。
+配列の場合、要素の値が返されます。インデックスは、ゼロベースです。
+
+. インデックスが 0 以上の場合、カウントは最初から開始されます。
+. インデックスが負の場合、カウントは最後から開始されます (-1 は最後の要素)。
+
+.DataWeave スクリプト
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+payload.people[1]
+----
+
+
+.入力ペイロード
+[source,json,linenums]
+----
+{
+  "people": [
+        {
+          "nameFirst": "Nial",
+          "nameLast": "Martinez"
+        },
+        {
+          "nameFirst": "Coty",
+          "nameLast": "Belgrano"
+        }
+    ]
+}
+----
+
+.出力
+[source,json,linenums]
+----
+{
+  "nameFirst": "Coty",
+  "nameLast": "Belgrano"
+}
+----
+
+=== オブジェクトに対するインデックスセレクタ
+
+セレクタは、指定した位置にあるキー - 値ペアを返します。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+payload[1]
+----
+
+.入力
+[source,json,linenums]
+----
+{
+  "nameFirst": "Mark",
+  "nameLast": "Nguyen"
+}
+----
+
+.出力
+[source,json,linenums]
+----
+"Nguyen"
+----
+
+=== 文字列に対するインデックスセレクタ
+
+文字列でインデックスセレクタを使用する場合、文字列は配列に分解され、各文字がインデックスになります。
+
+.DataWeave スクリプト
+[source,dataweave,linenums]
+----
+output application/json
+---
+{ name: "MuleSoft"[0] }
+----
+
+.出力
+[source,json,linenums]
+----
+{ "name": "M" }
+----
+
+セレクタは、文字列を文字の配列として処理し、特定の位置にある文字を選択します。
+
+. インデックスが 0 以上の場合、カウントは最初から開始されます。
+. インデックスが負の場合、カウントは最後から開始されます。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  name: "Emiliano"[0]
+}
+----
+
+.出力
+[source,json,linenums]
+----
+{
+  "name": "E"
+}
+----
+
+[[range]]
+== 範囲セレクタ
+
+範囲セレクタ (`to`) は、配列または文字列の一致するインデックスを返します。このセレクタを使用して、範囲内のインデックスの順序を反転させることもできます。セレクタは、文字列の文字をインデックスとして処理します。
+
+=== 配列に対する範囲セレクタ
+
+範囲セレクタは、範囲で指定した要素のみをその特定の順序で出力します。このセレクタでは、配列のスライスや反転を行うことができます。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  slice: [0,1,2][0 to 1],
+  last: [0,1,2][-1 to 0]
+}
+----
+
+.出力
+[source,json,linenums]
+----
+{
+  "slice": [
+    0,
+    1
+  ],
+  "last": [
+    2,
+    1,
+    0
+  ]
+}
+----
+
+=== 文字列に対する範囲セレクタ
+
+範囲セレクタは、文字列を文字の配列として処理し、範囲で指定した要素のみをその特定の順序で出力します。このセレクタでは、文字列のスライスや反転を行うことができます。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  slice: "DataWeave"[0 to 1],
+  last: "DataWeave"[-1 to 0]
+}
+----
+
+.出力
+
+[source,json,linenums]
+----
+{
+  "slice": "Da",
+  "last": "evaeWataD"
+}
+----
+
+[[xml_attribute]]
+== XML 属性セレクタ
+
+`.@keyName` セレクタは、XML 要素の属性を選択します。
+
+キー名なしで `.@` を使用すると、キー - 値ペアとして属性が含まれるオブジェクトが返されます。
+
+この DataWeave の例では、XML サンプルを変数に読み取り、`@` を使用して XML の属性を選択します。
+
+[source,dataweave,linenums]
+----
+%dw 2.0
+var myVar = read('<product id="1" type="electronic">
+  <brand>SomeBrand</brand>
+</product>', 'application/xml')
+output application/json
+---
+{
+  item: [
+  	{
+      "type" : myVar.product.@."type",
+      "name" : myVar.product.brand,
+      "attributes": myVar.product.@
+    }
+  ]
+}
+----
+
+.出力
+[source,dataweave,linenums]
+----
+{
+  "item": [
+    {
+      "type": "electronic",
+      "name": "SomeBrand",
+      "attributes": {
+        "id": "1",
+        "type": "electronic"
+      }
+    }
+  ]
+}
+----
+
+[[namespace]]
+== 名前空間セレクタ
+
+`#` は、選択したキーの XML 名前空間を返します。
+
+.DataWeave スクリプト
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+payload.order.#
+----
+
+.入力ペイロード
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<ns0:order xmlns:ns0=http://orders.company.com>
+  <name>Mark</name>
+  <items>42</items>
+  <orderdate>2017-01-04</orderdate>
+</ns0:order>
+----
+
+.出力
+[source,json,linenums]
+----
+"http://orders.company.com"
+----
+
+[[selector_modifiers]]
+== セレクタ修飾子
+
+特定のキーの存在を確認できます。
+
+* `!` は、選択したキーを評価し、キーが存在しない場合に例外メッセージを表示して失敗します。
+* `?` は、選択したキーが存在する場合に `true` を返し、存在しない場合に `false` を返します。`?` は、<<filter_selectors>>でも使用されます。
+
+
+[[assert_present]]
+=== アサートの存在検証機能
+
+`!` は、指定したいずれかのキーがない場合にエラーを返します。
+
+* `{ "name": "Annie" }.lastName!` は、`There is no key named 'lastName'` というメッセージと共にエラーを返します。
+* `!` を使用しない場合、`{ "name": "Annie" }.lastName` は `null` を返します。
+* キーが存在する場合 (`{ "name": "Annie" }.name!`)、結果は `"Annie"` になります。
+
+
+[[key_present]]
+=== キーの存在検証機能
+
+指定したキーがオブジェクトに存在する場合や、XML 要素の属性として存在する場合、`true` を返します。
+
+この例では、`name` キーが存在するため `true` を返します。
+
+.DataWeave スクリプト
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/xml
+---
+present: payload.name?
+----
+
+.入力ペイロード
+[source,json,linenums]
+----
+{ "name": "Annie" }
+----
+
+.出力:
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<present>true</present>
+----
+
+`?` は、XML 属性でも動作します。
+
+.DataWeave スクリプト
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  item: {
+    typePresent : payload.product.@type?
+  }
+}
+----
+
+.入力ペイロード
+[source,xml,linenums]
+----
+<product id="1" type="tv">
+  <brand>Samsung</brand>
+</product>
+----
+
+.出力
+[source,json,linenums]
+----
+{
+  "item": {
+    "typePresent": true
+  }
+}
+----
+
+[[filter_selectors]]
+== 絞り込みセレクタ
+
+`keyName[?($ == "someValue")]` は、配列またはオブジェクト内の一致するキーの値のみを返します。`?` は、<<key_present>>でも使用されます。
+ 一致するキー - 値ペアがない場合、結果は `null` になります。
+
+次の例では、`*.name` で返される `name` キーの配列を入力し、値 `"Mariano"` を使用して `name` キーをチェックします。また、一致しない値は除外します。`$` は、選択したキーの値を参照します。
+
+.DataWeave スクリプト
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{ users: payload.users.*name[?($ == "Mariano")] }
+----
+
+[[input_filter_selectors]]
+.入力ペイロード
+[source,xml,linenums]
+----
+<users>
+  <name>Mariano</name>
+  <name>Luis</name>
+  <name>Mariano</name>
+</users>
+----
+
+.出力
+[source,json,linenums]
+----
+{
+  "users": [
+    "Mariano",
+    "Mariano"
+  ]
+}
+----
+
+次の例では、同じ<<input_filter_selectors>>を想定しています。式 `( 1 == 1 )` が true であるため、入力のすべてのキー - 値ペアを返します。
+`( 1 == 2 )` などの false 式は、`null` を返します。
+
+.DataWeave スクリプト
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{ users: payload.users.*name[?( 1 == 1)] }
+----
+
+.出力
+[source,json,linenums]
+----
+{
+  "users": [
+    "Mariano",
+    "Luis",
+    "Mariano"
+  ]
+}
+----
+
+
+次の例では、同じ<<input_filter_selectors>>を想定しています。`mapObject` を使用して、入力オブジェクト全体を反復処理し、一致しないキー - 値ペアを除外して、一致するペアを返します。
+
+.DataWeave スクリプト
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+payload mapObject { ($$) : $[?($=="Mariano")] }
+----
+
+.出力
+[source,json,linenums]
+----
+{
+  "users": {
+    "name": "Mariano",
+    "name": "Mariano"
+  }
+}
+----
+
+== 関連する例
+
+* xref:dataweave-cookbook-perform-basic-transformation.adoc[XML から JSON への変換]
+
+* xref:dataweave-cookbook-reference-multiple-inputs.adoc[複数の入力の参照]
+
+* xref:dataweave-cookbook-merge-multiple-payloads.adoc[複数のペイロードのマージ]
+
+== 関連情報
+
+* xref:dataweave-selectors.adoc[DataWeave セレクタ]
+
+* xref:dataweave-types.adoc[DataWeave の型]
+
+* xref:dataweave-cookbook.adoc[DataWeave の解説書]

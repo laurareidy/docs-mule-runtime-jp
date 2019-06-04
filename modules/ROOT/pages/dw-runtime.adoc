@@ -1,0 +1,26 @@
+= Runtime (dw::Runtime)
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+このモジュールには、DataWeave エンジンを操作する関数が含まれています。
+
+
+このモジュールを使用するには、DataWeave コードにインポートする必要があります。その方法として、たとえば、行 `import * from dw::Runtime` を DataWeave スクリプトの
+ヘッダーに追加します。
+
+== 関数
+|===
+| Name (名前)
+| xref:dw-runtime-functions-fail.adoc[fail]
+| xref:dw-runtime-functions-failif.adoc[failIf]
+| xref:dw-runtime-functions-locationstring.adoc[locationString]
+| xref:dw-runtime-functions-prop.adoc[prop]
+| xref:dw-runtime-functions-props.adoc[props]
+| xref:dw-runtime-functions-try.adoc[try]
+| xref:dw-runtime-functions-wait.adoc[wait]
+|===
+
+== 型
+* xref:dw-runtime-types.adoc[Runtime の型]
+

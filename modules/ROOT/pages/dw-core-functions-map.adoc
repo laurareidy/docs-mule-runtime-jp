@@ -1,0 +1,123 @@
+= map
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[map1]]
+== map&#40;Array<T&#62;, &#40;item: T, index: Number&#41; &#45;&#62; R&#41;: Array<R&#62;
+
+指定されたマッパー関数を使用して特定のリスト (配列) から新しいリストに
+項目を変換します。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `items` | マップするリスト (`Array` (配列) 型)。
+| `mapper` | リストの各項目の変換に使用する関数。`item` (項目) と必要に応じて `index` (インデックス) を受け入れ、変換した項目を返します。
+|===
+
+=== 例
+
+次の例では、インデックス (+ 1) を配列の各値に連結します。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+['joe', 'pete', 'matt'] map ((item, index) -> (index + 1) ++ '_' ++ item)
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+[
+  "1_joe",
+  "2_pete",
+  "3_matt"
+]
+----
+
+=== 例
+
+次の例では、インデックス (+1) をキーとして使用し、配列値でオブジェクトを作成します。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  (["joe", "pete", "matt"] map (item, index) -> {(index + 1): item})
+}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "1": "joe",
+  "2": "pete",
+  "3": "matt"
+}
+----
+
+
+=== 例
+
+`mapper` (マッパー) 関数のパラメータが指定されない場合、インデックスは
+`&#36;&#36;`、値は `&#36;` で参照できます。
+したがって、前の例は次のように記述できます。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+["joe", "pete", "matt"] map (($$ + 1) ++ ":" ++ upper($))
+----
+
+
+=== 例
+
+次の例は、キー-値ペアの配列をオブジェクトに変換する方法を示します。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+["joe", "pete", "matt"] map (($$ + 1) ++ ":" ++ upper($))
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+[
+  "1:JOE",
+  "2:PETE",
+  "3:MATT"
+]
+----
+
+
+[[map2]]
+== map&#40;Null, &#40;item: Nothing, index: Nothing&#41; &#45;&#62; Any&#41;: Null
+
+`map` を null 値に使用できるようにするヘルパー関数。
+

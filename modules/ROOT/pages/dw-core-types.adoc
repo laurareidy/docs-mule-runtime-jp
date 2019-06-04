@@ -1,0 +1,202 @@
+= Core 型 (dw::Core)
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+|===
+a| 型 a| 定義 a| 説明
+
+a| Any (任意)
+a| `type Any = Any`
+a| 最上位型。`Any` はすべてのシステム型を拡張します。つまり、`Any` 型の変数には任意のものを割り当てることができます。
+
+
+a| Array (配列)
+a| `type Array = Array`
+a| 配列型。`Type(T)` によってリストの要素を表す必要があります。
+例: `Array<Number>` は数値の配列を表し、`Array<Any>` は任意の型の配列を表します。
+
+
+a| Binary (バイナリ)
+a| `type Binary = Binary`
+a| blob。
+
+
+a| Boolean (ブール)
+a| `type Boolean = Boolean`
+a| `true` または `false` の `Boolean` 型。
+
+
+a| CData
+a| `type CData = String {cdata: true}`
+a| XML は、`String` から拡張され、CDATA XML ブロックを識別するために使用される `CData` カスタム型を定義します。
+
+CDATA 内でコンテンツをラップするか、CDATA ブロック内に入力文字列が到達したかどうかを確認するように、これを使用してライターに指示することができます。`:cdata` は型 `:string` から継承されます。
+
+*ソース*
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/xml
+---
+{
+  "users" :
+  {
+    "user" : "Mariano" as CData,
+    "age" : 31 as CData
+  }
+}
+----
+
+*出力*
+
+[source,XML,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<users>
+  <user><![CDATA[Mariano]]></user>
+  <age><![CDATA[31]]></age>
+</users>
+----
+
+
+a| Comparable (比較可能)
+a| `type Comparable = String &#124; Number &#124; Boolean &#124; DateTime &#124; LocalDateTime &#124; Date &#124; LocalTime &#124; Time &#124; TimeZone`
+a| 互いに比較できるすべての型を表す結合型。
+
+
+a| Date (日付)
+a| `type Date = Date`
+a| 年、月、日で表される日付。例: `&#124;2018-09-17&#124;`
+
+
+a| DateTime
+a| `type DateTime = DateTime`
+a| `TimeZone` 内での `Date` と `Time`。例: `&#124;2018-09-17T22:13:00Z&#124;`
+
+
+a| Dictionary (ディクショナリ)
+a| `type Dictionary = { _?: T }`
+a| 汎用ディクショナリインターフェース。
+
+
+a| Enum (列挙)
+a| `type Enum = String {enumeration: true}`
+a| この型は https://docs.oracle.com/javase/7/docs/api/java/lang/Enum.html[Enum Java クラス]に基づきます。
+
+常に `class` プロパティと共に使用する必要があります。このプロパティは、次の例に示すように完全な Java クラス名を指定します。
+
+*ソース*
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/java
+---
+"Male" as Enum {class: "com.acme.GenderEnum"}
+----
+
+
+a| Iterator (イテレータ)
+a| `type Iterator = Array {iterator: true}`
+a| この型は、 https://docs.oracle.com/javase/8/docs/api/java/util/Iterator.html[iterator Java クラス]に基づきます。
+イテレータにはコレクションと、その反復処理と絞り込みを行うメソッドが含まれます。
+
+Java クラスと同様に、`Iterator` は 1 回のみコンシュームされるように設計されています。たとえば、この型を https://docs.mulesoft.com/mule-runtime/4.1/logger-component-reference[ロガーコンポーネント]に渡すと、ロガーによってコンシュームされるため、フロー内のそれ以降の要素が参照することはできなくなります。
+
+
+a| Key (キー)
+a| `type Key = Key`
+a| `Object` のキー。
+
+
+a| LocalDateTime
+a| `type LocalDateTime = LocalDateTime`
+a| 現在の `TimeZone` 内の `DateTime`。例: `&#124;2018-09-17T22:13:00&#124;`
+
+
+a| LocalTime
+a| `type LocalTime = LocalTime`
+a| 現在の `TimeZone` 内の `Time`。例: `&#124;22:10:18&#124;`
+
+
+a| NaN
+a| `type NaN = Null {NaN: true}`
+a| `java.lang.Float` と `java.lang.Double` には、`NaN` と `Infinit` の特殊なケースがあります。
+DataWeave では、数値が多倍精度である性質から、これらの概念はありません。
+そのため、DataWeave 値にマップされると、スキーママーカーを使用して Null にラップされます。
+
+
+a| Namespace (名前空間)
+a| `type Namespace = Namespace`
+a| `URI` とプレフィックスで表される `Namespace` 型。
+
+
+a| Nothing (空)
+a| `type Nothing = Nothing`
+a| ボトム型。この型は、すべての型に割り当てることができます。
+
+
+a| Null
+a| `type Null = Null`
+a| Null 型。
+
+
+a| Number (数値)
+a| `type Number = Number`
+a| 数値型。数値型で表される任意の数値、10 進数、または整数。
+
+
+a| Object (オブジェクト)
+a| `type Object = Object`
+a| `Key` と値のペアのコレクションである任意のオブジェクトを表す型。
+
+
+a| Period (期間)
+a| `type Period = Period`
+a| 期間。
+
+
+a| Range (範囲)
+a| `type Range = Range`
+a| `Range` 型は、一連の数値を表します。
+
+
+a| Regex (正規表現)
+a| `type Regex = Regex`
+a| 正規表現型。
+
+
+a| SimpleType
+a| `type SimpleType = String &#124; Boolean &#124; Number &#124; DateTime &#124; LocalDateTime &#124; Date &#124; LocalTime &#124; Time &#124; TimeZone &#124; Period`
+a| すべての単純型を表す結合型。
+
+
+a| String (文字列)
+a| `type String = String`
+a| これは、DataWeave のネイティブ型です。
+
+`???` 定義を使用できる唯一の型です。
+
+
+a| Time (時刻)
+a| `type Time = Time`
+a| 特定の `TimeZone` での時刻。例: `&#124;22:10:18Z&#124;`
+
+
+a| TimeZone
+a| `type TimeZone = TimeZone`
+a| タイムゾーン。
+
+
+a| Type (型)
+a| `type Type = Type`
+a| DataWeave 型システムの型。
+
+
+a| Uri
+a| `type Uri = Uri`
+a| URI。
+
+|===

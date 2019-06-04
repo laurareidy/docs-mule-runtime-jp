@@ -1,0 +1,198 @@
+= Mule アプリケーション開発チュートリアル
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+ほとんどのインテグレーションでは、ソースから宛先に移動するときのデータの構造を変更する必要があります。Mule アプリケーション内で、Transform Message コンポーネントのドラッグアンドドロップインタフェースを使用して 1 つの項目または形式から別の項目または形式にデータをマップすることも、DataWeave スクリプト内でマッピングを手動で記述することもできます。通常、Mule アプリケーションは Studio または Design Center で作成しますが、Mule アプリケーション設定を XML で手動で記述することもできます。このチュートリアルでは、Studio を使用します。
+
+小さなデータセットと Exchange で使用可能なトレーニング API を使用して、プロジェクトを作成し、API から異なる構造およびプロトコルへの変換マッピングを定義します。ドラッグアンドドロップを使用しますが、変換を定義する xref:dataweave.adoc[DataWeave] コードも示しています。このチュートリアルを完了したら、独自のデータマッピングを作成する準備が整います。
+
+== 前提条件
+
+データマッピングワークフローに集中できるように、MuleSoft ではいくつかのセットアップタスクを完了することをお勧めします。
+
+. Exchange で https://anypoint.mulesoft.com/exchange/68ef9520-24e9-4cf2-b2f5-620025690913/training-american-flights-api/[[Training: American Flights API (トレーニング: American Flights API)]] に移動し、[GET (取得)] ボタンをクリックして JSON でサンプル応答を表示します。
++
+image::dw-quickstart-am-json.png[]
++
+この構造を変換します。
+
+. xref:7.2@studio::to-download-and-install-studio.adoc[Anypoint Studio] をダウンロードしてインストールします。
+. https://anypoint.mulesoft.com/login/#/signin?apintent=exchange[Anypoint Platform トライアルアカウント]がない場合は作成します。
+. Postman や Advanced REST クライアントなどの REST API クライアントを選択します。このチュートリアルでは、Advanced REST クライアントを使用します。
+
+== ステップ 1: Mule 4 プロジェクトを作成する
+
+Mule アプリケーションが含まれるプロジェクトを作成します。
+
+. Anypoint Studio を開き、**[File (ファイル)] > [New (新規)] > [Mule Project (Mule プロジェクト)]** を選択します。
+. **[Project Name (プロジェクト名)]** を `dw-tutorial4-flights-ws` に設定します。
+. その他はすべてデフォルトのままにして、**[Finish (完了)]** を選択してプロジェクトを作成します。
+
+完了したら、**Package Explorer** ウィンドウで新しいプロジェクトのコンテンツを確認します。
+
+image::dw-quickstart-package-explorer.png[]
+
+== ステップ 2: Mule 4 アプリケーションを作成して設定する
+
+今度は、API からデータを取得するために必要な要素を追加し、DataWeave を使用して異なる構造に変換します。
+
+. American Flights API をリスンするために HTTP リスニング操作を追加します。[Mule Palette (Mule パレット)] で、HTTP 操作を表示するために [HTTP] を選択し、Listener 操作をキャンバスまでドラッグします。
++
+image::dw-quickstart-listener.png[]
++
+[Mule Palette (Mule パレット)] に何も表示されない場合、Package Explorer で `src/main/mule` フォルダのプロジェクトファイル `dw-tutorial4-flights-ws.xml` を開きます。
+
+. Listener 操作をダブルクリックしてそのプロパティタブを表示し、緑色のプラス記号をクリックして新しい設定を追加します。
++
+image::dw-quickstart-listener-properties.png[]
+. HTTP Listener 設定ダイアログで、以下の値を追加します。
++
+** **Host (ホスト)**: `0.0.0.0`
+** **Port (ポート)**: `8081`
+. **[OK]** をクリックしてこれらの変更を保存し、ダイアログを閉じます。
+. Listener の [General (全般)] タブで、**[Path: (パス:)]** 項目を `/flights` に変更します。変更は自動的に保存されます。
++
+image::dw-quickstart-path.png[]
+. [Mule Palette (Mule パレット)] で、**[Add Modules (モジュールを追加)]** を選択してモジュールおよびコネクタのリストを表示し、データベースコネクタを [Mule Palette (Mule パレット)] の左側までドラッグします。バージョンの選択を要求される場合があります。最新バージョンを選択します。
++
+image::dw-quickstart-add-db1.png[]
+. データベースコネクタが [Mule Palette (Mule パレット)] に追加され、その操作を表示できるようになります。Select 操作をフローまでドラッグします。
++
+image::dw-quickstart-add-db2.png[]
+. MuleSoft サンプル MySQL データベースからの応答をリスンするように Database 操作を設定しましょう。Select オペレータをクリックしてそのプロパティタブを表示し、追加ボタン (緑色の十字) をクリックして [Database Config (データベース設定)] ダイアログを開きます。
+. ダイアログで Mule のサンプルデータベース値を選択または入力します。
++
+** Connection (接続): `MySQL Connection`
+** **Host (ホスト)**: `mudb.learn.mulesoft.com`
+** **Port (ポート)**: `3306`
+** **User (ユーザ)**: `mule`
+** **Password (パスワード)**: `mule`
+** **Database (データベース)**: `training`
++
+image::dw-quickstart-db-values.png[]
+. [Database Config (データベース設定)] ダイアログを表示したまま、**[Configure (設定)] > [Add Maven dependency (Maven 連動関係を追加)]** を選択します。
+. **[Pick a Maven dependency (Maven 連動関係を選択)]** ダイアログで、**[Search Maven Central (Maven Central を検索)]** 検索項目に `mysql-` と入力します。
+. 表示された項目から `mysql:mysql-connector-java` を選択します。
+. **[Finish (完了)]** を選択して [Database Config (データベース設定)] ダイアログに戻ります。
++
+image::dw-quickstart-maven1.png[]
+. **[Test Connection (接続をテスト)]** を選択します。`Test connection successful` メッセージが表示されます。このメッセージが表示されない場合、前のステップに戻り、エラーを探してください。
+. **[OK]** を選択して [Database Config (データベース設定)] ダイアログに戻ります。
+. Training: American Flights API からのすべてのフライトを返すクエリを作成します。
+.. まだ開いていない場合、Select 操作をクリックしてそのプロパティタブを表示します。
+.. クエリ項目で select ステートメントを追加します: `SELECT * FROM american`。変更は自動的に保存されます。
++
+image::dw-quickstart-select-query.png[]
+. さらに設定をテストするには、プロジェクトを実行します。フローが定義されているキャンバスを右クリックして、**[Run Project dw-tutorial4-flights-ws (プロジェクト dw-tutorial4-flights-ws を実行)]** を選択できます。
+. [Console (コンソール)] タブを確認し、アプリケーションが実行されたら REST API クライアントを開きます。
+. クライアントで、要求を http://localhost:8081/flights/[http://localhost:8081/flights/] に送信します。結果に Mule オブジェクトが表示されます。
++
+image::dw-quickstart-object.png[]
+
+これでアプリケーションがセットアップされたため、JSON を必要とするサービスでコンシュームできるようにデータを JSON に変換する準備ができました。
+
+[HINT]
+アプリケーションで指定されたポートをふさぐ可能性があるオーファンプロセスが誤って作成されるのを防ぐために、Mule アプリケーションは実行されたままにしておいてください。
+
+== ステップ 3: DataWeave データ変換を作成してテストする
+
+これで Mule アプリケーションが機能し、Training: American Flights API をリスンするようになたため、Transform Message コンポーネントを追加し、DataWeave のドラッグアンドドロップインターフェースを使用して Mule オブジェクトから JSON への変換を定義します。
+
+. [Mule Palette (Mule パレット)] で [Core (コア)] を選択し、[Transform Message] コンポーネントを見つけます。
++
+image::dw-quickstart-add-transform.png[]
+. [Transform Message] をキャンバスの Select 操作の右側までドラッグアンドドロップします。
++
+image::dw-quickstart-canvas.png[]
+. [Transform Message] コンポーネントをクリックしてグラフィカルビューとソースコードビューを表示します。
++
+image::dw-quickstart-dw-blank-palette.png[]
++
+** 左側は入力および出力のメタデータ構造のグラフィカルビューです。マッピングは中央の線とノードポイントで表現されます。
+** 右側は同じ構造およびマッピングのコードビューです。コードビューとグラフィカルビューでは同期が保たれます。
+. コードビューで、行 2 の出力タイプを `application/java` から `application/json` に変更し、行 4 および 5 の括弧を `payload` に置き換えます。
++
+image::dw-quickstart-dw-palette.png[]
++
+. 変更内容を保存して、プロジェクトを再デプロイします。
+. REST クライアントで GET 要求を送信し、この変更内容をテストします: `GET http://localhost:8081/flights`。
++
+image::dw-quickstart-json1.png[]
++
+DataWeave スクリプトの 2 つの単語だけを使用して、Mule オブジェクトを JSON に変換しました。次に、既存のデータを API から提供した例に基づくデータ構造にマップします。この例は、もう 2 つ目のサービスが Training: American Flights API からデータをコンシュームする必要があることを示しています。
+. [Transform Message] の [Output (出力)] パネルで、**[Define metadata (メタデータを定義)]** を選択して **[Select metadata type (メタデータ型を選択)]** ダイアログを開きます。
+. **[Add (追加)]** を選択して **[Create new type (新しい型を作成)]** ダイアログを開きます。
+. `american_flights_json` を入力して **[Create type (型を作成)]** を選択します。
++
+image::dw-quickstart-empty-type.png[]
++
+. **[Select metadata type (メタデータ型を選択)]** ダイアログで、型を **[JSON]** に設定します。
+. [Type (型)] の下のドロップダウンで、**[Schema (スキーマ)]** を **[Example (例)]** に変更します。
+. 次の内容をコピーしてファイルに貼り付け、ローカルマシンまたは環境で保存します。ファイルに `american-flights-example.json` という名前を付けます。
++
+[source,json,linenums]
+----
+[{
+	"ID": 1,
+	"code": "ER38sd",
+	"price": 400.00,
+	"departureDate": "2016/03/20",
+	"origin": "MUA",
+	"destination": "SFO",
+	"emptySeats": 0,
+	"plane": {
+		"type": "Boeing 737",
+		"totalSeats": 150
+	}
+}, {
+	"ID": 2,
+	"code": "ER45if",
+	"price": 345.99,
+	"departureDate": "2016/02/11",
+	"origin": "MUA",
+	"destination": "LAX",
+	"emptySeats": 52,
+	"plane": {
+		"type": "Boeing 777",
+		"totalSeats": 300
+	}
+}]
+----
+. **[Select metadata type (メタデータ型)]** ダイアログで、3 つのドットのボタンをクリックして作成したばかりのファイルに移動し、選択します。
++
+image::dw-quickstart-json-example2.png[]
+. **[Select (選択)]** を選択して変更内容を保存します。入力および出力のデータ構造が DataWeave インターフェースに表示されます。
++
+image::dw-quickstart-input-output.png[]
+. 項目のマッピングを開始して変換を作成しましょう。
++
+** 入力セクションから出力セクションまでドラッグして、同じ名前の項目をマップします。
+*** `ID`
+*** `price`
+*** `totalSeats`
++
+ドラッグアンドドロップすると、DataWeave コードが一番右側のペインで記述されます。
++
+image::dw-quickstart-same-names.png[]
+
+** 残りのデータをマップします。
++
+*** `toAirport` から `destination`
+*** `takeOffDate` から `departureDate`
+*** `fromAirport` から `origin`
+*** `seatsAvailable` から `emptySeats`
+*** `planeType` から `type`
+*** `code1` と `code2` の両方を `code` にドラッグします。
++
+変換を作成するために項目をドラッグアンドドロップすると、DataWeave コードが生成されます。入力項目を誤った出力項目にドロップするなど、間違った場合、コードビューでエラーがマークされます。出力項目を右クリックし、**[Remove field mapping (項目マッピングを削除)]** を選択してエラーを削除します。
+. サンプルデータを追加して、マッピング結果をプレビューしましょう。(不要であればこのステップはスキップできます)。コードビューで **[Preview (プレビュー)]** を選択し、**[Create required sample data to execute preview (プレビューを実行するために必要なサンプルデータを作成)]** リンクをクリックします。
++
+image::dw-quickstart-sample-data1.png[]
+. 入力パネルの **[payload (ペイロード)]** タブで、すべてのクエスチョンマークをデータに置き換えます。これらの値は [Output (出力)] パネルにも表示されます。Studio のメインメニューから **[File (ファイル)] > [Save All (すべて保存)]** を選択します。
+. 変換の定義が完了したら、テストしましょう。前にお勧めしたとおりに Mule アプリケーションを実行したままにしているとして、REST クライアントを開いて別の要求を API に送信します: `GET http://localhost:8081/flights`。
++
+image::dw-quickstart-transformed.png[]
+データが以前のクエリのように [Input (入力)] ペインの構造に従うのではなく、[Output (出力)] パネルで記述されている構造になっていることに注意してください。
+
+これで、Mule オブジェクトから JSON へ、1 つのデータ構造から別のデータ構造へのデータの変換に成功したため、DataWeave 言語でのスクリプト作成を開始し (xref:dataweave-quickstart.adoc[「DataWeave 言語クイックスタート」]を参照)、他のxref:about-components.adoc[コアコンポーネント]および他のxref:connectors::index.adoc[コネクタおよびモジュール]について調べる準備ができました。

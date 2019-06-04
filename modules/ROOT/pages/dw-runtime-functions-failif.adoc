@@ -1,0 +1,58 @@
+= failIf
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[failif1]]
+== failIf&#40;T, &#40;value: T&#41; &#45;&#62; Boolean, String&#41;: T
+
+評価式が `true` を返す場合は、指定されたメッセージで失敗を発生させます。`true` でない場合は、値を返します。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `value` | `evaluator` 式が `false` の場合のみ返す値。
+| `evaluator` | `true` または `false` を返す式。
+|===
+
+=== 例
+
+次の例では、式 `isEmpty(empty)` が `true` であるため `{ "result": "SUCCESS" }` メッセージの代わりに失敗を返します。`empty` 変数は、空のオブジェクトを定義します。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+import failIf from dw::Runtime
+var empty = {}
+var notEmpty = { "a" : "b" }
+output application/json
+---
+{ "result" : "SUCCESS" failIf (isEmpty(empty)) }
+----
+
+==== 出力
+
+[source,TXT,linenums]
+----
+Failed
+Trace:
+  at fail (Unknown)
+  at dw::Runtime::failIf (line: 97, column: 26)
+  at main (line: 7, column: 24)
+----
+
+Studio コンソールコンポーネントでは、出力は次のように表示されます。
+
+[source,TXT,linenums]
+----
+ERROR 2018-07-29 11:56:39,988 ...
+**********************************
+Message               : "Failed
+----

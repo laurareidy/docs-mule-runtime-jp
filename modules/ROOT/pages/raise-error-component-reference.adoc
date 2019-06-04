@@ -1,0 +1,57 @@
+= Raise Error コンポーネント
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Mule, esb, Studio, 生成, エラー
+
+このコアコンポーネントは、障害が発生したかのように xref:mule-error-concept.adoc[Mule エラー]を生成し、その説明および種別をカスタマイズできます。
+
+使用できるのは `SECURITY` やカスタムエラーなど、コア種別のみです。`FILE:FILE_NOT_FOUND` のように、別のモジュールから
+エラーを生成することはできません。
+
+コアエラーでは暗黙的な名前空間を使用する必要があるのに対して、カスタムエラーではエラーを宣言することが強制されます。
+カスタムエラー名前空間はアプリケーション内の別の場所で使用できません。つまり、
+たとえば次のように HTTP 操作を使用している場合は、`HTTP` を名前空間として使用することはできません。`raise-error` で使用することで
+カスタム名前空間を宣言した場合は、
+他の `raise-error` コンポーネントおよびカスタム種別で使用できます。
+
+次のフロー例では、転送量が使用可能な残量を超えた場合に `ACCOUNT:INSUFFICIENT_FUNDS` エラーが
+発生し、転送が行われるのを
+防ぎます。さらに、障害の詳細を含む式を提供することで、
+動的な説明を生成します。
+
+.例: フローの XML 設定
+[source,xml,linenums]
+----
+<flow name="raise-error-example-flow">
+  <http:request url="https://unsecurebank.com/balance" target="balance"/>
+  <choice>
+      <when expression="#[payload.amount > vars.balance]">
+          <raise-error type="ACCOUNT:INSUFFICIENT_FUNDS" description="#['Cannot transfer $(payload.amount) since only $(vars.balance) are available.']"/>
+      </when>
+  </choice>
+  <http:request url="https://unsecurebank.com/transfer"/>
+</flow>
+----
+
+== エラー生成設定
+
+[%header,cols="1,1,2,2"]
+|===
+| 項目 | 値 | 説明 | 例
+
+| 説明 | String (文字列) または DataWeave 式 | エラーの説明を指定します。 |
+`description="Invalid email. Cannot complete transaction."`
+
+| 型 | String (文字列) | エラーの種別を指定します。 |
+`type="ORDER:INVALID_DATA"`
+
+|===
+
+この例では、静的な説明が含まれるエラーを生成し、`ORDERS` 名前空間を使用する
+カスタム種別であることがわかります。
+
+[source,xml,linenums]
+----
+ <raise-error description="Email is invalid. Cannot complete transaction." type="ORDER:INVALID_DATA"/>
+----

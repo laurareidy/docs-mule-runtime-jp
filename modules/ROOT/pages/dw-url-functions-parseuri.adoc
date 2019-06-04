@@ -1,0 +1,57 @@
+= parseURI
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[parseuri1]]
+== parseURI&#40;String&#41;: URI
+
+URL を解析し、`URI` オブジェクトを返します。
+
+
+出力 `URI` オブジェクトの `isValid: Boolean` プロパティは、解析プロセスが成功したかどうかを示します。このオブジェクトのすべての項目は省略可能で、項目は URL 入力に存在する場合のみ出力に表示されます。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `uri` | URI 入力。
+|===
+
+=== 例
+
+この例では、URL を解析します。
+
+==== ソース
+[source,DataWeave, linenums]
+----
+%dw 2.0
+import * from dw::core::URL
+output application/json
+---
+{
+  'composition': parseURI('https://en.wikipedia.org/wiki/Uniform_Resource_Identifier#footer')
+}
+----
+
+==== 出力
+[source,JSON,linenums]
+----
+{
+  "composition": {
+    "isValid": true,
+    "raw": "https://en.wikipedia.org/wiki/Uniform_Resource_Identifier#footer",
+    "host": "en.wikipedia.org",
+    "authority": "en.wikipedia.org",
+    "fragment": "footer",
+    "path": "/wiki/Uniform_Resource_Identifier",
+    "scheme": "https",
+    "isAbsolute": true,
+    "isOpaque": false
+  }
+}
+----
+

@@ -1,0 +1,45 @@
+= For Each スコープ XML リファレンス
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+For Each スコープの開始と終了には `<foreach>` タグを使用します。このスコープの影響を受けるコンポーネントは、`<foreach>` タグの子要素として定義されます。
+
+== 設定可能なプロパティ
+
+[%header,cols="35,20,45"]
+|===
+|プロパティ | Default (デフォルト) | 説明
+| `collection`
+| `payload`
+| Java コレクション、オブジェクト配列、マップ、または DOM ノードを返す式。
+
+| `counterVariableName`
+| `counter`
+| 反復処理を行うメッセージ数を保存するプロパティの名前。
+
+| `batchSize`
+| `1`
+| コレクションを指定されたサイズのサブコレクションに分割します。たとえば、コレクションに 200 個の要素があり、バッチサイズを 50 に設定すると、50 個の要素から成る 4 つのバッチを処理します。
+
+| `rootMessageVariableName`
+| `rootMessage`
+| 親メッセージを保存するプロパティの名前。親は、分割されていない完全なメッセージです。
+|===
+
+
+== 例
+
+[source,xml,linenums]
+----
+<foreach doc:name="For Each" collection="#[payload.myNode]" batchSize="2" rootMessageVariableName="myRootMessage" counterVariableName="myCounter">
+    <some-nested-element/>
+    <some-other-nested-element/>
+</foreach>
+----
+
+== 関連情報
+
+* xref:for-each-scope-concept.adoc[For Each スコープ]
+* xref:about-mule-event.adoc[Mule イベント]
+* xref:about-mule-message.adoc[Mule メッセージ構造]

@@ -1,0 +1,52 @@
+= Scatter-Gather XML リファレンス
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+[%header%autowidth.spread,cols="a,a"]
+|===
+|要素 |説明
+| scatter-gather |複数の対象に要求メッセージを同時に送信します。応答をすべてのルートから収集して、単一のメッセージに集約します。
+2+| *属性*
+// |===
+//
+// [%header%autowidth.spread,cols="2*a"]
+// |===
+// |*Attribute* | *Description*
+|timeout |送信したメッセージからの応答のタイムアウトをミリ秒単位で指定します。0 または負の値を指定すると、タイムアウトは設定されません。
+
+| maxConcurrency |処理する並列ルートの最大数を指定します。 +
+デフォルトでは、すべてのルートが並列処理されます。
+
+この値を 1 に設定すると、scatter-gather はルートを 1 本ずつ順次処理します。
+
+| target (対象) | 対象変数の名前。
+
+| targetValue | 対象変数に格納するデータの値。 +
+設定しないと、デフォルト値の `#[payload]` が使用されます。 +
+この項目は、変数が受け入れるすべての値を受け入れます。
+
+* サポートされる任意のデータ型。
+* DataWeave 式。
+* キーワードの `payload`、`attributes`、`message`。`vars` は _受け入れられません_ 。
+
+|===
+
+[%header%autowidth.spread,cols=","]
+|===
+|子要素 |説明
+| route | scatter-gather ルータ内のいずれかのルート。
+|===
+
+
+// [%header%autowidth.spread,cols="10a,90a"]
+// |===
+// |Child Element |Description
+// | *collect-list* | Aggregation strategy
+// | *round-robin* | This aggregation strategy sends each message received to the next message processor in the circular list of targets.
+// |===
+
+
+== 関連情報
+
+* xref:scatter-gather-concept.adoc[Scatter-Gather ルータ]

@@ -1,0 +1,137 @@
+= Mule 4 の概要: Java インテグレーション
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+== 式かコードか
+経験豊富な Mule ユーザであれば、Mule 4 ではアプリケーションの構造化について、式言語を使用すれば実行可能なことが制限されるアプローチを敢えて採用していることに気が付くでしょう。その目的は、フローロジックと、コードから抽出されるビジネスロジックを明確に分けておくことです。
+
+フローのデータを抽出、クエリ、変換、その他の方法で処理する場合に推奨されるツールは、DataWeave の式と変換です。カスタムロジックの作成、Java オブジェクトのインスタンス化、任意のメソッドのコールを行う場合の MuleSoft の推奨方法は、このコードをスクリプトまたはクラスにカプセル化して、挿入やテストを簡単に実行できるようにすることです。
+
+このため MuleSoft では Expression コンポーネントと Expression トランスフォーマを排除し、代わりにロジックをスクリプトまたは Java クラスに明確に分離することを奨励しています。
+
+== DataWeave からの静的 Java メソッドのコール
+
+データをフォーマットまたは解析するために Java ロジックをコールアウトしようとする場合に、DataWeave で静的メソッドをコールアウトできるようになりました。次の Java メソッドについて考えてみます。
+[source,java,linenums]
+----
+package org.acme;
+public class MyCompanyUtils {
+  public static String reformat(String input) {
+    return …;
+  }
+}
+----
+このメソッドは次の DataWeave コードでコールできます。
+[source,dataweave,linenums]
+----
+import java!org::acme::MyCompanyUtils
+---
+{
+  date: MyCompanyUtils::reformat(payload.input)
+}
+----
+
+== スクリプティングモジュール
+
+Mule 3 の Scripting コンポーネントがスクリプティングモジュールになりました。Mule 4 のこのモジュールでは、Groovy、Ruby、Python、JavaScript などのスクリプトを Mule フロー内に埋め込むことができます。新しい `parameters` 設定属性を使用して、Mule メッセージのデータをコードに挿入できます。
+
+[source,xml,linenums]
+----
+<script:execute engine="groovy">
+    <script:code>
+         return "$payload $prop1 $prop2"
+    </script:code>
+    <script:parameters>
+         #[{prop1: "Received", prop2: payload.body}]
+    </script:parameters>
+</script:execute>
+----
+
+スクリプティングモジュールを使用するには、Studio パレットを使用してアプリケーションに追加するか、次の連動関係を `pom.xml` ファイルに追加します。
+
+[source,xml,linenums]
+----
+<dependency>
+  <groupId>org.mule.modules</groupId>
+  <artifactId>mule-scripting-module</artifactId>
+  <version>1.1.0</version> <!-- or newer -->
+  <classifier>mule-plugin</classifier>
+</dependency>
+----
+
+このモジュールについての詳細は、xref:connectors::scripting/scripting-module.adoc[「スクリプティングモジュールドキュメント」]を参照してください。
+
+== Java モジュール
+
+スクリプティングモジュールは、ランダムな命令セットを実行して Java との連動を可能にする極めて強力なツールですが、単にクラスをインスタンス化したり、1 つのメソッドを実行するだけで事足りることも少なくありません。こうした場合、Mule 3 では通常 MEL を利用しますが、Mule 4 ではこのユースケースのために Java モジュールが導入されました。Java モジュールがスクリプティングモジュールに勝る他のメリットとして次の点が挙げられます
+
+* xref:7.1@studio::datasense-explorer.adoc[DataSense] をサポート: メソッドを実行するたびに、出力種別とメソッドの入力引数の DataSense を取得します。
+* UI をサポート: 各クラスで使用可能なメソッドやオートコンプリートなどの視覚補助を備えています。
+
+=== 新しい Java インスタンスの作成
+
+Mule 3 の場合:
+
+[source,xml,linenums]
+----
+<set-payload value="#[new com.foo.AppleEater()]" />
+<set-payload value="#[new com.foo.AppleEater('some string arg', flowVars.apple)]" />
+----
+
+Mule 4 の場合:
+
+[source,xml,linenums]
+----
+<java:new class="com.foo.AppleEater" constructor="MyClass()"/>
+
+<java:new class="com.foo.AppleEater" constructor="MyClass(String, Apple)">
+  <java:args>#[{name: 'some string arg', apple: vars.apple}]</java:args>
+</java:new>
+----
+
+=== インスタンスメソッドの呼び出し
+
+Mule 3 の場合:
+
+[source,xml,linenums]
+----
+<expression-component>
+  flowVars.appleEater.chew(500)
+</expression-component>
+----
+
+Mule 4 の場合:
+
+[source,xml,linenums]
+----
+<java:invoke class="com.foo.AppleEater" method="chew(Integer)" instance="#[vars.appleEater]">
+  <java:args>
+    #[{chewingTime: 500}]
+  </java:args>
+</java:invoke>
+----
+
+`invoke` 機能は、DataWeave の関数でも実行できます。
+
+[source,xml,linenums]
+----
+<set-payload value="#[Java::invoke('com.foo.AppleEater', 'chew(Integer)', vars.appleEater, {chewingTime: 500})]"/>
+----
+
+Java モジュールを使用するには、Studio パレットを使用してアプリケーションに追加するか、次の連動関係を `pom.xml` ファイルに追加します。
+
+[source,xml,linenums]
+----
+<dependency>
+  <groupId>org.mule.modules</groupId>
+  <artifactId>mule-java-module</artifactId>
+  <version>1.0.0</version> <!-- or newer -->
+  <classifier>mule-plugin</classifier>
+</dependency>
+----
+
+== 関連情報
+
+* xref:connectors::scripting/scripting-module.adoc[スクリプティングモジュール]
+* xref:connectors::java/java-module.adoc[Java モジュール]

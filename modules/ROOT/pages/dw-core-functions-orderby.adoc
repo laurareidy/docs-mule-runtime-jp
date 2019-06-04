@@ -1,0 +1,167 @@
+= orderBy
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[orderby1]]
+== orderBy&#40;O, &#40;value: V, key: K&#41; &#45;&#62; R&#41;: O
+
+関数によって条件として返された値を使用してオブジェクトの内容を並び替えます。
+
+
+インデックスは `&#36;&#36;`、
+値は `&#36;` で参照できます。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `object` | 並び替えるオブジェクト。
+| `criteria` | 関数の結果は、オブジェクトを並び替える条件として使用されます。
+|===
+
+=== 例
+
+次の例では、配列内の各オブジェクトの値をアルファベット順に並べます。
+`orderBy($.letter)` は `orderBy($[0])` と同じ結果になります。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+orderByLetter: [{ letter: "d" }, { letter: "e" }, { letter: "c" }, { letter: "a" }, { letter: "b" }] orderBy($.letter)
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "orderByLetter": [
+    {
+      "letter": "a"
+    },
+    {
+      "letter": "b"
+    },
+    {
+      "letter": "c"
+    },
+    {
+      "letter": "d"
+    },
+    {
+      "letter": "e"
+    }
+  ]
+}
+----
+
+=== 例
+
+結果の配列の並び順を昇順から降順に変えるには、`-` を使用します。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+orderDescending: ([3,8,1] orderBy -$)
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "orderDescending": [8,3,1] }
+----
+
+
+[[orderby2]]
+== orderBy&#40;Array<T&#62;, &#40;item: T, index: Number&#41; &#45;&#62; R&#41;: Array<T&#62;
+
+指定された条件を使用して配列を並び替えます。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `array` | 並び替えるリスト (配列)。
+| `criteria` | 関数の結果は、リストを並び替える条件として使用されます。単純な値 (文字列、数値など) を返す必要があります。
+|===
+
+=== 例
+
+次の例では、数値に基づいて数値の配列を並び替えます。
+
+==== ソース
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+output application/json
+---
+[3,2,3] orderBy $
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+[
+  2,
+  3,
+  3
+]
+----
+
+=== 例
+
+次の例では、age (年齢) に基づいて人の配列を並び替えます。
+
+==== ソース
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+output application/json
+---
+[{name: "Santiago", age: 42},{name: "Leandro", age: 29}, {name: "Mariano", age: 35}] orderBy (person) -> person.age
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+[
+  {
+    name: "Leandro",
+    age: 29
+  },
+  {
+    name: "Mariano",
+    age: 35
+  },
+  {
+    name: "Santiago",
+    age: 42
+  }
+]
+----
+
+
+[[orderby3]]
+== orderBy&#40;Null, &#40;item: Nothing, index: Nothing&#41; &#45;&#62; Null&#41;: Null
+
+*orderBy* を null 値に使用できるようにするヘルパー関数。
+

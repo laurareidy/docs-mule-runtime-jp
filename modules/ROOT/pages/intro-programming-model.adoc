@@ -1,0 +1,171 @@
+= Mule 4 プログラミンモデル
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+以前のバージョンで使用されていたプログラミングのパラダイムが Mule 4 で変更されています。Mule 3 でフローの主なデータコンポーネントはメッセージです。ランタイムが提供するすべてのトランスポートは、主としてメッセージペイロードのコンテンツに関するものです。たとえば Mule 3 では、`http:outbound-endpoint` がメッセージのペイロードコンテンツとして送信できるのは HTTP 本文のみです。この動作のために、ユーザがペイロードに適切なコンテンツを設定するだけの目的で、エンドポイントの前に他のコンポーネントを追加していました。
+
+.Mule 3
+[source,xml,linenums]
+----
+<set-payload value="{ 'name' : 'pepe' }"/>
+<http:request config-ref="HTTP_Request_Configuration" path="/customer" method="POST"/>
+----
+
+Mule 4 では、操作 (`http:request`) のすべての入力パラメータをカスタマイズできるようになり、こうしたユースケースが容易になっています。
+
+.Mule 4
+[source,xml,linenums]
+----
+<http:request method="GET" url="google.com" doc:name="Request" config-ref="HTTP_Request_configuration">
+    <http:body ><![CDATA[#[%dw 2.0
+            output application/json
+            ---
+            {'name' : 'pepe'}
+        ]]]>
+    </http:body>
+</http:request>
+----
+
+上記の例が示すとおり、`http:request` 操作で本文が送信されるように `body` パラメータ内で本文を定義できるようになりました。このためフローに追加しなければならないコンポーネント数が減るだけでなく、可読性が向上し、`http:request` 操作にコンテンツが必要であるというだけの理由でデータのコンテキストに影響を及ぼすことがなくなります。
+
+
+
+
+Mule アプリケーションでフローを作成するときに、データを変数に保存して、フローのどのコンポーネントでも使用できるようにする必要のある場合があります。non-void の操作 (ファイルコネクタに対する Read 操作など) では、返すメッセージデータを変数に保存できます。対象パラメータを指定して作成した変数を定義すると、フロー内で使用できるようになり、他の変数の場合と同じようにアクセスできます。
+
+多くの場合は、次のパラメータを指定して変数を定義します。
+
+* 対象 (`target`): メッセージデータを保存する変数の名前。数字、文字、アンダースコアのみを使用できます。たとえば、名前にハイフンは使用できません。
+* 対象値 (`targetValue`): 対象変数に保存するデータの値。このデフォルト値はメッセージペイロード (`payload`) です。この項目は、変数が受け入れるすべての値を受け入れます。サポートされているデータ型、DataWeave の式、`payload`、`attributes`、`message` キーワードが該当しますが、`vars` キーワードは _対象外_ です。
+
+ここで理解しておくべき重要な点は、対象変数を設定すると、フローにおけるメッセージの典型的な進路が変化することです。通常、操作で出力されるメッセージは、入力として受け取ったものとは異なります。他方、操作からの変数を設定した場合は、操作によってフローの _次の_ コンポーネントに、入力として受け取ったものと同じメッセージが出力されます。たとえば、フローにコンポーネント A、次に `myMessage` の対象値を指定したコンポーネント B、続いてコンポーネント C があるとします。この場合、コンポーネント C は、B が A から受信したものと同じメッセージを受信します。
+
+//TODO: ADD GRAPHIC OF A , B,  C
+
+以下は、Read 操作で `readme.txt` のペイロードを `myVar` に保存します。
+
+[source,xml,linenums]
+----
+<file:read path="readme.txt" target="myVar" />
+----
+
+デフォルトではペイロードが `myVar` 対象変数に保存されます。フルペイロード以上のものを保存する場合にすべきことは、対象値 (`targetValue`) を指定するだけです。
+
+
+以下は、`myVar` にメッセージ全体が保存されます。
+
+[source,xml,linenums]
+----
+<file:read path="readme.txt" target="myVar" targetValue="#[message]" />
+----
+
+この場合は `myVar` 変数にファイルの内容だけでなく、関連するすべてのメタデータも含まれます。
+
+* ファイルの内容にアクセスする式: `#[myVar.payload]`
+* ファイルのメタデータにアクセスする式: `#[myVar.attributes]`
+
+以下は、ファイルサイズのみが `myVar` に保存されます。
+
+[source,xml,linenums]
+----
+<file:read path="readme.txt" target="size" targetValue="#[attributes.size]" />
+----
+
+以下の各シナリオで、対象変数を使用することが考えられる数種のケースについて説明します。
+
+== シナリオ: 操作内から対象変数を設定する
+
+データベースコネクタの操作 (Insert など) で返されたメッセージ全体 (ペイロードと属性) をログに記録するとします。操作の後に Set Variable コンポーネントを使用するのではなく、対象変数を操作に直接追加すればメッセージデータをキャプチャできます。
+
+[source,xml,linenums]
+----
+<db:insert config-ref="dbConfig" target="result" targetValue="#[message]">
+    <db:sql>INSERT INTO PLANET(POSITION, NAME, DESCRIPTION) VALUES (777, 'Pluto', :description)</db:sql>
+    <db:parameter-types>
+        <db:parameter-type key="description" type="CLOB"/>
+    </db:parameter-types>
+    <db:input-parameters>
+        #[{{'description' : payload}}]
+    </db:input-parameters>
+</db:insert>
+----
+
+* Insert 操作の対象変数: `result`
+* 対象値: Design Center の `message`、Anypoint Studio の `#[message]`
+
+そうすると、Logger から次のような結果を取得するものと思われます。
+
+[source,xml,linenums]
+----
+<logger level="INFO" doc:name="Logger" doc:id="8dca355c-a85c-44db-8c53-5b9c188a2431" message="Payload is: #[vars.result.payload] and attributes are: #[vars.result.attributes]"/>
+----
+
+* メッセージ: `Payload is: #[vars.result.payload] and attributes are: #[vars.result.attributes]`
+
+プラネットデータベースの最初のエントリの名前をログに記録するとします。対象変数は、データベースコネクタの Select 操作を使用して次のように定義できます。
+
+[source,xml,linenums]
+----
+<db:select config-ref="dbConfig" target="planetName" targetValue="#[payload[0].name]">
+    <db:parameterized-query>select * from PLANET order by ID</db:parameterized-query>
+</db:select>
+----
+
+* Select 操作の対象変数: `customerName`
+* 対象値: Design Center の `payload[0].name`、Anypoint Studio の `#[payload[0].name]`
+
+そうすると、Logger から次のような結果を取得するものと思われます。
+
+[source,xml,linenums]
+----
+<logger level="INFO" doc:name="Logger" doc:id="8dca355c-a85c-44db-8c53-5b9c188a2431" message="#['Customer name is: ' ++ vars.customerName]"/>
+----
+
+* メッセージ: `'Customer name is: ' ++ vars.customerName`
+
+== シナリオ: 保存された値を操作の入力として使用する
+
+ある惑星が発見された後に発見されたすべての惑星にアクセスしたいとします。Select 操作内に `discoveryDate` という、惑星の発見日をキャプチャする対象変数を作成することが考えられます。
+
+[source,xml,linenums]
+----
+<db:select config-ref="dbConfig" target="discoveryDate" targetValue="#[payload[0].discoveryDate]">
+    <db:sql>select discoveryDate from PLANET where name = :name</db:sql>
+    <db:input-parameters>
+        #[{'name' : 'pluto'}]
+    </db:input-parameters>
+</db:select>
+----
+
+* Retrieve 操作の対象変数: `discoveryDate`
+
+続いて、たとえば次のように、フローの別の操作 (データベースコネクタに対する Select 操作など) の入力パラメータを使用して、クエリでその変数を使用できるようにします。
+
+[source,xml,linenums]
+----
+<db:select config-ref="dbConfig" target="discoveryDate" targetValue="#[payload[0].discoveryDate]">
+    <db:sql>select * from PLANET where discoveryDate > :discoveryDate</db:sql>
+    <db:input-parameters>
+        #[{'discoveryDate' : vars.discoveryDate}]
+    </db:input-parameters>
+</db:select>
+----
+
+* Select 操作の入力パラメータの定義:
+ ** キー: `discoveryDate`
+ ** 値: Design Center の `vars.discoveryDate`、Anypoint Studio の `#[vars.discoveryDate]`
+
+
+== シナリオ: 通常のメッセージフローをバイパスする
+
+メッセージのペイロードにある多数のレコードをデータベースに挿入してから、後続の処理のためにこの同じレコードをフローの次のコンポーネントに渡すとします。データベースコネクタに対する Bulk Insert 操作を使用してレコードを挿入しようと考えますが、この操作は成功メッセージを返して現在のペイロードを置換するため、レコードにアクセスできなくなります。そこで、ペイロードが Bulk Insert の結果に置換されることなく、結果を次のコンポーネントに渡すために、たとえば次のようにして、成功メッセージを対象変数に保存することが考えられます。
+
+* 対象変数: `bulkInsertResult`
+
+これで、フローの次の操作でこのペイロードにあるレコードを処理できます。
+
+== 関連情報
+
+* xref:about-mule-event.adoc[Mule イベント]
+* xref:about-mule-variables.adoc[Mule イベントの変数]

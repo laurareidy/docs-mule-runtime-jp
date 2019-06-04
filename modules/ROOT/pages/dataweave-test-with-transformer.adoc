@@ -1,0 +1,9 @@
+= Transform コンポーネントを介した DataWeave スクリプトのテスト方法
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+// TODO: SHOW HOW TO TEST A SCRIPT WITH THE TRANSFORM COMPONENT
+
+
+== 関連情報

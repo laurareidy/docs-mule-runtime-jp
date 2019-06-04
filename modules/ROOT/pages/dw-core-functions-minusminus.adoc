@@ -1,0 +1,170 @@
+= &#45;&#45;
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[minusminus1]]
+== &#45;&#45;&#40;Array<S&#62;, Array<Any&#62;&#41;: Array<S&#62;
+
+リスト (配列) から指定された項目を削除します。
+
+
+|===
+| Name (名前)   | 説明
+
+| `source` | リスト (`Array` (配列) 型)。
+| `toRemove` | リストから削除する項目。
+|===
+
+=== 例
+
+次の例では、リストから項目を削除します。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{ "a" : [0, 1, 1, 2] -- [1,2] }
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "a": [0]
+}
+----
+
+
+[[minusminus2]]
+== &#45;&#45;&#40;{ &#40;K&#41;?: V }, Object&#41;: { &#40;K&#41;?: V }
+
+オブジェクトから指定されたキー-値ペアを削除します。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `source` | オブジェクト。
+| `toRemove` | ソースオブジェクトから削除するオブジェクト。
+|===
+
+=== 例
+
+次の例では、ソースオブジェクトからキー-値ペアを削除します。
+
+==== ソース
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+   "hello" : "world",
+   "name" : "DW"
+} -- { "hello" : "world"}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+   "name": "DW"
+}
+----
+
+
+[[minusminus3]]
+== &#45;&#45;&#40;Object, Array<String&#62;&#41;
+
+オブジェクトから指定されたキー-値ペアを削除します。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `source` | ソースオブジェクト (`Object` (オブジェクト) 型)。
+| `toRemove` | ソースオブジェクトから削除するキー-値ペアのキー。
+|===
+
+=== 例
+
+次の例では、ソースオブジェクトから 2 つのキー-値ペアを削除します。
+
+==== ソース
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+   "yes" : "no",
+   "good" : "bad",
+   "old" : "new"
+} -- ["yes", "old"]
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+   "good": "bad"
+}
+----
+
+
+[[minusminus4]]
+== &#45;&#45;&#40;Object, Array<Key&#62;&#41;
+
+オブジェクトから指定されたキー-値ペアを削除します。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `source` | ソースオブジェクト (`Object` (オブジェクト) 型)。
+| `keys` | ソースオブジェクトから削除するキー-値ペアのキー。
+|===
+
+=== 例
+
+次の例では、ソースオブジェクトから削除するキー-値ペアを指定します。
+
+==== ソース
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+   "hello" : "world",
+   "name" : "DW"
+ } -- ["hello" as Key]
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+   "name": "DW"
+}
+----
+

@@ -1,0 +1,52 @@
+= Set Payload トランスフォーマ
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Anypoint Studio, Mule, set payload, payload
+
+Set Payload (`set-payload`) コンポーネントは、メッセージのペイロードを更新します。
+ペイロードは、文字列リテラルまたは DataWeave 式です。ただし、`set-payload` コンポーネントは複雑な式や変換には向いておらず、選択などのシンプルな処理に適しています。複雑なシナリオでは xref:transform-component-about.adoc[Transform Message コンポーネント]を使用してください。
+
+[%header,cols="1,1,5"]
+|===
+| 項目 | 使い方 | 説明
+
+| Value (値) (`value`)
+| 必須
+| 文字列リテラルまたはペイロードの設定方法を定義した DataWeave 式を指定できます。例: ``"some string"`` または `#[now()]`
+
+| Mime Type (MIME タイプ) (`mimeType`)
+| 省略可能
+| ペイロードに割り当てる値の MIME タイプ。例: `text/plain` または `application/json`
+
+|Encoding (エンコード) (`encoding`)
+| 省略可能
+| ペイロードに割り当てる値のエンコード方式。例: `UTF-8`
+
+|===
+
+[WARNING]
+--
+`mimeType` 属性と `encoding` 属性は、`value` に指定された DataWeave 式には影響しません。これらは、出力される Mule メッセージにのみ影響します。変換が必要な場合には、DataWeave 式に明示的な出力ディレクティブを指定する必要があります。
+--
+
+次の XML 例では、静的な値でペイロードを設定しています。
+
+.静的なコンテンツの例:
+[source,xml,linenums]
+----
+<set-payload value="{ 'name' : 'Ana', 'office' : 'BA' }" mimeType="application/json" encoding="UTF-8"/>
+----
+
+次の例では、メッセージのペイロードを「Hello, World」という文字列リテラルと、`#['Hello World!' &#43;&#43; ' Today is ' &#43;&#43; now()]` という DataWeave 式を使用した今日の日付に設定しています。
+
+.式によるコンテンツの例:
+[source,xml,linenums]
+----
+<set-payload value="#['Hello World!' ++ ' Today is ' ++ now()]"/>
+----
+
+== 関連情報
+
+* xref:about-mule-message.adoc[Mule メッセージ構造]
+* xref:dataweave.adoc[DataWeave 言語]

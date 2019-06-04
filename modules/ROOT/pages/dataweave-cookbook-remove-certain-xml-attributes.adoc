@@ -1,0 +1,85 @@
+= 指定した XML 属性の削除
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, 変換, トランスフォーマ, 形式, 集約, 名前変更, 分割, 変換の絞り込み, xml, json, csv, pojo, java オブジェクト, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング
+
+XML タグ内から機密データが含まれていることがわかっている特定の属性を削除できます。この DataWeave の例では、渡される要素とその子から特定の XML 属性を削除する関数を DataWeave ヘッダーで定義します。
+
+
+
+この例では、以下を使用します。
+
+* 各要素を調べる `mapObject`。
+* XML 要素の属性を参照する `@`。
+* 存在している XML 属性のみをリストし、子要素がオブジェクトである場合にのみ関数を再帰的にコールする `if` および `else`。
+* 子が `Object` 型かどうかをチェックする `is`。
+* XML 属性のリストから要素を削除する `-`。
+* 値がない場合に出力 XML に自己終了タグが表示されるようにする出力ディレクティブの `inlineCloseOn="empty"`。
+
+
+
+
+.DataWeave
+[source,dataweave,linenums]
+----
+%dw 2.0
+input payload application/json
+output application/xml inlineCloseOn="empty"
+var removeAttribute = (element,attrName) ->
+  element mapObject (value, key) -> {
+    (key) @(
+        (
+          if (key.@?)
+            (key.@ - attrName)
+          else {}
+        )
+    ) :
+    if (value is Object)
+      removeAttribute(value, attrName)
+    else value
+  }
+---
+removeAttribute(payload, "password")
+----
+
+.入力
+[source,xml,linenums]
+----
+<users>
+  <user username="Julian" password="1234"/>
+  <user username="Mariano" password="4321"/>
+</users>
+----
+
+.出力
+[source,xml,linenums]
+----
+<?xml version='1.0' encoding='US-ASCII'?>
+<users>
+  <user username="Julian"/>
+  <user username="Mariano"/>
+</users>
+----
+
+== 関連する例
+
+
+* xref:dataweave-cookbook-output-self-closing-xml-tags.adoc[自己終了 XML タグの出力]
+
+* xref:dataweave-cookbook-insert-attribute.adoc[XMLタグへの属性の挿入]
+
+* xref:dataweave-cookbook-include-xml-namespaces.adoc[XML 名前空間を含める]
+
+* xref:dataweave-cookbook-exclude-field.adoc[出力からの項目の除外]
+
+* xref:dataweave-cookbook-output-a-field-when-present.adoc[存在する項目の出力]
+
+* xref:dataweave-cookbook-conditional-list-reduction-via-function.adoc[関数を使用したリストの条件付き削減]
+
+
+== 関連情報
+
+* xref:dataweave-selectors.adoc[DataWeave セレクタ]
+
+* xref:dataweave-cookbook.adoc[DataWeave の解説書]

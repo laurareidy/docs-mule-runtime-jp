@@ -1,0 +1,87 @@
+= コネクタとモジュールの Mule 4 への移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+このセクションでは、コネクタに固有の機能の移行について説明し、Mule 4 で廃止または排除されたコネクタの一覧を示します。
+
+////
+(*NOTE: We can break the files out on a per connector basis if necessary*)
+
+* From Mariano G: Multipart and attachment handling in email, WSC and Http (Contact: Ana Felisatti, Juani
+ ** From Ana: HTTP should map directly to the docs on DW's support for multipart. Already created that ticket.
+* <<connector_1>>: Description of migrated featured here.
+* <<connector_2>>: Description of migrated featured here.
+////
+
+== 廃止または排除されたコネクタ
+
+次表は、廃止/排除された Mule 3.x のモジュールと Mule 4.0 の代替方法を示しています。
+
+[%header,cols="30,70"]
+|===
+Mule 3.x のモジュール| Mule 4.0 の代替法
+|Ajax	| APIkit + 標準 REST を使用します。
+|Atom	| 代わりに HTTP + DataWeave が導入されました。
+|Axis	| WS Consumer/APIkit for SOAP を使用します。
+|Drools|排除されました。
+|BPM|Pega/Appian for BPM への接続性が提供されました。
+|EJB|排除されました。
+|Guice|排除されました。
+|jBPM|Pega/Appian for BPM への接続性が提供されました。
+|Jetty	| 新しい HTTP モジュールを使用します。
+|OGNL	| 代わりに DataWeave 式言語、互換モジュールには MEL が導入されました。
+|Patterns|排除されました。代わりにフローを使用します。
+|Quartz	| 新しい Scheduler コンポーネントを使用します。
+|RSS	| HTTP + DataWeave を使用します。
+|SXC	| DataWeave を使用します。
+|Tomcat 	| 新しい組み込みモードを開発中です。
+|Servlet	| 新しい組み込みモードを開発中です。
+|Stdio|排除されました。
+|UDP	| ソケットコネクタを使用します。
+|XMPP|排除されました。
+|===
+
+////
+[[connector_1]]
+== Connector_1
+
+Intro re features covered:
+
+ ** Feature_1
+ ** Feature_2
+
+=== Feature_1
+
+Describe what changed from 3.x to 4.x.
+
+.Mule 3 example
+----
+Mule 3 example goes here.
+----
+
+.Mule 4 example
+----
+Mule 4 example goes here.
+----
+
+=== Feature_2
+
+Describe what changed from 3.x to 4.x.
+
+.Mule 3 example
+----
+Mule 3 example goes here.
+----
+
+.Mule 4 example
+----
+Mule 4 example goes here.
+----
+
+[[connector_2]]
+== Connector_2
+
+Follows the same pattern.
+
+////

@@ -1,0 +1,15 @@
+= トランスフォーマについて (非推奨)
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Object to XML や Object to String などのトランスフォーマは、Transform コンポーネントとは異なる非推奨のデータ変換コンポーネントです。
+
+このリリースでは、非推奨のコンポーネントを使用する代わりに、Transform コンポーネントで DataWeave 式を使用してデータ変換を実行する必要があります。
+
+トランスフォーマは、互換性モジュール (Mule バージョン 4.1 以降で使用可能) を介してのみ使用できます。
+
+//COMBAK: Review see Alsos
+== 関連情報
+
+xref:transform-component-about.adoc[Transform コンポーネントについて]

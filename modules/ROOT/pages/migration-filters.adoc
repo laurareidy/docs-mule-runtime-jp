@@ -1,0 +1,72 @@
+= 検索条件の移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+// Contacts/SMEs: Rodro
+
+Mule 4 では `filters` は使用されなくなりました。Mule 3 で提供された検索条件の機能は、xref:connectors::validation/validation-connector.adoc[検証モジュール]を使用して実行できます。
+
+== 検索条件の適用
+
+Mule 3 では、メッセージが絞り込まれたら、その時点で通知せずにフローが終了しました。
+
+検証モジュールでは条件が一致しないとフローが失敗し、移行されたフローに `VALIDATION` エラーを処理させます。
+
+応答を送信するためのソースがあるフローが `VALIDATION` エラーを処理する必要があり、これを行うには、検証エラーのエラーハンドラで変数を設定します。次に例を示します。
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<flow name="flow">
+    ...
+    <validation:is-true expression="#[...]"/>
+    ...
+    <error-handler>
+        <on-error-propagate type="MULE:VALIDATION">
+            <set-variable variableName="filtered" value="true"/>
+        <on-error-propagate/>
+    </error-handler/>
+</flow>
+----
+
+次に、ソースのエラー応答ビルダーで set variable を照会し、クライアントに適切な応答を送信できます。たとえば、`http:listener` ソースは次のようになります。 
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<flow name="flow">
+    <http:listener config-ref="listenerConfig">
+        <http:error-response statusCode="#[if (vars.filtered) 400 else 500]"
+                             reasonPhrase="#[if (vars.filtered) 'Bad Request' else 'Internal Server Error']">
+            <http:body>#[error.description]</http:body>
+        </http:error-response>
+    </http:listener>
+    ...
+
+    <validation:is-true expression="#[...]"/>
+    <error-handler>
+        <on-error-propagate type="MULE:VALIDATION">
+            <set-variable variableName="filtered" value="true"/>
+        <on-error-propagate/>
+    </error-handler/>
+</flow>
+----
+
+このケースでは、イベントが絞り込まれる場合は 400 (Bad Request) コードが返されます。
+
+== カスタム検索条件または複雑な検索条件の移行
+
+ほとんどの場合、式言語を使用するためにカスタムまたは複雑なネストされた検索条件を移行できます。同じ検索条件を数か所で使用する必要がある場合は、DataWeave スクリプトを外部ファイルに保存することができます。
+
+DataWeave がサポートしない方法でデータを絞り込む場合、Java モジュールかスクリプティングモジュールを使用し、カスタムコードで絞り込みを実行します。
+
+== 関連情報
+
+xref:connectors::validation/validation-connector.adoc[検証モジュール]
+
+xref:dataweave.adoc[DataWeave 言語]
+
+xref:connectors::scripting/scripting-module.adoc[スクリプティングモジュール]
+
+xref:connectors::java/java-module.adoc[Java モジュール]

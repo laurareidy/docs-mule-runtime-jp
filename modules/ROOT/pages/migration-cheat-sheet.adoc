@@ -1,0 +1,34 @@
+= Mule 3 から Mule 4 への移行早見表
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+// author: Mariano Gonzalez
+
+Mule 3 から Mule 4 に移行しやすくなるように、Mule 3 のごく一般的なユースケースに対応する Mule 4 のユースケースを見つけるためのインデックスを作成しました。
+
+*重要:* このインデックスは、ごく一般的な移行シナリオの出発点にすることを目的としています。移行の完全ガイドではありません。Mule のxref:index-migration.adoc[「Mule 4 for Mule 3 Users (Mule 3 ユーザのための Mule 4)」]ページに、移行に関するすべての記事が掲載されています。
+
+* xref:configuring-properties.adoc[設定プロパティ]: Mule 4 では設定プロパティを新たな方法で処理します。
+* xref:migration-secure-properties-placeholder.adoc[セキュアプロパティの使用]: セキュアプレースホルダが Runtime の機能になり、Security  モジュールの一部ではなくなりました。
+* xref:migration-connectors-http.adoc[HTTP コネクタの使用]: 新しい HTTP コネクタは、マルチパート/フォーム要求の処理をはじめ、いくつかの点が Mule 3 と異なります。
+* xref:migration-mel.adoc[MEL から DataWeave への切り替え]: DataWeave 2.0 が式言語になりました。ここに MEL 式を DataWeave に適合させる方法が記載されています。
+* xref:migration-dataweave.adoc[DataWeave 1.0 から DataWeave 2.0 への移行]: Mule 4 では DataWeave の新バージョンを使用できます。
+* 明示的なトランスフォーマはどこにいったのかと思うかもしれませんが、`<object-to-string />` や `<object-to-json>` のようなトランスフォーマは不要になりました。こうした変換は、Mule がバックグラウンドで自動的に処理します。
+* xref:connectors::object-store/object-store-to-define-a-new-os.adoc[カスタムオブジェクトストアの定義]: カスタムオブジェクトストアが新しいコネクタを使用して定義されるようになりました。
+* xref:migration-patterns-watermark.adoc[透かしの使用]: 透かしが簡素化されました。手動で実行できるようになったため、複雑なユースケースにも対応できます。
+* xref:migration-message-properties.adoc[Mule メッセージへのアクセス]: Mule メッセージの構造が刷新され、アクセス方法が変更されました。ここで概要を確認できます。
+* Java の使用: xref:connectors::java/java-module.adoc[Java モジュール]を使用して Java と相互運用できるようになりました。必要に応じて、xref:migration-module-scripting.adoc[スクリプティングモジュール]や xref:mule-sdk::index.adoc[Mule SDK] を使ってみることもできます。
+* xref:migration-module-spring.adoc[Spring の使用]: Spring bean をアプリケーションで直接定義する代わりに、xref:connectors::spring/spring-module.adoc[Spring モジュール]を使用できるようになりました。
+* xref:migration-patterns-reconnection-strategies.adoc[再接続戦略の使用]: Mule 4 では、再接続に些細ながら重要な違いがあります。
+* xref:migration-munit.adoc[MUnit 1.0 から MUnit 2.0 への移行]: このページに、テストを Mule 4 に適合させる方法が説明されています。
+* xref:about-classloading-isolation.adoc[クラスローディング分離]: クラスローディング分離により、リソースやクラスの共有方法が変化します。詳細は、この記事を参照してください。
+* xref:migration-core.adoc[コアコンポーネントの移行]: コア言語要素に実施された変更の包括的なリストです。
+* xref:migration-connectors.adoc[新しいコネクタの使用]: 主要なコネクタに実施された変更の包括的なリストです。
+* xref:migration-aes.adoc[Security (AES) モジュールの使用]: Anypoint Enterprise Security モジュールが、ここに記載の各種のモジュールに分割されました。
+* xref:migration-api-gateways.adoc[ゲートウェイの移行]: このセクションに、API ゲートウェイに関連する機能の移行について説明されています。
+* xref:migration-example-complex.adoc[APIkit アプリケーションの移行]: APIkit ベースのアプリケーションを効率的に移行するために必要な手順を説明します。
+* カスタムコンポーネントの移行: xref:mule-sdk::index.adoc[Mule SDK] を使用して再利用可能な独自のコンポーネントを作成できます。
+* DevKit ベースのコンポーネントの移行: xref:mule-sdk::dmt.adoc[DevKit 移行ツール]で、Mule 3 の DevKit プロジェクトを Mule SDK プロジェクトに移行できます。
+* xref:migration-transports.adoc[トランスポートサービスの上書き]: 汎用的なトランスポートから移行する方法を説明します。
+

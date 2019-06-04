@@ -1,0 +1,18 @@
+= Timer 型 (dw::util::Timer)
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+|===
+a| 型 a| 定義 a| 説明
+
+a| DurationMeasurement
+a| `type DurationMeasurement = { time: Number, result: T }`
+a| 関数コールの実行時間と結果が含まれる戻り値のデータ型。
+
+
+a| TimeMeasurement
+a| `type TimeMeasurement = { start: DateTime, result: T, end: DateTime }`
+a| 関数コールの開始時刻、終了時刻、結果が含まれる戻り値のデータ型。
+
+|===

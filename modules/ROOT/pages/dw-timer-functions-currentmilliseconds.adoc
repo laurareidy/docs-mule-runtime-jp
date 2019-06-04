@@ -1,0 +1,35 @@
+= currentMilliseconds
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[currentmilliseconds1]]
+== currentMilliseconds&#40;&#41;: Number
+
+現在の時刻をミリ秒単位で返します。
+
+
+=== 例
+
+次の例では、この関数が実行された時刻をミリ秒単位で表示します。
+
+==== ソース
+
+[source,Dataweave, linenums]
+----
+%dw 2.0
+import * from dw::util::Timer
+output application/json
+---
+{ "currentMilliseconds" : currentMilliseconds() }
+----
+
+==== 出力
+
+[source,XML,linenums]
+----
+{ "currentMilliseconds": 1532923168900 }
+----
+

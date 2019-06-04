@@ -1,0 +1,76 @@
+= DataWeave リファレンス
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+DataWeave 関数はモジュールにパッケージ化されています。コア (`dw::Core`) モジュールの関数は、自動的に DataWeave スクリプトにインポートされます。その他のモジュールを使用するには、DataWeave スクリプトの先頭に次のようなインポートディレクティブを追加することによって、使用するモジュールまたは関数をインポートする必要があります。
+
+* `import dw::core::Strings`
+* `import camelize, capitalize from dw::core::Strings`
+* `import * from dw::core::Strings`
+
+モジュールのインポート方法は、DataWeave スクリプトから関数をコールする方法に影響します。ディレクティブでインポートする関数を具体的にリストしない場合や `* from` を使用して関数モジュールのすべての関数をインポートする場合は、スクリプトから関数をコールするときにモジュールを指定する必要があります。たとえば、次のインポートディレクティブでは String モジュールからインポートする関数が指定されていないため、`pluralize` 関数をコールするときには `Strings::pluralize("box")` のようになります。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+import dw::core::Strings
+output application/json
+---
+{ 'plural': Strings::pluralize("box") }
+----
+
+次の例では、String モジュールからインポートする特定の関数が指定されているため、`pluralize("box")` のようにメソッドをコールできます。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+import pluralize from dw::core::Strings
+output application/json
+---
+{ 'plural': pluralize("box") }
+----
+
+次の例では、String モジュールからすべての関数がインポートされるため、`pluralize("box")` のようにメソッドをコールできます。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+import * from dw::core::Strings
+output application/json
+---
+{ 'plural': pluralize("box") }
+----
+
+[[dw_modules]]
+== DataWeave モジュール
+
+* xref:dw-arrays.adoc[Arrays (dw::core::Arrays)]
+
+* xref:dw-binaries.adoc[Binaries (dw::core::Binaries)]
+
+* xref:dw-core.adoc[Core (dw::Core)]
+
+* xref:dw-crypto.adoc[Encryption (dw::Crypto)]
+
+* xref:dw-diff.adoc[Diff (dw::util::Diff)]
+
+* xref:dw-objects.adoc[Objects (dw::core::Objects)]
+
+* xref:dw-runtime.adoc[Runtime (dw::Runtime)]
+
+* xref:dw-strings.adoc[Strings (dw::core::Strings)]
+
+* xref:dw-system.adoc[System (dw::System)]
+
+* xref:dw-url.adoc[URL (dw::core::URL)]
+
+[[see_also]]
+== 関連情報
+
+xref:dataweave.adoc[DataWeave について]
+
+xref:dataweave-quickstart.adoc[DataWeave クイックスタート]

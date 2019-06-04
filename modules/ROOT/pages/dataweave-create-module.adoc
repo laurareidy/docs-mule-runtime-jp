@@ -1,0 +1,175 @@
+= カスタムモジュールおよびマッピングの作成
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, esb, 変換, トランスフォーマ, 形式, 集約, 名前変更, 分割, 変換の絞り込み, xml, json, csv, pojo, java オブジェクト, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング
+
+組み込みの DataWeave 関数モジュール (xref:dw-core.adoc[dw::Core] や xref:dw-crypto.adoc[dw::Crypto] など) を使用する以外にも、カスタムモジュールおよびマッピングファイルを作成して使用することもできます。DataWeave 言語 (`.dwl`) ファイルでモジュールおよびマッピングファイルを作成し、Mule コンポーネントの DataWeave スクリプトで Mule アプリケーションにインポートします。モジュールとマッピングファイルのどちらも、同じ機能を何度も再利用する必要がある場合に役立ちます。
+
+* カスタムモジュールでは、関数、変数、型、名前空間を定義できます。これらのモジュールを DataWeave スクリプトにインポートして機能を使用できます。
+* カスタムマッピングファイルは、インポートして別の DataWeave スクリプトで使用したり、Mule コンポーネントで参照したりできる完全な DataWeave スクリプトが含まれるモジュールの種類です。
+
+多くの Mule コネクタおよびコンポーネントの項目では、DataWeave 式やスクリプトを使用できます。
+
+カスタムモジュールではなく、組み込みの DataWeave 関数モジュールをインポートして使用する場合、xref:dw-functions.adoc[「DataWeave 関数リファレンス」]を参照してください。
+
+[[create_dw_mapping]]
+== DataWeave マッピングファイルを作成して使用する
+
+DataWeave 変換を `.dwl` マッピングファイル (マッピングモジュール) に保存し、そのファイルを別の DataWeave スクリプトにインポートできます。マッピングファイルは、Message Transfrom コンポーネントで実行したり、別のマッピングにインポートして `main` 関数で実行したりできます。
+
+.例: Studio プロジェクトの DataWeave マッピングファイル
+image::dataweave-mapping-file.png[例: DataWeave マッピングファイル]
+
+. Studio プロジェクトで、マッピングモジュールのサブフォルダとファイルをセットアップします。
++
+* `src/main/resources` のようなサブフォルダを作成するには、[New (新規)] -> [Folder (フォルダ)] -> [] -> `src/main/resource` に移動して、`modules` という名前のフォルダを追加します。
+* そのフォルダのモジュールの新しいファイルを作成するには、[New (新規)] -> [File (ファイル)] -> [] -> `src/main/resource` に移動し、`MyMapping.dwl` のような DWL (DataWeave 言語) ファイルを追加します。
++
+`src/main/resource` 内にモジュールを保存すると、そのプロジェクトの Mule アプリケーションの DataWeave スクリプトコンポーネントでアクセスして使用できるようになります。
++
+. 次のように、マッピングファイルで関数を作成します。
++
+[[mapping_file]]
+.例: マッピングファイルの内容
+[source,dataweave,linenums]
+----
+%dw 2.0
+import dw::core::Strings
+fun capitalizeKey(value:String) = Strings::capitalize(value) ++ "Key"
+---
+payload mapObject ((value, key) ->
+    {
+      (capitalizeKey(key as String)) : value
+    }
+  )
+----
++
+. DWL 関数モジュールファイルを保存します。
+
+=== DataWeave スクリプトでのマッピングファイルの使用
+
+マッピングファイルを使用するには、DataWeave スクリプトにインポートし、マッピングファイルで `main` 関数を使用してスクリプトの本文にアクセスする必要があります。
+
+このスクリプトが含まれる <<mapping_file,MyMapping.dwl>> ファイルが `/src/main/resource/modules` に作成されていることが前提となっています。
+
+`MyMapping.dwl` ファイル (上記) の本文の式を DataWeave マッピングファイルにインポートして使用するには、次の作業が必要になります。
+
+* ヘッダーで `import` ディレクティブを指定します。
+* `MyMapping::main` 関数を呼び出します。この関数では、マッピングファイルと同じ構造の入力を想定しています。たとえば、`MyMapping.dwl` の本文では、`{"key" : "value"}` の形式のオブジェクトを想定しています。
+
+.例: DataWeave スクリプトにマッピングをインポートして使用する
+[source,dataweave,linenums]
+----
+%dw 2.0
+import modules::MyMapping
+output application/json
+---
+MyMapping::main(payload: { "user" : "bar" })
+----
+
+次に、結果を示します。
+
+.出力
+[source,json,linenums]
+----
+{
+  "UserKey": "bar"
+}
+----
+
+<<mapping_file,capitalizeKey>> 関数は非公開でも `main` 関数コールで使用されます。また、DataWeave マッピングファイルで `dw::core::Strings` モジュールをインポートして再利用することもできます。
+
+
+== カスタムモジュールの作成および使用
+
+カスタム DataWeave モジュールを作成する手順は、カスタムマッピングファイルを作成する手順とほぼ同じです。`.dwl` ファイルの内容のみが異なります。ガイダンスについては、「<<create_dw_mapping>>」を参照してください。
+
+.例: Studio プロジェクトのカスタムモジュール
+image::dataweave-function-custom.png[例: DataWeave カスタム関数モジュール]
+
+カスタムモジュールファイルには、次のように `var`、`fun`、`type`、`ns` 宣言のみを含めることができます。
+
+[[example_custom_dw_module]]
+.例: カスタム DataWeave モジュール
+[source,dataweave,linenums]
+----
+%dw 2.0
+fun myFunc(name: String) = name ++ " Test"
+var name = "MyData"
+ns mynamespace http://acme.com/bar
+----
+
+一般的な DataWeave スクリプトまたはマッピングファイルとは異なり、カスタム DataWeave モジュールでは、ヘッダーセクションと本文セクションの間に `output` ディレクティブ、本文の式、セパレータ (`---`) を含めることができません。
+
+カスタムモジュールを別の DataWeave スクリプトにインポートすると、モジュールで定義された関数、変数、型、名前空間を DataWeave 本文で使用できるようになります。次の例では、DataWeave スクリプトで以下の作業を行います。
+
+* ヘッダーの `import` ディレクティブでモジュール `MyModule` をインポートする。この場合、インポートされたモジュールは Studio プロジェクトパス `src/main/resources/modules/MyModule.dwl` に保存されます。
+* `MyModule::myFunc("dataweave")` を使用して `MyModule` の関数をコールする。
+
+.例: カスタム DataWeave モジュールをインポートして使用する
+[source,dataweave,linenums]
+----
+%dw 2.0
+import modules::MyModule
+output application/json
+---
+MyModule::myFunc("dataweave") ++ "name"
+----
+
+いくつかの方法でモジュールまたは要素をインポートできます。
+
+* モジュールをインポートする (例: `import modules::MyModule`)。この場合、要素 (ここでは関数) をコールするときに `MyModule::myFunc` のようにモジュールの名前を含める必要があります。
+* モジュールのすべての要素をインポートする (例: `import * from modules::MyModule`)。この場合、要素をコールするときにモジュールの名前を含める必要はありません。たとえば、`myFunc("dataweave") ++ "name"` は動作します。
+* モジュールの特定の要素をインポートする (例: `import myFunc from modules::MyModule`)。この場合、要素をコールするときにモジュールの名前を含める必要はありません。たとえば、`myFunc("dataweave") ++ "name"` は動作します。たとえば、`import myFunc someOtherFunction from modules::MyModule` (モジュールで `myFunc` と `someOtherFunction` の両方が定義されていることが前提) のようにモジュールの複数の要素をインポートできます。
+
+.出力
+[source,json,linenums]
+----
+"dataweave_name"
+----
+
+== インポートされる要素のローカル別名の割り当て
+
+名前のクラッシュを避けるために、モジュールを DataWeave スクリプトにインポートするときに `as` を使用してカスタムモジュールまたはその要素の別名を割り当てることができます。
+
+次のようなカスタムモジュールがあることが前提となっています。
+
+.例: カスタムモジュール
+[source,dataweave,linenums]
+----
+%dw 2.0
+fun myfunc(name:String) = name ++ "_"
+var myVar = "Test"
+----
+
+カスタムモジュールを DataWeave スクリプトにインポートするときに、次のようにカスタムモジュールの要素の別名を作成できます。
+
+.例: インポートされる要素に別名を適用する
+[source,dataweave,linenums]
+----
+%dw 2.0
+import myFunc as appendDash, myVar as weaveName from modules::MyModule
+var myVar = "Mapping"
+output application/json
+---
+appendDash("dataweave") ++ weaveName ++ "_" ++ myVar
+----
+
+次のようにインポートされるモジュールの別名を作成できます。
+
+.例: インポートされるモジュールに別名を適用する
+[source,dataweave,linenums]
+----
+%dw 2.0
+import modules::MyModule as WeaveMod
+output application/json
+---
+WeaveMod::myFunc("dataweave")
+----
+
+== DWL ファイルの参照
+
+DWL ファイルは、Mule コネクタおよびコンポーネントで直接使用できます。
+
+詳細は、xref:dataweave-language-introduction.adoc#dwl_file[「dwl ファイル」]を参照してください。

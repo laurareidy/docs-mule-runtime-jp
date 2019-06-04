@@ -1,0 +1,50 @@
+= log
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[log1]]
+== log&#40;String, T&#41;: T
+
+指定された値を省略可能な `prefix` (プレフィックス) と共にログに記録し、元の値を
+返します。この関数は出力をシステムログとして記録します。
+
+適切なデバッガが導入されるまで、この関数を使用して DataWeave スクリプトを
+デバッグできます。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `prefix` | 通常そのログを説明する文字列。
+| `value` | ログに記録する値。
+|===
+
+=== 例
+
+次の例では、下記の出力をロガーに作成し (Mule
+`LoggerMessageProcessor` を使用)、一方で Mule の `DefaultLoggingService` は
+コンソール出力に `My Age - 33` と出力します。
+
+==== ソース
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+output application/xml
+var myvar = { "age" : 33 }
+---
+{ "age": log("My Age", myvar.age) }
+----
+
+==== 出力
+
+[source,XML,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<age>33</age>
+----
+

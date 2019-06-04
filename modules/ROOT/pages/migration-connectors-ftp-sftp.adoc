@@ -1,0 +1,254 @@
+= FTP および SFTP コネクタへの移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+// sme: MG, author: sduke?
+
+SFTP および SFTP トランスポートは一新されました。Mule 3 のトランスポートモデルから、操作ベースのコネクタに進化しています。このため、多数の新しい機能が可能になります。
+
+* インバウンドエンドポイントでしかポーリングされなかった旧来のトランスポートとは異なり、オンデマンドでファイルを読み込むことや、ディレクトリの内容の完全リストを作成することができる。
+* ファイルシステムの一般的な操作 (コピー、移動、名前変更、削除、ディレクトリの作成など) を最大限サポートする。
+* ファイルシステムレベルでファイルのロックをサポートする。
+* ファイルマッチング機能が向上する。
+
+さらに、この 2 つは完全対称になるよう設計されています。つまり、接続設定を除き、デザインや動作が同様で、まったく同じ機能セットを備えています。また、ファイルコネクタの機能や動作にも適合します。
+
+[[config_ftp_sftp]]
+
+== FTP または SFTP サーバへの接続
+
+=== FTP 接続の移行
+
+.Mule 3 の例: ポーリングを行う FTP インバウンド接続
+
+[source,xml,linenums]
+----
+<ftp:inbound-endpoint host="localhost"
+ port="21" path="path/to/file"
+ user="myusername" password="maypassword"
+ pollingFrequency="4000" responseTimeout="10000"  metadata:id="5571009e-a278-4a01-ac1d-4102113b52ad"
+ doc:name="FTP">
+    <reconnect-forever frequency="3000"/>
+</ftp:inbound-endpoint>
+----
+
+次の例は、Mule 4 のシンプルな FTP 設定を示しています。
+
+.Mule 4 の例: FTP 接続
+[source,xml,linenums]
+----
+<ftp:config name="ftp">
+  <ftp:connection username="anonymous"
+   password="password" host="localhost"
+   port="${ftpPort}" workingDir="${workingDir}"/>
+</ftp:config>
+----
+
+=== SFTP 接続の移行
+
+.Mule 3 の例: SFTP インバウンドエンドポイント
+[source,xml,linenums]
+----
+<sftp:inbound-endpoint host="localhost"
+ port="22" path="path/to/file"
+ user="myuser" password="mypassword"
+ responseTimeout="10000"
+ pollingFrequency="2000" fileAge="50"
+ sizeCheckWaitTime="10" doc:name="SFTP"/>
+----
+
+.Mule 4 の例: SFTP 接続設定
+[source,xml,linenums]
+----
+<sftp:config name="sftp">
+  <sftp:connection username="myusername"
+   password="mypassword"
+   host="localhost"
+   port="${sftpPort}"
+   workingDir="${workingDir}"/>
+</sftp:config>
+----
+
+SFTP 接続はプロキシ経由の接続もサポートしています。
+
+.Mule 4 の例: プロキシ経由の SFTP 接続
+[source,xml,linenums]
+----
+<sftp:config name="sftp">
+  <sftp:connection username="muletest1" password="muletest1"
+   host="127.0.0.100" port="${SFTP_PORT}" workingDir="${workingDir}">
+    <sftp:sftp-proxy-config host="localhost" port="${proxyPort}" protocol="HTTP"/>
+   </sftp:connection>
+</sftp:config>
+----
+
+[[ftp_listener]]
+== インバウンドエンドポイントの移行
+
+Mule 3 では、`<ftp:inbound-endpoint>` と `<sftp:inbound-endpoint>` メッセージソースを使用してファイルのディレクトリをポーリングしていました。ファイルが検出されるごとにい、新しいメッセージがトリガされました。このメッセージには、ペイロード内にファイルの内容が保持され、多数のファイル属性がシステムプロパティとして示されていました。同じファイルが何度も選択されることがないように、`autoDelete` と `moveTo` パラメータが用意され、ファイルが選択されるとポーリング対象のディレクトリから削除されていました。
+
+Mule 4 ではこの方法が改良されています。`<ftp:listener>` と `<sftp:listener>` コンポーネント (Studio パレットでは `On New File` と表示) がディレクトリをポーリングし、以前と同様のやり方で新しいメッセージをトリガします。ただし、次の機能が追加されています。
+
+* `<ftp:matcher>` と `<sftp:matcher>` を使用して、特定の条件に一致するファイルのみを受け取ることができます。
+* ファイルを強制的に削除または移動する必要がなくなりましたが、この操作を行うオプションは引き続き使用できます。
+* コネクタのいずれかの操作を使用して、処理されたファイルが条件に一致しなくなるように変更できます。
+* 透かしは自動的にサポートされ、必要に応じてファイルのタイムスタンプに基づいて自動的に絞り込むことができます。
+
+.Mule 3 の例: インバウンドエンドポイント
+[source,xml,linenums]
+----
+<flow name="listener">
+  <ftp:inbound-endpoint address="ftp://anonymous:password@localhost:${port1}"
+    pollingFrequency="1000"/>
+
+  <flow-ref name="processFile" />
+</flow>
+----
+
+.Mule 4 の例: 新規ファイル
+
+[source,xml,linenums]
+----
+<ftp:config name="ftp">
+  <ftp:connection host="localhost" user="anonymous" password="password" workingDir="${workingDir}"/>
+</file:config>
+
+<flow name="listenWithScheduler" initialState="stopped">
+    <ftp:listener config-ref="ftp" directory=".">
+      <scheduling-strategy>
+        <fixed-frequency frequency="1000"/>
+      </scheduling-strategy>
+    </file:listener>
+
+    <flow-ref name="processFile" />
+</flow>
+----
+
+[[ftp_write]]
+== アウトバウンドエンドポイントの移行
+
+Mule 3 のトランスポートは `<ftp:outbound-endpoint>` コンポーネントを使用して、現在のペイロードをファイルに書き込みます。Mule 4 のコネクタは、その代わりに `<ftp:write>` 操作を使用します。
+
+特に重要な違いは次のとおりです。
+
+* `<ftp:outbound-endpoint>` は、実行時にメッセージペイロードに書き込むコンテンツが必要でした。`<ftp:write>` 操作では、書き込むコンテンツを生成する DataWeave 変換を組み込むことができます。
+* Mule 3 のトランスポートでは設定レベルで `outputAppend` パラメータが設定されるのに対し、`<ftp:write>` 操作には `mode` パラメータがあります。
+
+.Mule 3 の例: アウトバウンドエンドポイント
+
+[source,xml,linenums]
+----
+<ftp:connector name="file" outputAppend="true" />
+
+<flow name="greetings">
+  <http:listener path="greet" method="POST"/>
+  <set-payload value="Hello #[payload.name]" />
+  <ftp:outbound-endpoint path="greet.txt" connector-ref="file" />
+</flow>
+----
+
+.Mule 4 の例: Write 操作
+
+[source,xml,linenums]
+----
+<flow name="greetings">
+  <http:listener path="greet" method="POST"/>
+  <ftp:write path="greet.txt" mode="APPEND">
+    <ftp:content>#['Hello $(payload.name)']</file:content>
+  </file:write>
+</flow>
+----
+
+SFTP コネクタで FTP を使用するには、Studio パレットを使用してアプリケーションに追加するか、次の連動関係を `pom.xml` ファイルに追加します。
+
+[source,xml,linenums]
+----
+<dependency>
+    <groupId>org.mule.connectors</groupId>
+    <artifactId>mule-ftp-connector</artifactId>
+    <version>1.1.0</version> <!-- or newer -->
+    <classifier>mule-plugin</classifier>
+</dependency>
+
+<dependency>
+    <groupId>org.mule.connectors</groupId>
+    <artifactId>mule-sftp-connector</artifactId>
+    <version>1.1.0</version> <!-- or newer -->
+    <classifier>mule-plugin</classifier>
+</dependency>
+----
+
+[[sftp-addSeqNo]]
+=== SFTP アウトバウンドの 'addSeqNo' の重複処理
+
+Mule 3 で `duplicateHandling="addSeqNo"` を使用すると、未使用のインデックスが見つかるまでファイル名に反復処理が行われます。
+
+Mule 4 では、オブジェクトストアや UUID などを使用して、このコードを独自のインデックスに置換する必要があります。
+
+.Mule 3 の例: アウトバウンド SFTP エンドポイント `addSeqNo`
+
+[source,xml,linenums]
+----
+<flow name="sftpSeqNumberOutbound">
+    <sftp:outbound-endpoint
+        address="sftp://.../data"
+        outputPattern="fileName.dat" duplicateHandling="addSeqNo"/>
+</flow>
+----
+
+.Mule 4 の例: `path` に `uuid()` が設定された `sftp:write`
+[source,xml,linenums]
+----
+<flow name="sftpSeqNumberOutbound">
+    <sftp:write config-ref="sftpConfig" path="#['data/fileName_' ++ uuid() ++ '.dat']"/>
+</flow>
+----
+
+[[sftp-temp-dir]]
+== SFTP の tempDir の移行
+
+Mule 3 の SFTP トランスポートでは、ファイルの読み取りまたは書き込み時に使用する一時的なディレクトリを設定できます。この設定で指定するプロパティは次のとおりです。
+
+* `sftp:connector`:
+** `tempDirInbound`
+** `tempDirOutbound`
+** `useTempFileTimestampSuffix`
+
+* `sftp:inbound-endpoint`:
+** `tempDir`
+** `useTempFileTimestampSuffix`
+
+* `sftp:outbound-endpoint`:
+** `tempDir`
+** `useTempFileTimestampSuffix`
+
+Mule 4 の SFTP コネクタではこれらの設定を使用できません。ただし、このコネクタには、この種の設定の代わりとなる `sftp:move` 操作があります。
+
+.Mule 3 の例: インバウンド SFTP エンドポイント `tempDir`
+[source,xml,linenums]
+----
+<flow name="sftpListener">
+    <sftp:inbound-endpoint address="sftp://.../testdir"
+        tempDir="tmp_sending" useTempFileTimestampSuffix="true"/>
+
+    ...
+</flow>
+----
+
+.Mule 4 の例: 一時的なディレクトリへの `sftp:move`
+[source,xml,linenums]
+----
+<flow name="sftpListener">
+    <sftp:listener config-ref="sftpConfig" directory="testdir"/>
+
+    <!-- This DataWeave generates the same filename as the Mule 3 transport when using the tempDir attribute -->
+    <sftp:move config-ref="sftpConfig" sourcePath="#['testdir/' ++ attributes.name]" targetPath="#['tmp_sending/' ++ joinBy(flatMap(splitBy(attributes.name, '.'), (item, index) -> (if (index == 0) item ++ '_' ++ now() as String{format: 'yyyyMMddHHmmssSSS'} else item)), '.')]"/>
+    ...
+</flow>
+----
+
+== 関連情報
+
+* xref:connectors::ftp/ftp-connector.adoc[FTP コネクタ]
+* xref:connectors::sftp/sftp-connector.adoc[SFTP コネクタ]

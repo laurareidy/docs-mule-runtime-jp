@@ -1,0 +1,13 @@
+= Anypoint Enterprise Security (AES) の機能の移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Mule 4 では、Anypoint Enterprise Security モジュールが次の各種のモジュールに分割されました。
+
+* xref:cryptography.adoc[暗号化モジュール] - Mule 3 の暗号化モジュールと署名モジュールの代わりに導入されました。
+* xref:secure-configuration-properties.adoc[セキュア設定プロパティモジュール] - Mule 3 のセキュアプロパティプレースホルダの代わりに導入されました。
+* xref:connectors::validation/validation-connector.adoc[検証モジュール] - Mule 3 の検索条件モジュールの機能が組み込まれています。
+* xref:connectors::oauth/oauth2-provider-documentation-reference.adoc[OAauth2 プロバイダ] - Mule 3 の OAuth2 プロバイダの代わりに導入されました。
+
+Mule 4 への移行方法についての詳細は、上記の各モジュールのドキュメントを参照してください。

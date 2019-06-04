@@ -1,0 +1,143 @@
+= アサートプロセッサの移行 (Munit)
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+すべてのアサートイベントプロセッサで名前空間が 'assert' に変更になります。 +
+すべてのアサートイベントプロセッサを単一のイベントプロセッサに置き換えます。
+
+.MUnit 2.x のアサートプロセッサ
+[source,xml,linenums]
+----
+<assert:that expression="#[]" is="#[MunitTools::equalTo(...)]" message=""/>
+----
+
+[NOTE]
+式が期待されます。
+
+単項アサーションは以下のように実装します。
+
+== Assert Payload
+
+.MUnit 1.x の Assert Payload
+[source,xml,linenums]
+----
+<assert:payload-equals expectedValue="'#[['value 1','value 2']]"   message="oops!"/>
+----
+
+.MUnit 2.x の Assert Payload
+[source,xml,linenums]
+----
+<assert:that expression="#[payload]" is="#[MunitTools::equalTo(['value 1','value 2'])]" message="oops!"/>
+----
+
+== Assert Null
+
+.MUnit 1.x の Assert Null
+[source,xml,linenums]
+----
+<munit:assert-null message="oops!"/>
+----
+
+.MUnit 2.x の Assert Null
+[source,xml,linenums]
+----
+<assert-that expression="#[payload]" is="#[MunitTools::nullValue()]" message="oops!"/>
+----
+
+== Assert Not Null
+
+.MUnit 1.x の Assert Not Null
+[source,xml,linenums]
+----
+<munit:assert-not-null message="oops!"/>
+----
+
+.MUnit 2.x の Assert Not Null
+[source,xml,linenums]
+----
+<assert-that expression="#[payload]" is="#[MunitTools::notNullValue()]" message="oops!"/>
+----
+
+== Assert False
+
+.MUnit 1.x の Assert False
+[source,xml,linenums]
+----
+<munit:assert-false message="oops!" condition="#[ 1 != 1 || payload.length != 0]"/>
+----
+
+.MUnit 2.x の Assert False
+[source,xml,linenums]
+----
+<assert:that expression="#[ 1 != 1 || payload.length != 0]" is="#[MunitTools::equalTo(false)]" message="oops!"/>
+----
+
+== Assert True
+
+.MUnit 1.x の Assert True
+[source,xml,linenums]
+----
+<munit:assert-true message="oops!" condition="#[#[ 1 == 1 &amp;&amp; payload.length == 0]]" doc:name="Assert True"/>
+----
+
+.MUnit 2.x の Assert True
+[source,xml,linenums]
+----
+<assert:that expression="#[ 1 != 1 || payload.length != 0]" is="#[MunitTools::equalTo(true)]" message="oops!"/>
+----
+
+== Assert Fail
+
+失敗アサーションプロセッサの構文に変更はありません。
+
+[source,xml,linenums]
+----
+<munit:fail message="This should not happen"/>
+----
+
+2 項アサーションは以下のように実装します。
+
+== Assert Equals
+
+.MUnit 1.x の Assert Equals
+[source,xml,linenums]
+----
+<munit:assert-on-equals message="oops!" expectedValue="#['expected']" actualValue="#['actual_value']"/>
+----
+
+.MUnit 2.x の Assert Equals
+[source,xml,linenums]
+----
+<assert:that expression="#['expected']" is="#[MunitTools::equalTo('actual_value')]" message="oops!" />
+----
+
+== Assert Not Equals
+
+.MUnit 1.x の Assert Not Equals
+[source,xml,linenums]
+----
+<munit:assert-not-same message="oops!" expectedValue="#['']" actualValue="#[payload]"/>
+----
+
+.MUnit 2.x の Assert Not Equals
+[source,xml,linenums]
+----
+<assert:that expression="#['expected']" is="#[MunitTools::not(equalTo('actual_value'))]" message="oops!" />
+----
+
+== Assert Custom
+
+カスタムアサートプロセッサの構文に変更はありません。
+
+[source,xml,linenums]
+----
+<munit:run-custom assertion-ref="your.package.customAssertion"/>
+----
+
+== 関連情報
+
+* xref:2.0@munit::run-custom-event-processor.adoc[Run Custom イベントプロセッサについて]
+* xref:2.0@munit::munit-2-changes.adoc[Mule 2.0 の変更]
+* xref:2.0@munit::mock-processor-changes.adoc[モックプロセッサの変更]
+* xref:2.0@munit::set-message-processor-changes.adoc[メッセージプロセッサの設定の変更]

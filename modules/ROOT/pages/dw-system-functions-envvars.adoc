@@ -1,0 +1,35 @@
+= envVars
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[envvars1]]
+== envVars&#40;&#41;: Dictionary<String&#62;
+
+ホストシステムで定義されているすべての環境変数を返します。
+
+
+=== 例
+
+次の例は、Mac コマンドコンソール (`SHELL`) のパスを返します。`SHELL` は、標準 Mac 環境変数の 1 つです。すべての環境変数を返すには、`dw::System::envVars()` を使用できます。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+import dw::System
+output application/json
+---
+{ "envVars" : dw::System::envVars().SHELL }
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "envVars": "/bin/bash" }
+----
+

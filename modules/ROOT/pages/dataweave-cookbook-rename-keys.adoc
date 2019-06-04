@@ -1,0 +1,98 @@
+= JSON キーの名前変更
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, 変換, トランスフォーマ, 形式, 集約, 名前変更, 分割, 変換の絞り込み, xml, json, csv, pojo, java オブジェクト, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング
+
+この DataWeave の例では、JSON オブジェクトの一部のキーの名前を変更し、出力の他のキーの名前はすべてそのままにします。
+
+次の関数を使用します。
+
+* JSON オブジェクトの `key:value` ペアを調べる `mapObject`。
+* どのような場合にキーの名前を変更するのかを単独で決定する `if`。
+* 新しい名前の 2 つのキーを除くすべてのキーの名前を保持する `if` と `and`。
+* キーの型を String (文字列) に強制変換する `as`。
+
+.DataWeave
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+payload.flights map (flight) -> {
+    (flight mapObject (value, key) -> {
+        (emptySeats: value) if(key as String == 'availableSeats'),
+        (airline: value) if(key as String == 'airlineName'),
+        ((key):value) if(key as String !='availableSeats' and key as String != 'airlineName')
+    })
+}
+----
+
+.入力
+[source,json,linenums]
+----
+{
+  "flights":[
+  {
+  "availableSeats":45,
+  "airlineName":"Ryan Air",
+  "aircraftBrand":"Boeing",
+  "aircraftType":"737",
+  "departureDate":"12/14/2017",
+  "origin":"BCN",
+  "destination":"FCO"
+  },
+  {
+  "availableSeats":15,
+  "airlineName":"Ryan Air",
+  "aircraftBrand":"Boeing",
+  "aircraftType":"747",
+  "departureDate":"08/03/2017",
+  "origin":"FCO",
+  "destination":"DFW"
+  }]
+}
+----
+
+
+.出力
+[source,json,linenums]
+----
+[
+  {
+    "emptySeats": 45,
+    "airline": "Ryan Air",
+    "aircraftBrand": "Boeing",
+    "aircraftType": "737",
+    "departureDate": "12/14/2017",
+    "origin": "BCN",
+    "destination": "FCO"
+  },
+  {
+    "emptySeats": 15,
+    "airline": "Ryan Air",
+    "aircraftBrand": "Boeing",
+    "aircraftType": "747",
+    "departureDate": "08/03/2017",
+    "origin": "FCO",
+    "destination": "DFW"
+  }
+]
+----
+
+== 関連する例
+
+
+
+* xref:dataweave-cookbook-output-a-field-when-present.adoc[存在する項目の出力]
+
+* xref:dataweave-cookbook-map-based-on-an-external-definition.adoc[定義に基づいた動的なマップ]
+
+* xref:dataweave-cookbook-pass-functions-as-arguments.adoc[関数を引数として渡す]
+
+
+== 関連情報
+
+* xref:dataweave-selectors.adoc[DataWeave セレクタ]
+
+* xref:dataweave-cookbook.adoc[DataWeave の解説書]

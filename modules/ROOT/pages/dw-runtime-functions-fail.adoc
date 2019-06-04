@@ -1,0 +1,57 @@
+= fail
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[fail1]]
+== fail&#40;String&#41;: Nothing
+
+指定されたメッセージで失敗を発生させます。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `message` | エラーメッセージ (`String`)。
+|===
+
+=== 例
+
+次の例では、式 `(sizeOf(emptyArray) <= 0)` が `true` であるため `desiredResult` (`[1,2,3]`) の代わりに失敗メッセージ `Data was empty` を返します。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+import * from dw::Runtime
+var emptyArray = []
+var desiredResult = [1,2,3]
+output application/json
+---
+if(sizeOf(emptyArray) <= 0) fail('Data was empty') else desiredResult
+----
+
+==== 出力
+
+[source,TXT,linenums]
+----
+Data was empty
+Trace:
+  at fail (Unknown)
+  at main (line: 6, column: 25)
+----
+
+Studio コンソールコンポーネントでは、出力は次のように表示されます。
+
+[source,TXT,linenums]
+----
+ERROR 2018-07-29 11:47:44,983 ...
+*********************************
+Message               : "Data was empty
+...
+----

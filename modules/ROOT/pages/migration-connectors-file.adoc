@@ -1,0 +1,192 @@
+= ファイルコネクタの移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+ファイルトランスポートは一新されています。Mule 3 のトランスポートモデルから、操作ベースのコネクタに進化しています。このため、多数の新しい機能が可能になります。
+
+* インバウンドエンドポイントでしかポーリングされなかった旧来のトランスポートとは異なり、オンデマンドでファイルを読み込むことや、ディレクトリの内容の完全リストを作成することができる。
+* ファイルシステムの一般的な操作 (コピー、移動、名前変更、削除、ディレクトリの作成など) を最大限サポートする。
+* ファイルシステムレベルでファイルのロックをサポートする。
+* ファイルマッチング機能が向上する。
+
+[[whats_covered_here]]
+== このトピックの内容
+
+* <<file_configs>>
+* <<file_config_refs>>
+* <<file_listener>>
+* <<file_write>>
+
+
+[[file_configs]]
+== ファイルコネクタ設定の移行
+
+Mule 3 では、すべてのトランスポート設定が `<file:connector />` という最上位要素で行われますが、ファイルコネクタでは自動削除、ストリーミング、接続の検証をデフォルトで `true` に設定します。
+
+.Mule 3 の例: デフォルトのファイル設定
+[source,xml,linenums]
+----
+<file:connector name="file_config_default"
+ autoDelete="true"
+ streaming="true"
+ validateConnections="true" />
+----
+
+コネクタ設定にはまた、ファイルの読み取り、書き込み、移動など多数の設定があります。次の例は、ファイルコネクタで実行可能な Mule 3 の設定の大半を示しています。
+
+.Mule 3 の例: 実行可能なファイル接続設定
+[source,xml,linenums]
+----
+<file:connector name="file_config_most_settings"
+ outputPattern="FileNamePattern"
+ writeToDirectory="WriteToDirectory"
+ readFromDirectory="ReadFromDirectory"
+ workDirectory="WorkDirectory"
+ workFileNamePattern="WorkFileNamePattern"
+ autoDelete="true"
+ outputAppend="true"
+ streaming="true"
+ dispatcherPoolFactory-ref="MyBean"
+ recursive="true"
+ dynamicNotification="true"
+ validateConnections="true"
+ serialiseObjects="true"
+ pollingFrequency="4000" fileAge="800"
+ moveToPattern="MoveToPattern"
+ moveToDirectory="MoveToDirectory"
+ doc:name="File" doc:description="Notes">
+  <file:expression-filename-parser/>
+  <spring:property name="Name" value="Value"/>
+</file:connector>
+----
+
+Mule 4 では、`<file:config />` がファイル接続設定の最上位要素で、`<file:connection />` は接続に関連する設定の子要素です。
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<file:config name="file_config" defaultWriteEncoding="UTF-8">
+  <file:connection workingDir="/Users/me/path/to/files" />
+</file:config>
+----
+
+* `workingDir` には、他のすべてのパスに使用するディレクトリへの相対パスを指定できます。指定されていない場合は、ユーザのホームディレクトリが使用されます。Mule 3 に `workDirectory` とよく似た名前の属性がありますが、`workDirectory` は入力ファイルを処理する前に移動する場合に使用するものです。
+* `defaultWriteEncoding` は、書き込みで使用する文字エンコーディングを特定します。このグローバル設定は、Write などのファイル操作で上書きできます。
+
+Mule 3 の他の設定パラメータはすべて不要になりました。新しいコネクタの操作のパラメータと置換されたか、新しいコネクタモデルでは表示する必要がないためです。
+
+[[file_config_refs]]
+== ファイル接続設定の参照
+
+Mule 3 ではすべての操作が、`connector-ref` を使用してファイルコネクタの主要な設定をポイントする、インバウンドまたはアウトバウンドエンドポイントとして設定されます。
+
+.Mule 3 の例: インバウンドエンドポイントとしてのファイル接続
+[source,xml,linenums]
+----
+<file:inbound-endpoint path="/tmp/input"
+  connector-ref="file_config"
+  responseTimeout="10000" ... />
+----
+
+.Mule 3 の例: アウトバウンドエンドポイントとしてのファイル接続
+[source,xml,linenums]
+----
+<file:outbound-endpoint path="/tmp/output" connector-ref="file_config" responseTimeout="10000" />
+----
+
+[[file_listener]]
+== インバウンドエンドポイントの移行
+
+Mule 3 では、`<file:inbound-endpoint>` メッセージソースを使用してディレクトリをポーリングしてファイルを見つけていました。ファイルが検出されるごとにい、新しいメッセージがトリガされました。このメッセージには、ペイロード内にファイルの内容が保持され、多数のファイル属性がシステムプロパティとして示されていました。同じファイルが何度も選択されることがないように、`autoDelete` と `moveTo` パラメータが用意され、ファイルが選択されるとポーリング対象のディレクトリから削除されていました。
+
+Mule 4 ではこの方法が改良されています。`<file:listener>` コンポーネント (Studio パレットでは `On New File` という) がディレクトリをポーリングし、以前と同様のやり方で新しいメッセージをトリガします。ただし、次の機能が追加されています。
+
+* `<file:matcher>` を使用して、特定の条件に一致するファイルのみを受け取ることができます。
+* アプリケーションを起動する前にリスン `directory` を作成するか、再接続戦略を設定する必要があります。Mule 3.x では、アプリケーションの起動時にこのディレクトリが存在しなければ作成されていました。
+* ファイルを強制的に削除または移動する必要がなくなりましたが、この操作を行うオプションは引き続き使用できます。
+* 3.x では、エラーが発生してトランザクションがロールバックされても、入力ファイルが削除または移動されることはありませんでしたが、トランザクションがない場合はこうした操作が実行されていました。Mule 4 では、トランザクションの有無に関係なく、エラーが生じると、削除または移動操作が行われません。
+* コネクタのいずれかの操作を使用して、処理されたファイルが条件に一致しなくなるように変更できます。
+* 透かしは自動的にサポートされ、必要に応じて作成または変更タイムスタンプに基づいて自動的に絞り込むことができます。
+* Mule 3 では読み込みファイルの正規パスを使用して、そのメタデータをメッセージのインバウンドプロパティに追加していました。Mule 4 では絶対パスを使用します。
+
+.Mule 3 の例: インバウンドエンドポイント
+[source,xml,linenums]
+----
+<flow name="listener">
+  <file:inbound-endpoint path="${workingDirectory}/test-data/in" autoDelete="true"
+    pollingFrequency="1000"/>
+
+  <flow-ref name="processFile" />
+</flow>
+----
+
+.Mule 4 の例: 新規ファイル
+
+[source,xml,linenums]
+----
+<file:config name="file">
+  <file:connection workingDir="${workingDir}"/>
+</file:config>
+
+<flow name="onNewFile">
+    <file:listener config-ref="file" directory="test-data/in" autoDelete="true">
+      <scheduling-strategy>
+        <fixed-frequency frequency="1000"/>
+      </scheduling-strategy>
+    </file:listener>
+
+    <flow-ref name="processFile" />
+</flow>
+----
+
+[[file_write]]
+== アウトバウンドエンドポイントの移行
+
+Mule 3 のトランスポートは `<file:outbound-endpoint>` コンポーネントを使用して、現在のペイロードをファイルに書き込みます。Mule 4 のコネクタは、その代わりに `<file:write>` 操作を使用します。
+特に重要な違いは次のとおりです。
+
+* `<file:outbound-endpoint>` コンポーネントは非同期です。つまり、実際の書き込みがバックグラウンドで行われると同時に、フローで次のメッセージプロセッサが実行されていました。他方、`<file:write>` 操作は同期で、この操作が終了するまで次のメッセージプロセッサは実行されません。操作を非同期にする場合は、`<file:write>` 操作を `<async>` ブロックでラップします。
+* `<file:outbound-endpoint>` は、実行時にメッセージペイロードに書き込むコンテンツが必要でした。`<file:write>` 操作では、書き込むコンテンツを生成する DataWeave 変換を組み込むことができます。
+* Mule 3 のトランスポートでは設定レベルで `outputAppend` パラメータが設定されるのに対し、`<file:write>` 操作にはモードパラメータがあります。
+
+.Mule 3 の例: アウトバウンドエンドポイント
+
+[source,xml,linenums]
+----
+<file:connector name="file" outputAppend="true" />
+
+<flow name="greetings">
+  <http:listener path="greet" method="POST"/>
+  <set-payload value="Hello #[payload.name]" />
+  <file:outbound-endpoint path="greet.txt" connector-ref="file" />
+</flow>
+----
+
+.Mule 4 の例: Write 操作
+
+[source,xml,linenums]
+----
+<flow name="greetings">
+  <http:listener path="greet" method="POST"/>
+  <file:write path="greet.txt" mode="APPEND">
+    <file:content>#['Hello $(payload.name)']</file:content>
+  </file:write>
+</flow>
+----
+
+ファイルコネクタを使用するには、Studio パレットを使用してアプリケーションに追加するか、次の連動関係を `pom.xml` ファイルに追加します。
+
+[source,xml,linenums]
+----
+<dependency>
+    <groupId>org.mule.connectors</groupId>
+    <artifactId>mule-file-connector</artifactId>
+    <version>1.1.0</version> <!-- or newer -->
+    <classifier>mule-plugin</classifier>
+</dependency>
+----
+
+== 関連情報
+
+* xref:connectors::file/file-connector.adoc[ファイルコネクタドキュメント]

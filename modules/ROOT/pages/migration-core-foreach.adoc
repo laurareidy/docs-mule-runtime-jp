@@ -1,0 +1,58 @@
+= For Each スコープの移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+DataWeave 2 を式言語として使用すること以外に、Mule 3 と Mule 4 の For Each スコープはほとんど変更されていません。ただし、この小さな変更は、コンポーネントの使いやすさに大きく影響します。
+
+Mule 3 の場合、foreach では入力コレクションが Java イテラブル、Java イテレータ、または Java 配列であることが必要でした。常に入力が Java 形式であることを確認する必要がありました (したがって、Java に精通せざるを得ませんでした)。
+
+Mule 4 では、形式に関係なく、配列状の構造での反復処理がサポートされます。たとえば、HTTP 要求によって次の JSON が投稿されるとします。
+
+[source,json,linenums]
+----
+{
+  persons: [
+    {
+      name: 'John Doe',
+      age: 34
+    },
+    {
+      name: 'Jane Doe',
+      age: 32
+    }
+  ]
+}
+----
+
+Mule 3 では、JSON を最初に Java に変換する必要があります。
+
+.Mule 3 の例
+[source,xml,linenums]
+----
+<flow name="persons">
+  <http:listener path="person" method="POST" config-ref="http">
+  <json:json-to-object-transformer />
+  <foreach batchSize="10" collection="#[payload.persons]">
+    <flow-ref name="processPerson" />
+  </foreach>
+</flow>
+----
+
+Mule 4 では、次のように JSON 形式の persons 配列に直接アクセスできます。
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<flow name="persons">
+  <http:listener path="person" method="POST" config-ref="http">
+  <foreach batchSize="10" collection="#[payload.persons]">
+    <flow-ref name="processPerson" />
+  </foreach>
+</flow>
+----
+
+== 関連情報
+
+* xref:migration-core-exception-strategies.adoc[例外戦略の移行]
+* xref:migration-dataweave.adoc[DataWeave 1.0 から 2.x への移行]

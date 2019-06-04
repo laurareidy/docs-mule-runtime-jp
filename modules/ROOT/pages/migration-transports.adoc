@@ -1,0 +1,105 @@
+= トランスポートの移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Mule 3 トランスポートはコネクタに置き換えられており、コネクタは
+Mule 4 の操作モデルに従います。ほとんどの Mule トランスポートは、Mule 4 の対応するコネクタに
+置き換え可能です。
+
+すべてのトランスポートに共通の移行に関する問題がいくつかあります。トランスポート固有の
+移行ドキュメントについては、
+xref:migration-connectors.adoc[「コネクタおよびモジュールの Mule 4 への移行」]および
+その子ページを代わりに参照してください。
+
+[[address]]
+== エンドポイントアドレス
+
+Mule 3 では、エンドポイントはトランスポート固有の属性 (たとえば、HTTP エンドポイントは `host`、`port`、`path` を使用できました) または汎用の `address` 属性を使用して設定できました。
+
+汎用の `address` 属性を使用した場合、たとえば以下のようにプロパティを
+参照できました。
+
+[source,xml,linenums]
+----
+<http:inbound-endpoint address="${External.URL}"/>
+----
+
+`External.URL` について設定されたプロパティは次のようになります。
+
+[source,text,linenums]
+----
+External.URL=http://0.0.0.0:8080/rootPath
+----
+
+Mule 4 では、コネクタが接続属性を個別に定義するため、完全なアドレスプロパティはコンポーネントに分割する必要があります。
+
+[source,xml,linenums]
+----
+<http:listener-config name="listenerConfig">
+    <http:listener-connection host="${External.URL.host}" port="${External.URL.port}"/>
+</http:listener-config>
+
+<flow>
+    <http:listener config-ref="listenerConfig" path="${External.URL.path}"/>
+
+    ...
+</flow>
+----
+
+プロパティの設定は次のようになります。
+
+[source,text,linenums]
+----
+External.URL.host=0.0.0.0
+External.URL.port=8080
+External.URL.path=/rootPath
+----
+
+コネクタ固有のドキュメント (HTTP コネクタやメールコネクタ用のドキュメントなど)
+には、コネクタに必要な正確なプロパティに関する詳細が記載されています。
+
+[[service_overrides]]
+== サービスの上書き
+
+Mule 4 では、カスタム Java コードを使用したサービスの上書きのカスタマイズは
+サポートされていません。
+
+Mule 3 では、コネクタの `service-overrides` 要素を使用してトランスポートの動作を
+カスタマイズできます。この要素により、
+新しい機能を提供するカスタムコードを使用して Java クラスを参照できます。
+
+.Mule 3 の例: `service-overrides` を含むコネクタ
+[source,xml,linenums]
+----
+<imap:connector name="imapConnector" moveToFolder="processed" deleteReadMessages="false" checkFrequency="200">
+    <service-overrides messageReceiver="org.mule.transport.email.functional.RetrieveMessageReceiverPollCounter"/>
+</imap:connector>
+----
+
+こうしたカスタマイズを Mule 4 に移行する方法は、
+カスタムコードの動作に応じて異なるため、以下の方法が考えられます。
+
+* xref:dataweave.adoc[DataWeave] トランスフォーメーション、
+xref:connectors::java/java-module.adoc[Java モジュール]、
+xref:connectors::scripting/scripting-module.adoc[スクリプティングモジュール]などの
+他の Mule 機能やコンポーネントを使用してこの機能を提供する。
+* xref:1.1@mule-sdk::index.adoc[Mule SDK] を使用して、カスタマイズした
+トランスポート機能を提供するコネクタを作成する。開始点として、
+オープンソースのコネクタを連動関係として使用できます (たとえば、
+https://github.com/mulesoft/mule-http-connector)。
+* 前の手法と同じように、オープンソースのコネクタリポジトリをフォークして、
+カスタムコードをフォークに追加できます。MuleSoft では変更のプル要求を
+歓迎します。
+* MuleSoft に機能要求を行う。`service-overrides` を通じてカスタムコードで提供した
+機能を追加するよう MuleSoft に要求できます。こうした要求を
+送信するには、https://support.mulesoft.com/s/ideas[MuleSoft サポートの「Ideas (アイデア)」]にアクセスして
+ください。
+
+== 関連情報
+
+xref:migration-connectors.adoc[コネクタとモジュールの Mule 4 への移行]
+
+xref:intro-java-integration[Java インテグレーション]
+
+xref:1.1@mule-sdk::index.adoc[Mule SDK]
