@@ -1,0 +1,41 @@
+= セキュアプロパティプレースホルダの移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Mule 3 では、セキュアプロパティプレースホルダはセキュリティモジュールの一部でした。Mule 4 では、独自のセキュア設定プロパティモジュールで分離されました。
+
+.例: Mule 3 での完全なセキュアプロパティプレースホルダ
+[source,xml,linenums]
+----
+<secure-property-placeholder:config
+  name="Secure_Property_Placeholder" key="${prod.key}"
+  location="test.${env}.properties" encryptionAlgorithm="Blowfish"
+  encryptionMode="CBC"/>
+----
+
+Mule 3 と Mule 4 の違い:
+
+* 他のコンポーネントの一貫性を保つため、Mule 3 の `location` 属性は Mule 4 では `file` に置き換えられました。
+* Mule 3 では、`location` は複数のファイルをカンマ (`,`) で区切って定義できます。Mule 4 では、トラブルを避けるため、できなくなりました。代わりに、各ファイルに `<secure-properties:config>` タグを定義する必要があります。
+* ファイル間で重複するプロパティでは、Mule 3 では最後の定義が保持されます。Mule 4 モジュールでは最初の定義が保持されます。
+
+* 暗号化属性 (`mode` および `algorithm`) は子タグ `<secure-properties:encrypt/>` で定義され、サポートされるアルゴリズムおよびモードは Mule 3 と 4 で同じです (xref:secure-configuration-properties.adoc[「Mule 4 のセキュア設定プロパティ」]を参照)。
+
+Mule 3 の完全な移行の例は次のようになります。
+
+.例: 完全な移行の例
+[source,xml,linenums]
+----
+<secure-properties:config
+  key="${prod.key}"
+  file="test.${env}.properties"
+  name="Secure_Property_Placeholder">
+    <secure-properties:encrypt algorithm="Blowfish" mode="CBC"/>
+</secure-properties:config>
+----
+
+[[see_also]]
+== 関連情報
+
+xref:secure-configuration-properties.adoc[Mule 4 のセキュア設定プロパティ]

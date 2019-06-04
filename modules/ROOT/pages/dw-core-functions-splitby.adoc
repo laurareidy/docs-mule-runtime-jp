@@ -1,0 +1,88 @@
+= splitBy
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[splitby1]]
+== splitBy&#40;String, Regex&#41;: Array<String&#62;
+
+正規表現に基づいて文字列を分割します。
+
+
+区切り文字には、入力内の任意の文字を一致させることができます。`splitBy` は `joinBy` と逆の操作を実行します。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `text` | 分割する文字列。
+| `regex` | 文字列を区切るために使用される正規表現。これが文字列の一部に一致しない場合は、この関数は文字列を分割せずに配列内で返します。
+|===
+
+=== 例
+
+次の例では、正規表現 `\/^*.b./\` を使用することによって、`-b-` を探して区切り文字として使用します。区切り文字は出力からは削除されます。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{ "split" : "a-b-c" splitBy(/^*.b./) }
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "split": ["a","c"]
+}
+----
+
+
+[[splitby2]]
+== splitBy&#40;String, String&#41;: Array<String&#62;
+
+区切り文字に基づいて文字列を分割します。
+
+
+区切り文字には、入力内の任意の文字を一致させることができます。`splitBy` は `joinBy` と逆の操作を実行します。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `text` | 分割する文字列。
+| `separator` | 入力文字列を区切るために使用される文字列。文字列の一部に一致する必要があります。
+|===
+
+=== 例
+
+次の例では、ハイフン (`-`) を区切り文字として使用します。区切り文字は出力では保持されません。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{ "split" : "a-b-c" splitBy("-") }
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "split": ["a", "b", "c"]
+}
+----
+

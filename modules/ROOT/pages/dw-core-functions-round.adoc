@@ -1,0 +1,50 @@
+= round
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[round1]]
+== round&#40;Number&#41;: Number
+
+入力数値を最も近い整数に丸めます。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `number` | 丸める数値。
+|===
+
+=== 例
+
+次の例では、小数を最も近い整数に丸めます。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  a: round(1.2),
+  b: round(4.6),
+  c: round(3.5)
+}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "a": 1,
+  "b": 5,
+  "c": 4
+}
+----
+

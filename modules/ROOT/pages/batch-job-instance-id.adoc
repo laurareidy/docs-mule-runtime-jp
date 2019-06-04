@@ -1,0 +1,71 @@
+= Batch Job インスタンス ID
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: コネクタ, Anypoint, Studio, バッチ, バッチ処理
+
+バッチ処理のユーザは多くの場合、Batch Job の実行フェーズ中に Batch Job のインスタンス ID を判断できる必要があります。
+
+Batch Job インスタンス ID は次の場合に役立ちます。
+
+* データを参照および管理するためにローカルジョブインスタンス ID を外部システムに渡す
+* ジョブのカスタムログを改善する
+* 重要なイベントに関するメールまたは SMS 通知を送信する
+
+== 例
+
+Mule は、キー `batchJobInstanceId` のフロー変数を使用して Batch Job インスタンス ID を公開します。そのフロー変数は、入力フェーズの最初に使用できます。フロー変数はすべてのステップおよび on-complete フェーズでも使用可能です。
+
+image::batch-job-instance-id-c4362.png[]
+
+ログ出力は次のようになります。
+
+com.mulesoft.mule.runtime.module.batch.internal.engine.DefaultBatchEngine: Created instance '7dc5cad0-ab09-11e8-a790-9801a7b055d3' for batch job 'CreateLeadsBatch'
+
+
+== カスタム Batch Job インスタンス ID
+
+Mule 式を使用して、MEL 式を取得する *JobInstanceId* 属性を渡して、各 Batch Job の一意の識別子を指定します。 +
+定数値は Batch Job には使用できないため、MEL 式が以前に参照された値を返した場合、Mule は例外をスローしてジョブインスタンスを作成しません。
+ジョブインスタンス ID を設定しない場合、Mule によってインスタンスに割り当てる UUID が自動生成されます
+
+上記のジョブインスタンスで生成された UUID は `ba01e1a0-f5c7-11e4-9414-10ddb1daeb6d` です。このように、実際の実行と関連付けることが困難な人間が判読できない識別子となっているため、同時に複数のジョブを実行している可能性があることを考慮すると、この ID はまったく意味不明です。
+
+ユニーク性を保証するため、次の MEL 式を使用してサーバ日付を取得するようにジョブ ID を設定できます。 +
+`#['Job From ' + server.dateTime.format('dd/MM/yy hh:mm:ss') + '.' ]`
+
+これは、実行インスタンスに `Job From 15/01/16 05:23:12` という名前を付けます。
+
+[source,text,linenums]
+----
+com.mulesoft.module.batch.engine.DefaultBatchEngine: Created instance Job From 15/01/16 05:23:12 for batch job contacts-to-SFDCBatch
+com.mulesoft.module.batch.engine.DefaultBatchEngine: Starting input phase
+com.mulesoft.module.batch.engine.DefaultBatchEngine: Input phase completed
+com.mulesoft.module.batch.engine.queue.BatchQueueLoader: Starting loading phase for instance 'Job From 15/01/16 05:23:12' of job 'contacts-to-SFDCBatch'
+com.mulesoft.module.batch.engine.queue.BatchQueueLoader: Finished loading phase for instance Job From 15/01/16 05:23:12 of job contacts-to-SFDCBatch. 3 records were loaded
+com.mulesoft.module.batch.engine.DefaultBatchEngine: Started execution of instance 'Job From 15/01/16 05:23:12' of job 'contacts-to-SFDCBatch'
+----
+
+適切に識別されたインスタンスのログは読みやすくなります。
+
+[source,xml,linenums]
+----
+<batch:job jobName="CreateLeadsBatch" maxFailedRecords="1000" jobInstanceId="#['Job From ' + server.dateTime.format('dd/MM/yy hh:mm:ss') + '.' ]">
+	<batch:process-records >
+		<batch:step name="LeadExistsStep">
+			...
+		</batch:step>
+
+		<batch:step name="LeadInsertStep" acceptExpression="vars.leadNotFound">
+			...
+		</batch:step>
+	</batch:process-records>
+	<batch:on-complete >
+		...
+	</batch:on-complete>
+</batch:job>
+----
+
+== 関連情報
+
+* xref:batch-filters-and-batch-aggregator.adoc[Batch Step 処理の絞り込み]

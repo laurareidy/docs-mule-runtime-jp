@@ -1,0 +1,87 @@
+= Mule ソース
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Anypoint Studio, フロー, ソース, ソース, 再配信, ポリシー
+
+Mule アプリケーションにおいてソースは非常に重要です。フローに追加した場合は、情報のエントリポイントとして機能し、外部の通信プロトコルを内部の Mule 処理とリンクします。
+
+ソースの一例:
+
+* xref:connectors::http/http-connector.adoc[HTTP:Listener]
+* xref:connectors::file/file-connector.adoc[FILE:Directory Listener]
+
+== ソースの設定
+
+各ソース実装では設定パラメータが異なりますが、いくつかのパラメータは共通しています。
+
+=== Redelivery Policy (再配信ポリシー)
+
+再配信ポリシーとは、エラーを発生させることが分かっているメッセージのディスパッチを防止するために Mule ソースに追加する検索条件です。
+
+再配信ポリシーをフローのソースに追加することで、フローのコンポーネントを実行する _前に_ 受信データが評価されます。そのデータが過去に何回もエラーを起こしている場合、再配信ポリシーは、フローがそのデータを処理しないようにして、`REDELIVERY_EXHAUSTED` エラーを生成します。
+
+これにより、ランタイムが有害なメッセージ (以前の実行でエラーを発生させたメッセージ) をフローで実行してリソースを浪費してしまうことを回避できます。
+
+[IMPORTANT]
+一部のコネクタには、再配信ポリシーがスローしたエラーを処理するための独自のロジックがあります。この場合は、ソースが属するコネクタのドキュメントを参照してください。たとえば、`http-connector` は `429: TOO MANY REQUESTS` というエラーを返すことがあります。
+
+.例:
+[source,xml]
+----
+<http:listener path="exhaustRedelivery" config-ref="listenerConfig">
+    <redelivery-policy maxRedeliveryCount="10" idExpression="#[payload.transaction.id]"/>
+</http:listener>
+----
+
+==== 再配信ポリシーの設定パラメータ
+
+[%header,cols="20a,20a,20a,60a"]
+|===
+|項目 |型 |デフォルト値 |説明
+|*Max Redelivery Count (最大再配信数)* |Number (数値) |5 |正常に処理されずに `MULE:REDELIVERY_EXHAUSTED` エラーが発生するまでにメッセージを再配信できる最大回数。
+|*Use Secure Hash (セキュアハッシュを使用)* |Boolean (ブール) |True |再配信されたメッセージの識別にセキュアハッシュアルゴリズムを使用するかどうか。
+|*Message Digest Algorithm (メッセージダイジェストアルゴリズム)* |String (文字列) |SHA-256 |使用するセキュアハッシュアルゴリズム。
+|*ID Expression (ID の式)* |式|- | メッセージがいつ再配信されたのかを判断するために使用する 1 つ以上の式を定義します。このプロパティは、`useSecureHash` が false の場合にのみ設定できます。
+|*Object Store (オブジェクトストア)* |String (文字列) |`ObjectStoreManager` によって作成されたオブジェクトストア。永続的ではなく、`entryTtl` は 300 秒、有効期限間隔は 6 秒です。 |各メッセージの再配信カウンタが保存されるオブジェクトストア。参照または内部要素として設定できます。xref:connectors::object-store/object-store-connector.adoc[「Object Store Connector」]を参照してください。
+|===
+
+==== 再配信ポリシーの機能
+
+設定された再配信ポリシーは次のように機能します。
+
+ソースが新しいメッセージを受信するたびに、メッセージがダイジェストされます。設定されているメッセージダイジェストアルゴリズムを使用するか、または ID 式を評価することで、メッセージからキーが生成されます。
+
+* 処理フローで例外が発生すると、関連付けられているカウンタがインクリメントされます。カウンタ値が設定されている `maxRedeliveryCount` を超えると、`MULE:REDELIVERY_EXHAUSTED` エラーがスローされます。
+* 処理フローで例外が発生しなければ、カウンタがリセットされます。
+
+==== スロー
+
+* MULE:REDELIVERY_EXHAUSTED
++
+エラーが発生した実行回数が設定されている `maxRedeliveryCount` より大きい場合にスローされます。
+
+
+==== 例
+
+次の例では、`maxRedeliveryCount` に達した時点で何らかの情報をログに記録しています。
+
+[source,xml]
+----
+<flow name="logOnRedeliveryExhausted">
+    <http:listener path="test" config-ref="listenerConfig">
+        <redelivery-policy maxRedeliveryCount="2" useSecureHash="true"/>
+    </http:listener>
+    <flow-ref name="processData"/>
+    <error-handler>
+        <on-error-continue type="MULE:REDELIVERY_EXHAUSTED">
+            <logger message="Redelivery exhausted in http listener" level="ERROR"/>
+        </on-error-continue>
+    </error-handler>
+</flow>
+----
+
+== 関連情報
+
+* xref:flow-component.adoc[Flow および Subflow コンポーネント]
+* xref:index.adoc#event-sources[イベントソース]

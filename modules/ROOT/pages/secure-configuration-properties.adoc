@@ -1,0 +1,292 @@
+= 安全な設定プロパティ
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+暗号化により、セキュアな設定プロパティを作成できます。次の手順に従って、暗号化プロセスをセットアップしてください。
+
+. <<add-module>> の説明に従って、Exchange から Mule Secure Configuration Property Extension モジュールを入手します。
+. このモジュールを使用してセキュアなプロパティを設定します。このファイルから復号化キーを参照するか、またはファイルにキーを格納する必要があります。
+. 任意のプロパティ設定ファイルでセキュアプロパティを定義します。<<config-files-content>> の説明に従って、セキュアプロパティをシーケンス `![value]` で囲みます。同一のプロパティ設定ファイルに、セキュアプロパティと非セキュアプロパティの両方を定義できます。
+
+[[add-module]]
+== Secure Configuration Property モジュールの追加
+Mule Secure Configuration Property Extension モジュール は https://anypoint.mulesoft.com/exchange/com.mulesoft.modules/mule-secure-configuration-property-module/[Exchange] から入手できます。
+
+このモジュール (`<secure-properties:config>`) を使用してセキュアなプロパティを設定できます。例:
+
+.例: Secure Configuration Property のデフォルト値
+[source,xml,linenums]
+----
+<secure-properties:config key="${runtime.property}"
+  file="file1.yaml" name="test">
+    <secure-properties:encrypt/> <!--1-->
+</secure-properties:config>
+
+<global-property name="prop" value="my-${secure::property.key1}"/> <!--2-->
+----
+<1> デフォルト値を使用する場合でも `<secure-properties:encrypt>` タグは必要です。
+<2> プレフィックス `secure::` はキーの読み込みに必要です。
+
+上の例では:
+
+* 復号化キーは、デプロイメント時にシステム環境変数 `runtime.property` として Mule Runtime に渡されます。このプロパティは、`file1.yaml` ファイルに格納されている値を暗号化するために使用するのとまったく同じキーでなければなりません。
+* デフォルトの暗号化アルゴリズムとモードが使用されます。
+* たとえば、`property.key1` プロパティの実際の (復号化された) 値が `"property"` であれば、`prop` プロパティの値は `"my-property"` となります。
+
+`<secure-properties:encrypt>` タグで追加の属性を設定して、暗号化アルゴリズムや暗号化モードを変更することもできます。例:
+
+.例: セキュア設定プロパティのカスタム値
+[source,xml,linenums]
+----
+<secure-properties:config key="${runtime.property}"
+  file="file1.properties" name="test">
+    <secure-properties:encrypt algorithm="AES" mode="CBC"/> <!--1-->
+</secure-properties:config>
+----
+<1> この例では `AES` アルゴリズムを `CBC` モードで使用しています。
+
+== 属性
+
+[cols="1,3", options="header"]
+|===
+| セキュア設定プロパティの属性 |
+
+| Name (名前)
+| グローバルセキュア設定プロパティの一意の名前。
+
+| キー
+| この項目で定義したシステムプロパティに従ってプロパティ値を復号化するために使用する単語またはフレーズ。たとえば、`${production.myproperty}` と指定すると、Mule Runtime は実行時にキーを要求します。
+
+| ファイル
+| キーが復号化するファイルの場所。<<supported_files>>を参照してください。
+|===
+
+[cols="1,3", options="header"]
+|===
+| セキュア設定プロパティの暗号化属性 |
+
+| Algorithm (アルゴリズム)
+| プロパティの内容を暗号化するために使用するアルゴリズムの種別。すべての選択肢のリストは <<supported_algorithms>> を参照してください。
+
+| Mode (モード)
+| Mule Runtime が単一のキーでブロック暗号を繰り返し使用するためのプロシージャです。すべての選択肢のリストは <<supported_modes>> を参照してください。
+|===
+
+[[supported_files]]
+== サポートされているファイル
+
+下記の例に示すように、セキュア設定プロパティモジュールは、YAML 設定ファイルと Spring 形式のプロパティファイルの両方をサポートします。推奨されるアプローチは、タイプ検証と自動補完をサポートする YAML 設定ファイルです。
+
+[[config-files-content]]
+=== 設定ファイルの内容
+
+Mule アプリケーション内のどの場所でも、暗号化された値と暗号化されていない値の両方を使用できます。次の例に示すように、暗号化された値はシーケンス `![value]` の内側に定義する必要があります。`file1.yaml` ファイルには、暗号化されていない値も定義できます。
+
+.例: file1.yaml
+----
+encrypted:
+    value1: "![nHWo5JhNAYM+TzxqeHdRDXx15Q5R56YVGiQgXCoBCew=]"
+    value2: "![nHWo6XyCADP+TzxqeHdRDXx15Q5R56YVGiQgXCoDFaj=]"
+
+testPropertyA: "testValueA"
+testPropertyB: "testValueB"
+----
+
+[NOTE]
+暗号化された値は、文字列として読めるように引用符で囲む必要があります。
+
+上記と同じ設定の Spring 形式のプロパティファイルは次のようになります。
+
+.例: file1.properties
+----
+encrypted.value1=![nHWo5JhNAYM+TzxqeHdRDXx15Q5R56YVGiQgXCoBCew=]
+encrypted.value2=![nHWo6XyCADP+TzxqeHdRDXx15Q5R56YVGiQgXCoDFaj=]
+
+testPropertyA=testValueA
+testPropertyB=testValueB
+----
+
+== 使い方
+
+暗号化された `encrypted.value1` 値を使用してペイロードを設定するフローの例です。
+
+.例: セキュアなプロパティの使用
+[source,xml,linenums]
+----
+<flow name="main">
+    <set-payload value="${secure::encrypted.value1}"/>
+</flow>
+----
+実行時には、復号化アルゴリズムによって `encrypted.value1` を復号化した値をメモリに格納します。
+
+次は、同じセキュアプロパティファイルの暗号化されていない値を使用したフローの例です。
+
+.例: 暗号化されていないプロパティの使用
+[source,xml,linenums]
+----
+<flow name="mainNonEncrypted">
+    <set-payload value="${secure::testPropertyA}"/>
+</flow>
+----
+
+セキュアなプロパティファイル内の値にアクセスするには、値が暗号化されていない場合でも `secure::` プレフィックスを使用する必要があります。これにより、設定全体を変更しなくてもファイル (または環境) を切り替えることができます。
+
+=== プロパティファイルの動的な設定
+
+一般的な設定のユースケースとして、プロパティ (例: `env`) によって使用するファイルを決定するようにファイルを設定することができます。たとえば、開発フェーズの (暗号化できない) `development-properties` ファイルと (暗号化された値を使用する) 本番ファイルのどちらかを使用するように設定できます。
+
+.例: 環境ファイルが定義されたセキュア設定プロパティ
+[source,xml,linenums]
+----
+<secure-properties:config key="${runtime.property}" file="${env}-properties.yaml" name="test"/>
+----
+
+このように設定することで、`env` プロパティの値によって、セキュアな設定プロパティを読み込むために使用するファイルを決定できます。この `env` プロパティは、`global property`、システムプロパティ、または環境プロパティで設定できます (xref:configuring-properties.adoc[プロパティの設定]参照)。
+
+.例: 環境ファイルが定義されたセキュア設定プロパティ
+[source,xml,linenums]
+----
+<global-property name="env" value="dev"/>
+
+<secure-properties:config key="${runtime.property}" file="${env}-properties.yaml" name="test"/>
+----
+
+このように設定することで、`env` プロパティのデフォルト値が `"dev"` となり、システムプロパティまたは環境プロパティで上書きできるようになります。Anypoint Studio では、この方法はメタデータの解決に​*必須*​となりますので注意してください。コマンドラインで渡されるプロパティのデフォルト値を定義しないと、それらのプロパティに依存するすべてのメッセージプロセッサのアプリケーションモデルを作成する際にエラーとなります。
+
+=== 複数の設定ファイルの定義
+
+プロパティを読み込む設定ファイルを複数定義することができます。必要なのは、読み込みたい各ファイルに対して `<secure-properties:config />` タグを定義するだけです。各セキュア設定プロパティファイルは、それぞれの暗号化アルゴリズム、暗号化モード、そして暗号化/復号化キーによって独立して設定されます。異なるセキュア設定プロパティファイル間では、これらの設定を同じにする必要はありません。
+
+.複数の設定ファイルの使用
+[source,xml,linenums]
+----
+<secure-properties:config key="${runtime.property}" file="file1.yaml" name="test">
+    <secure-properties:encrypt algorithm="AES" mode="CBC"/>
+</secure-properties:config>
+
+<secure-properties:config key="${runtime.property}" file="file2.yaml" name="otherConfig">
+    <secure-properties:encrypt algorithm="AES" mode="CBC"/>
+</secure-properties:config>
+----
+
+[[qanda]]
+=== よくある質問と回答
+
+*複数のファイルで同じプロパティを設定したらどうなりますか?*
+
+その場合は、最初に定義されたプロパティの値が実際のプロパティ値となります。
+
+*以前に定義してあるセキュアプロパティに依存する新しいセキュアプロパティを定義するにはどうすればよいですか?*
+
+次のように同じ構文を使用して、定義済みのプロパティに依存するプロパティを定義することができます。`property=My dependent ${secure::dependent.property} value`
+
+セキュア設定プロパティは、他のセキュア設定プロパティには依存できますが、他の Mule 設定プロパティには依存できませんので注意してください (xref:configuring-properties.adoc[プロパティの設定]参照)。
+
+== 警告
+
+暗号化されたプロパティを使用する場合は、**オペレーティングシステムへのアクセスをセキュアにする**ことが特に重要です。`ps` コマンドを実行できたり、Java コンソールを表示できたりするユーザであれば、Mule アプリケーションのメモリに格納されている復号化された値を見ることができてしまうからです。
+
+
+[[supported_crypto]]
+== サポートされているアルゴリズムとモード
+
+[[supported_algorithms]]
+=== サポートされているアルゴリズム
+
+* AES (デフォルト)
+* Blowfish
+* DES
+* DESede
+* Camellia
+* CAST5
+* CAST6
+* Noekeon
+* Rijndael
+* SEED
+* Serpent
+* Skipjack
+* TEA
+* Twofish
+* XTEA
+* RC2
+* RC5
+* RC6
+* RCA
+
+[[supported_modes]]
+=== サポートされているモード
+
+* CBC (デフォルト)
+* CFB
+* ECB
+* OFB
+
+== Anypoint Studio 7 での拡張モジュールの使用
+
+この拡張モジュールを使用するには、Mule アプリケーションでの連動関係を追加します。
+
+=== 拡張モジュールのインストール
+
+. Anypoint Studio で Mule プロジェクトを開きます。
+
+. [Mule Palette (Mule パレット)] に移動します。
+
+. *[Search in Exchange (Exchange で検索)]* を選択して、*Mule Secure Configuration Property Extension* を検索します。
+
+. 拡張モジュールを追加します。
+
+=== アプリケーションへのセキュア設定プロパティの追加
+
+. Mule アプリケーションの設定ファイルに移動します。
+
+. [`Global Elements` (Global 要素)] タブを選択します。
+
+. [`Create` (作成)] ボタンをクリックします。
+
+. 検索バーから `Secure Properties Config` を選択します。
+
+. `File` の場所、`Key`、`Algorithm`、および `Mode` でグローバル要素を設定します。
+
+image::secure-configuration-properties-studio.png[設定の拡張]
+
+== セキュアプロパティツール
+
+このツールの https://docs.mulesoft.com/downloads/mule-runtime/4.1/secure-properties-tool.jar[JAR ファイル]をダウンロードすると、単独の値またはファイル全体 (YAML 設定ファイルと Spring 形式のプロパティファイルの両方) を暗号化または復号化できます。コマンドラインから次のように実行します。
+
+.セキュアプロパティツールの使い方
+[source,console.linenums]
+----
+java -jar secure-properties-tool.jar string <encrypt|decrypt> <algorithm> <mode> <key> <value>
+----
+
+次のようなコマンドも使用できます。
+
+[source,console.linenums]
+----
+java -jar secure-properties-tool.jar file <encrypt|decrypt> <algorithm> <mode> <key> <input file> <output file>
+----
+
+`file` モードを使用する場合は、同じプロパティのファイルが出力されますが、値は暗号化されます。たとえば、次の入力ファイルがあるとします。
+
+..yaml
+[source,yaml,linenums]
+----
+properties:
+  example1:
+    value: "Muleman is here"
+  example2: "Max the mule"
+----
+
+`java -jar secure-properties-tool.jar file encrypt Blowfish CBC mulesoft example_in.yaml example_out.yaml` と実行すると、出力は次のようになります。
+
+..yaml
+[source,yaml,linenums]
+----
+properties:
+  example1:
+    value: "![qCReIPK3jcqD7WR84ISSIQ==]"
+  example2: "![En8lII21ZHrdIaINw0+mSA==]"
+----
+
+キーの長さは、Java Cryptography Extension (JCE) のバージョンに依存します。たとえば、1.8.0_161 以降のバージョンでは、AES キーの長さは 32 文字 (256 バイト) 以上と決められています (それ以前のバージョンでは 16 文字以上)。

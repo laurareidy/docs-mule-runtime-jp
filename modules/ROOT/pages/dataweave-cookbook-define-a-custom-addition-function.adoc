@@ -1,0 +1,132 @@
+= カスタム追加関数の定義
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, 変換, トランスフォーマ, 形式, xml, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング
+
+この DataWeave の例では、一連の項目の価格と在庫数を取得し、いくつかの関数を使用して小計を計算し、割引を差し引き、税金を加算します。
+
+以下を使用します。
+
+* 入力のすべての項目を調べる `map` 関数。
+* 基本的な算術演算 (`*`、`+`、`-` など)。
+* `++` を使用した文字列連結。
+* 文字列値を数値に強制変換する `as`。
+* 税額と割引額を設定するヘッダーの固定値。
+* 1 回定義してコードで複数回使用するヘッダーのカスタム関数。
+* さまざまな項目を 1 つの合計に集約する `reduce` 関数。
+
+
+.DataWeave
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+var tax = 0.085
+var discount = 0.05
+fun getSubtotal (items) = items reduce ((item, accumulator = 0) ->
+        accumulator + (item.unit_price * item.quantity * (1 - discount)))
+---
+invoice: {
+    header: payload.invoice.header,
+    items: { (payload.invoice.items map {
+        item : {
+            description: $.description,
+            quantity: $.quantity,
+            unit_price: $.unit_price,
+            discount: (discount * 100) as Number ++ "%",
+            subtotal: $.unit_price * $.quantity * (1 - discount)
+        }
+    }) },
+    totals:
+    {
+        subtotal: getSubtotal(payload.invoice.items ),
+        tax: (tax * 100) as Number ++ "%",
+        total: getSubtotal(payload.invoice.items ) * (1 + tax)
+    }
+}
+----
+
+.入力 JSON
+[source,json,linenums]
+----
+{
+  "invoice": {
+    "header": {
+      "customer_name": "ACME, Inc.",
+      "customer_state": "CA"
+    },
+    "items": [
+      {
+        "description": "Product 1",
+        "quantity": "2",
+        "unit_price": "10"
+      },
+      {
+        "description": "Product 2",
+        "quantity": "1",
+        "unit_price": "30"
+      }
+    ]
+  }
+}
+----
+
+.出力
+[source,json,linenums]
+----
+{
+  "invoice": {
+    "header": {
+      "customer_name": "ACME, Inc.",
+      "customer_state": "CA"
+    },
+    "items": {
+      "item": {
+        "description": "Product 1",
+        "quantity": "2",
+        "unit_price": "10",
+        "discount": "5.00%",
+        "subtotal": 19.00
+      },
+      "item": {
+        "description": "Product 2",
+        "quantity": "1",
+        "unit_price": "30",
+        "discount": "5.00%",
+        "subtotal": 28.50
+      }
+    },
+    "totals": {
+      "subtotal": 47.50,
+      "tax": "8.500%",
+      "total": 51.53750
+    }
+  }
+}
+----
+
+
+
+
+== 関連する例
+
+* xref:dataweave-cookbook-map.adoc[データのマップ]
+
+* xref:dataweave-cookbook-use-constant-directives.adoc[定数ディレクティブの使用]
+
+* xref:dataweave-cookbook-conditional-list-reduction-via-function.adoc[関数を使用したリストの条件付き削減]
+
+* xref:dataweave-cookbook-define-function-to-flatten-list.adoc[リスト内のデータをフラット化する関数の定義]
+
+* xref:dataweave-cookbook-pass-functions-as-arguments.adoc[関数を引数として渡す]
+
+
+== 関連情報
+
+
+* xref:dw-core.adoc[DataWeave Core 関数]
+
+* xref:dataweave-selectors.adoc[DataWeave セレクタ]
+
+* xref:dataweave-cookbook.adoc[DataWeave の解説書]

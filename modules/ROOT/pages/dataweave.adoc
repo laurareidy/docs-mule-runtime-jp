@@ -1,0 +1,12 @@
+= DataWeave 言語
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, 変換, トランスフォーマ, 形式, 集約, 名前変更, 分割, 変換の絞り込み, xml, json, csv, pojo, java オブジェクト, メタデータ, DataWeave, data weave, datawave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング
+
+DataWeave は、Mule アプリケーションを介して受け取ったデータにアクセスし、変換するための MuleSoft 式言語です。DataWeave は、Mule アプリケーション内でスクリプトと式を実行する Mule Runtime と緊密に統合します。
+
+* DataWeave 2.0 for Mule Runtime 4.1 以降の使用を開始するには、xref:4.1@mule-runtime::dataweave-quickstart.adoc[クイックスタート]にアクセスしてください。
+* DataWeave 2.0 for Mule Runtime 4.1 以降についての詳細は、xref:4.1@mule-runtime::dataweave-language-guide.adoc[言語ガイド]を参照してください。
+* DataWeave 2.0 の操作および関数についてのリファレンス情報は、xref:4.1@mule-runtime::dw-functions.adoc[リファレンスガイド]を参照してください。
+* DataWeave 1.0 for Mule Runtime 3.9 以前についての詳細は、xref:3.9@mule-runtime::dataweave.adoc[DataWeave 1.0 のドキュメント]を参照してください。

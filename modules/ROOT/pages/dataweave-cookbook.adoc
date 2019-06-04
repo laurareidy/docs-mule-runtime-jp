@@ -1,0 +1,118 @@
+= DataWeave の解説書
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, 変換, トランスフォーマ, 形式, 集約, 名前変更, 分割, 変換の絞り込み, xml, json, csv, pojo, java オブジェクト, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング, 例
+
+このセクションは、データ抽出および変換の一般的なアプローチを説明する例にリンクしています。
+
+
+[cols="2,5",options="header"]
+|===
+|例 | 説明
+
+|xref:dataweave-cookbook-extract-data.adoc[データの抽出]
+| Mule メッセージなどのデータソースの値を抽出する一般的なセレクタ式を示します。
+
+| xref:dataweave-cookbook-perform-basic-transformation.adoc[XML から JSON への変換] | セレクタを使用して、基本的な形式変換を実行します。関数は使用しません。
+
+| xref:dataweave-cookbook-map.adoc[データのマッピング]
+| `map` を使用して、JSON 配列の項目を再編成します。`as` を使用して、String (文字列) を Number (数値) に強制変換します。
+
+| xref:dataweave-cookbook-map-an-object.adoc[オブジェクトのマップ]
+| `mapObject` を使用して、各オブジェクトのキーと値を調べ、すべてのキーを大文字に設定します。
+
+| xref:dataweave-cookbook-map-object-elements-as-an-array.adoc[オブジェクト要素の配列としてのマップ]
+| 複数値セレクタを使用して、オブジェクトの「book」という名前のキーを選択し、配列として返します。次に、`map` を使用して、これによって作成される配列を反復処理します。
+
+| xref:dataweave-cookbook-rename-keys.adoc[キーの名前の変更]
+| JSON オブジェクトの一部のキーの名前を変更し、出力の他のキーの名前はすべてそのままにします。`mapObject`、`if`、`as`、`and` を使用します。
+
+| xref:dataweave-cookbook-output-a-field-when-present.adoc[存在する項目の出力]
+| `map` で `if` を使用して、出力に項目を含めるかどうかを決定します。これを使用して、機密データが含まれる項目を除外することもできます。
+
+| xref:dataweave-cookbook-format-according-to-type.adoc[型に応じた形式]
+| `mapObject` を使用して、対応する値の型に応じてオブジェクトのキーに変更を適用します。`if` および `else if` ステートメントに応じて、`camelize`、`capitalize`、`pluralize` を使用します。
+
+| xref:dataweave-cookbook-regroup-fields.adoc[項目の再グループ化]
+| `groupBy`、`mapObject`、`map` を使用して、JSON および XML 項目を再編成します。
+
+| xref:dataweave-cookbook-zip-arrays-together.adoc[複数の配列要素のグループ化]
+| それぞれの一致する値で一連のタプルが形成されるように、`zip` を使用して類似する配列のペアを再編成します。
+
+| xref:dataweave-cookbook-pick-top-elements.adoc[上位要素の取得]
+| `groupBy` および `map` を使用して、テストのスコアに応じて一連の候補を並び替え、上位の候補のみを選択できるように配列を分割します。
+
+
+| xref:dataweave-cookbook-change-value-of-a-field.adoc[項目の値の変更]
+| 一部のキーの値をアスタリスク (`\****``) に変更して、機密データをマスクします。`mapObject`、`if`、`else` を使用します。
+
+
+| xref:dataweave-cookbook-exclude-field.adoc[出力からの項目の除外]
+| 不要な要素を出力から除外する方法を示します。`-` (削除) および `mapObject` 関数を使用します。
+
+| xref:dataweave-cookbook-use-constant-directives.adoc[定数ディレクティブの使用]
+| ヘッダーで一連の定数文字列および数値を定義し、これらを使用して入力を絞り込んだり、URL に連結したりします。`map`、`if`、`++` を使用して、文字列を連結します。
+
+
+| xref:dataweave-cookbook-define-a-custom-addition-function.adoc[カスタム追加関数の定義]
+| `accumulator` 関数を使用して合計および小計を取得する関数を定義します。また、数値の加算、減算、乗算も実行します。
+
+| xref:dataweave-cookbook-define-function-to-flatten-list.adoc[リスト内のデータをフラット化する関数の定義]
+| `reduce`、`map`、`if`、`splitBy` を使用して、リストの項目を変更し、条件付きで出力します。
+
+
+| xref:dataweave-cookbook-output-self-closing-xml-tags.adoc[自己終了 XML タグの出力]
+| `inlineCloseOn="empty"` を使用して、空のタグを閉じます (例: `<element2/>`)。
+
+| xref:dataweave-cookbook-insert-attribute.adoc[XMLタグへの属性の挿入]
+| `@(key:value)` 構文を使用して、XML 属性を作成します。
+
+
+| xref:dataweave-cookbook-remove-certain-xml-attributes.adoc[指定した XML 属性の削除]
+| 特定の XML 属性の要素とそのすべての子を再帰的にチェックし、`-` を使用して削除する関数を定義します。また、(型を照合するために) `mapObject`、`if`、`is` も使用します。
+
+
+| xref:dataweave-cookbook-include-xml-namespaces.adoc[XML 名前空間を含める]
+| 複数の XML 名前空間を定義し、各タグでそれらを参照します。
+
+
+| xref:dataweave-cookbook-reference-multiple-inputs.adoc[複数の入力の参照]
+| ペイロード、メッセージ属性、変数のデータを参照します。次に、`map`、`filter`、乗算を使用してこれらを処理します。
+
+| xref:dataweave-cookbook-merge-multiple-payloads.adoc[複数のペイロードのマージ]
+| 1 つの Mule イベントから複数の個別のペイロードに到達するデータを参照します。一意の識別子に基づいて出力を絞り込みます。`map`、`using`、`as`、`filter` 関数を使用します。
+
+
+| xref:dataweave-cookbook-use-constant-directives.adoc[定数ディレクティブの使用]
+| DataWeave ヘッダーで定数ディレクティブから URL を構築する `var` を定義します (文字列の連結には `++` を使用)。
+
+| xref:dataweave-cookbook-parse-dates.adoc[日付の解析]
+| 競合する日付形式を 1 つの共通形式に正規化する関数を定義します。`mapObject`、`replace`、`as` を使用して、データ型を強制変換します。
+
+| xref:dataweave-cookbook-add-and-subtract-time.adoc[日付の加算と減算]
+| 日時に関連するさまざまな型を組み合わせて複数の算術演算を実行します。
+
+| xref:dataweave-cookbook-conditional-list-reduction-via-function.adoc[関数を使用したリストの条件付き削減]
+| 一連の要素を 1 つの項目に削減する関数を定義します。その後、特定の項目に値がある場合にのみこの関数をコールします。`map`、`reduce`、`splitBy`、`if`、`++` を使用して、配列に追加します。
+
+| xref:dataweave-cookbook-map-based-on-an-external-definition.adoc[定義に基づいた動的なマップ]
+| 変数で設定された定義に応じてペイロードを変換します。`map` および `default` を使用して、変数で定義されたロジックを適用する関数を定義します。
+
+|  xref:dataweave-cookbook-pass-functions-as-arguments.adoc[関数を引数として渡す]
+| 2 つの入力 (適用する関数と関数を適用する要素) を受け入れる関数を定義します。この関数は、要素の子にも再帰的に適用されます。`mapObject`、`lower`、`is`、`if/else` を使用します。
+
+
+|===
+
+
+
+== 関連情報
+
+////
+* To step through basic DataWeave use cases and exercises in actual Mule applications, see the xref:dataweave-quickstart.adoc[DataWeave Tutorial].
+////
+* xref:dataweave.adoc[DataWeave 言語]
+* xref:dataweave-language-introduction.adoc[DataWeave スクリプト]
+* xref:dw-functions.adoc[DataWeave リファレンス]
+* xref:mule-concepts.adoc[主要概念]

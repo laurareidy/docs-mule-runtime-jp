@@ -1,0 +1,64 @@
+= scan
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[scan1]]
+== scan&#40;String, Regex&#41;: Array<Array<String&#62;&#62;
+
+特定の文字列内で検出されたすべての一致を含むリスト (配列) を返します。
+
+
+各一致は、完全一致の後に正規表現のキャプチャグループ (存在する場合) が
+含まれる配列として返されます。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `text` | スキャンするテキスト (`String` (文字列) 型)。
+| `regex` | テキスト内で検索するパターンを記述する正規表現。
+|===
+
+=== 例
+
+次の例では、`regex` (正規表現) でメールアドレスが記述されます。2 つの
+キャプチャグループ (`@` より前の文字と後の文字) が含まれます。入力配列内の 
+2 つのメールアドレスと一致する配列が作成されます。各一致は 
+3 つの要素からなる配列です。1 つ目はメールアドレス全体、
+2 つ目と 3 つ目は `regex` (正規表現) キャプチャグループと一致する部分です。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+"hello" : "anypt@mulesoft.com,max@mulesoft.com" scan /([a-z]*)@([a-z]*).com/
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "hello": [
+    [
+      "anypt@mulesoft.com",
+      "anypt",
+      "mulesoft"
+    ],
+    [
+      "max@mulesoft.com",
+      "max",
+      "mulesoft"
+    ]
+  ]
+}
+----
+

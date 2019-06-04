@@ -1,0 +1,34 @@
+= Flow Reference コンポーネント
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: メール, コネクタ, 送信, 取得, 管理, match, マッチャー, SMTP, POP3, IMAP
+:toc:
+:toc-title:
+
+toc::[]
+
+//Anypoint Studio, Design Center connector
+[[short_description]]
+Flow Ref は、Mule イベントを同じ Mule アプリケーション内の別のフローまたはサブフローに転送し、戻します。これにより、参照先のフロー全体を現在のフロー内の 1 つのコンポーネントのように扱うことができます。
+
+Flow Ref によって、Mule アプリケーションを個々の再利用可能な単位に分割できます。たとえば、ファイルをリストすることが多いフローは、List 操作の出力を処理する別のフローを参照できます。すべての処理ステップを追加する代わりに、処理フローを参照する Flow Ref を追加できます。
+
+次の例では、Flow Ref コンポーネントは ProcessFiles というサブフローを参照しています。
+
+image::component-flowref-example.png[Flow Ref の設定例]
+
+次の図は、1 つのフローが別のフローを参照したときの処理の順序を示しています。メインのフローがトリガされると、Mule イベントは Flow Ref に到達するまでそのフローを実行します。次に、イベントは参照先のフローを最初から最後まで実行し、メインフローに戻ります。
+
+image::flowref-about-8b5d1.png[]
+
+== Flow Ref コンポーネントによるコンテンツの強化
+
+Flow Ref コンポーネントは対象変数を指定できるため、参照先のフローの出力を保持する変数を定義できます。その後、`vars` キーワードを使用してその変数にアクセスできます。
+
+たとえば、メインフローの Flow Ref が、メインフローでは使用できない特定の項目の値を取得するフローを参照している場合、Flow Ref コンポーネントでその項目の値を保存する対象変数 (`myVar` など) を設定し、メインフローで `vars.myVar` を使用してその値を使用できます。
+
+== 関連情報
+
+* xref:about-mule-event.adoc[Mule イベント]
+* xref:target-variables.adoc[対象変数を使用したデータの強化]

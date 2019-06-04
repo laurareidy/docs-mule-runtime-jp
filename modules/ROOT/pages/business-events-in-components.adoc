@@ -1,0 +1,97 @@
+= ビジネスイベントの有効化
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Anypoint, Studio, esb, ビジネスイベント
+
+イベント追跡を行うと、Mule サーバで生成されるイベントを集約および保存するための処理やネットワークオーバーヘッドが必要になるため、デフォルトでは、追跡をサポートするコネクタまたはメッセージプロセッサで追跡は無効になっています。ただし、デフォルトイベントの追跡は非常に簡単に有効にできます。デフォルトイベントを追跡するスコープを明示的に設定するだけです。スコープは次のレベルで設定できます。
+
+* フローレベル
+* メッセージプロセッサ (コネクタまたはコンポーネント) レベル (フローレベルの設定よりも優先される)
+
+////
+[NOTE]
+====
+Message processor or connector level configuration takes precedence over flow level configuration.
+
+* if you want to enable all default events for a specific flow:
+
+* if you want to enable default events for a specific message processor (in this case, the All router):
+
+* if you want to enable all default events for a specific flow, but not for a specific message processor (in this case, the All router):
+====
+////
+
+[events_tracking_flow_level]
+== フローレベルでイベント追跡を有効にする
+
+イベント追跡が可能なフローの要素のデフォルトイベント追跡を有効する手順は、次のとおりです。
+
+特定のプロセッサまたはコネクタの追跡を無効にして、フローレベルの有効化を上書きできます。
+
+. Mule アプリケーションから、クリックしてフローコンポーネントを開きます。
+. 次のように選択して、デフォルトビジネスイベントを有効にします。
++
+* 次のいずれかの方法を使用して、デフォルトイベント追跡を有効にする。
++
+* UI で、[Enable Default Events Tracking (デフォルトイベント追跡を有効化)] チェックボックスをオンにする。
+* Studio XML で、次のように `flow` 要素にこの属性を追加する。
++
+`<flow name="testFlow" tracking:enable-default-events="true">`
++
+. 必要に応じて、トランザクションの有用な情報 (注文番号など) が表示されるように、このフローに関連するすべての追跡対象イベントの識別子を設定します。
++
+* UI で、[Use Transaction ID (トランザクション ID を使用)] をオンにして、ID を入力する。
+* Studio XML で、次のように `flow` 要素に子要素を追加する。
++
+[source,xml,linenums]
+----
+<flow name="flow">
+  ...
+  <tracking:transaction id="#[expression]" />
+  ...
+</flow>
+----
++
+. 設定を保存します。
+
+[event_tracking_processor_level]
+== メッセージプロセッサレベルでイベント追跡を有効にする
+
+イベント追跡をサポートする個々のコネクタおよびコンポーネントでイベント追跡を有効にできます。すべてのプロセッサでデフォルトイベント追跡がサポートされているわけではありません。メッセージプロセッサまたはコネクタにチェックボックスがない場合、デフォルト追跡はサポートされていません。
+
+. クリックして Mule フローのメッセージプロセッサを開きます。
+. [Enable Default Events Tracking (デフォルトイベント追跡を有効化)] をオンします。
++
+次のようにコンポーネントの Studio XML で追跡を有効にすることもできます。
++
+[source,xml,linenums]
+----
+<flow name="flow">
+  ...
+    <choice doc:name="Choice" tracking:enable-default-events="true"/>
+  ...
+</flow>
+----
+
+[events_transaction_id]
+== トランザクション ID のカスタマイズ
+
+実行時に追跡対象イベントを分析するときにトランザクションの有用な情報 (注文番号など) が表示されるように、トランザクション ID を定義できます。トランザクション ID をカスタマイズしない場合、デフォルトでは Mule によって数値のトランザクション ID が割り当てられます。ビジネスニーズに合ったよりわかりやすい ID にするには、DataWeave 式でカスタマイズします。
+
+アプリケーションのトランザクションごとにカスタム ID が一意であることを確認することをお勧めします。次の例では、ペイロードから抽出された一意の注文 ID に基づいて一意の ID をセットアップしています。
+
+// tab was here
+
+[source,xml,linenums]
+----
+<flow name="flow">
+...
+  <tracking:transaction id="#[payload.orderId]" />
+...
+</flow>
+----
+
+== 関連情報
+
+xref:business-events.adoc[ビジネスイベント]

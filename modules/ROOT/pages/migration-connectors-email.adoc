@@ -1,0 +1,174 @@
+= メールコネクタへの移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+POP3、IMAP、SMTP トランスポートは一新されました。Mule 3 のトランスポートモデルから、1 つの操作ベースのコネクタに進化しています。
+
+この変更により、多数の新しい機能が可能になります。
+
+* インバウンドエンドポイントでしかポーリングされなかった旧来の IMAP や POP3 トランスポートとは異なり、オンデマンドでメールの内容をリストできる。
+* メールの送信操作が簡便になる。
+* 受信メールのデータ取得操作が簡便になる。
+* Mule の全コネクタの一貫性が確保される。
+* メールマッチング機能が向上する。
+
+こうした機能が統合され、送信も受信も同様の操作に統一されています。
+
+== IMAP、POP3、SMTP サーバ設定の移行
+
+ここでは、Mule 3 の各メールトランスポートの設定を Mule 4 の新しいメールコネクタに移行する方法を例示します。
+
+以下の Mule 4 の設定例では、ご覧のとおり、`inbound-endpoint` や `outbound-endpoint` で宣言されていたパラメータの大半が (`user`、`password`、`host`、`port` など) `connection` 要素に移されています。
+
+=== POP3 インバウンドエンドポイントの移行
+
+.Mule 3 の例: ポーリングを行う POP3 インバウンド設定
+
+[source,xml,linenums]
+----
+<pop3:connector name="pop3"/>
+
+<flow name="list">
+    <pop3:inbound-endpoint checkFrequency="100" user="bob" password="password" host="pop.example.com" port="995"/>
+    ...
+</flow>
+----
+
+.Mule 4 の例: POP3 設定
+[source,xml,linenums]
+----
+<email:pop3-config name="pop3">
+  <email:pop3-connection connector-ref="pop3" host="pop.example.com" port="995" user="bob" password="password"/>
+</email:pop3-config>
+
+<flow name="list">
+  <scheduler>
+    <scheduling-strategy><fixed-frequency frequency="100"></scheduling-strategy>
+  </scheduler>
+  <email:list-pop3 config-ref="pop3"/>
+  ...
+</flow>
+----
+
+NOTE: list-pop3 操作はポーリングを行わず、スケジューラがフローのトリガを実施します。
+
+=== IMAP インバウンドエンドポイントの移行
+
+.Mule 3 の例: ポーリングを行う IMAP インバウンド設定
+[source,xml,linenums]
+----
+<imap:connector name="imap" checkFrequency="100"/>
+
+<flow name="retrieve-emails">
+  <imap:inbound-endpoint user="bob" password="password" host="pop.example.com" port="995"/>
+  ...
+</flow>
+----
+
+.Mule 4 の例: POP3 設定
+[source,xml,linenums]
+----
+<email:imap-config name="imap">
+  <email:imap-connection connector-ref="imap" host="pop.example.com" port="995" user="bob" password="password"/>
+</email:imap-config>
+
+<flow name="list">
+  <scheduler>
+    <scheduling-strategy><fixed-frequency frequency="100"></scheduling-strategy>
+  </scheduler>
+  <email:list-imap config-ref="imap"/>
+  ...
+</flow>
+----
+
+NOTE: list-imap 操作はポーリングを行わず、スケジューラがフローのトリガを実施します。
+
+=== 受信メールの添付ファイル
+
+Mule 3 では、受信メールの添付ファイルがメッセージの `inboundAttachments` 項目で設定されていました。Mule 4 のメールコネクタでは、添付ファイルがメッセージペイロードの項目で、マップとしてモデル化され、DataWeave を使用してアクセスできます。たとえば、`photo_png` という添付ファイルを参照する式は `#[payload.attachments['photo_png']]` です。
+
+=== SMTP アウトバウンドエンドポイントの移行
+
+.Mule 3 の例: SMTP アウトバウンド設定
+[source,xml,linenums]
+----
+<smtp:connector name="smtp"/>
+
+<flow name="send-email">
+  ...
+  <smtp:outbound-endpoint connector-ref="smtp" host="smtp.example.com" user="bob" password="password"
+                          port="587" subject="Hello Ale!" from="bob@mulesoft.com" to="ale@mulesoft.com" />
+</flow>
+----
+
+.Mule 4 の例: SMTP 設定
+[source,xml,linenums]
+----
+<email:smtp-config name="smtp">
+    <email:smtp-connection host="smtp.example.com" port="587" user="bob" password="password"/>
+</email:smtp-config>
+
+<flow name="send">
+    <email:send config-ref="smtp" subject="Hello Ale!" from="bob@mulesoft.com">
+        <email:to-addresses>
+            <email:to-address value="ale@mulesoft.com"/>
+        </email:to-addresses>
+        <email:body>
+            <email:content>#[payload]</email:content>
+        </email:body>
+    </email:send>
+</flow>
+----
+
+Mule 3 のトランスポートでは、アウトバウンド SMTP エンドポイントを実行する前に、送信メールのプロパティ (件名、アドレスなど) をイベントで設定されたアウトバウンドプロパティから設定できました。この場合、アウトバウンドプロパティが、エンドポイントまたはコネクタ自体に設定された値より優先されました。  
+
+Mule 3 とは異なり、メールと一緒に送信される添付ファイルは、メッセージの `outboundAttachments` 項目から取得するのではなく、`email:send` 操作で明示的に設定する必要があります。添付ファイルを送信する推奨パターンは、フローに変数として設定してから、これらの添付ファイルを送信する `email:send` 操作でその変数を参照することです。
+
+=== セキュアな接続 (SSL/TLS) の移行
+
+Mule 3 では、各トランスポート/コネクタに独自の TLS 要素がありました。Mule 4 では、TLS コンテキストが、TLS を設定するための全モジュール共有の要素です。
+次の例では、Mule 3 の例と、そのコードを Mule 4 に移行する方法を示しています。
+
+NOTE: この例では SMTP 設定を使用していますが、IMAP や POP3 設定でも同じです。
+
+.Mule 3 の例
+[source,xml,linenums]
+----
+<smtps:connector name="tls">
+    <smtps:tls-client path="aKeystore" storePassword="password"/>
+    <smtps:tls-trust-store path="aTruststore" storePassword="changeit"/>
+</smtps:connector>
+----
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<email:smtp-config name="tls">
+    <email:smtps-connection host="${port}" port="${port}">
+        <tls:context enabledProtocols="TLSv1.2,SSLv3">
+            <tls:key-store path="aKeystore" password="password"/>
+            <tls:trust-store path="aTruststore.jks" password="changeit"/>
+        </tls:context>
+    </email:smtps-connection>
+</email:smtp-config>
+----
+
+== Mule 4 コネクタのプロジェクトへの追加
+
+トランスポートは Mule にバインドされていないため、使用するには、Studio パレットを使用してアプリケーションに追加するか、次の連動関係を `pom.xml` ファイルに追加する必要があります。
+
+[source,xml,linenums]
+----
+<dependency>
+    <groupId>org.mule.connectors</groupId>
+    <artifactId>mule-email-connector</artifactId>
+    <version>1.1.0</version> <!-- or newer -->
+    <classifier>mule-plugin</classifier>
+</dependency>
+----
+
+== 関連情報
+
+* xref:connectors::email/email-connector.adoc[メールコネクタ]
+* xref:connectors::email/email-gmail.adoc[メールコネクタを使用した Mule 4 での Gmail への接続]

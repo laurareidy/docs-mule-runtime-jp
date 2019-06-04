@@ -1,0 +1,124 @@
+= スケジューラエンドポイント (トリガ)
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Scheduler コンポーネントは、時間ベースの条件が成立した時点でフローをトリガします。Scheduler は、一定間隔でトリガするように設定したり、より柔軟な Cron 式を使用して設定したりすることができます。たとえば、フローを開始するイベントを 5 秒おきにトリガするように Scheduler を設定できます。
+
+Scheduler は、Mule Runtime が動作しているマシンで使用されているタイムゾーンを使用します。アプリケーションが CloudHub で動作している場合は、CloudHub ワーカーが動作しているリージョンのタイムゾーンに準拠します。
+
+// TODO: MULE-14438
+Scheduler がトリガするフローは一度に 1 つだけ有効にできます。
+トリガ時に利用できるリソースが 1 つもないために xref:execution-engine.adoc#backpressure[back-pressure] がトリガされた場合、そのトリガはスキップされます。
+
+//Enhancement request for this: MULE-14930
+Mule Runtime クラスタやマルチワーカー CloudHub デプロイメントでは、Scheduler はプライマリノードのみで (つまり 1 つの Mule Runtime のみで) 実行 (トリガ) されます。
+
+Anypoint Exchange には、Anypoint Studio で開いて Scheduler コンポーネントの詳細を見るためのサンプルプロジェクトがいくつかあります。
+
+* _Data Sync Using Watermarking and Batch (透かしとバッチを使用したデータの同期)_
+* _Import Contacts into Microsoft Dynamics CRM (Microsoft Dynamics CRM への取引先責任者のインポート)_
+* _Import Leads into Salesforce (Salesforce へのリードのインポート)_
+* _Importing a CSV File into mongoDB (mongoDB への CSV ファイルのインポート)_
+* _Importing an Email Attachment using the IMAP Connector (IMAP コネクタを使用したメールの添付ファイルのインポート)_
+* _Salesforce to MySQL Database Using Batch Processing (バッチ処理を使用した Salesforce から MySQL データベースへのインポート)_
+* _Sending a CSV File Through Email Using SMTP (SMTP を使用したメールでの CSV ファイルの送信)_
+
+Anypoint Studio でサンプルプロジェクトをダウンロードして開くには、左上隅にある Exchange アイコンをクリックします。次に、開いたウィンドウで、Anypoint Exchange にログインし、プロジェクトの名前を検索します。
+
+
+== 一定間隔
+
+次のパラメータを使用して、Scheduler がフローを一定間隔でトリガするように設定できます。
+
+[%header,cols="1,2,1"]
+|===
+|属性 |説明 |Default (デフォルト)
+|*Frequency (頻度)*
+|Scheduler がフローをトリガする頻度。単位は *Time unit (時間単位)* 項目で選択できます。値を `0` または負の値を指定すると、デフォルト値が使用されます。
+|
+1000
+
+| *Start Delay (開始遅延)*
+| アプリケーションが起動してからフローを最初にトリガするまで待つ時間。値は、頻度と同じ時間単位で表されます。
+| 0
+
+| *Time Unit (時間単位)*
+| *Frequency (頻度)* と *Start Delay (開始遅延)* の値の時間単位。可能な値:
+
+MILLISECONDS (ミリ秒)、SECONDS (秒)、MINUTES (分)、HOURS (時)、DAYS (日)
+| MILLISECONDS (ミリ秒)
+|===
+
+== Cron 式
+
+Cron は、日時情報を記述するのに広く利用されている標準です。
+
+Scheduler は、毎秒を監視し、Quartz Cron 式が日時の設定と一致すると Mule イベントを作成します。イベントは 1 回だけ、または一定間隔でトリガできます。
+
+日時の式は、6 つの必須設定と、年の設定 (省略可能) で構成されます。設定は以下の順序で指定します。
+
+. 秒 (0-59)
+. 分 (0-59)
+. 時 (0-23)
+. 日 (1-31)
+. 月 (1-12 または JAN-DEC)
+. 曜日 (1-7 または SUN-SAT)
+. 年 (空白、または 1970-2099 の範囲内の 4 桁。例: 2019)
+
+Scheduler は Quartz Cron 式をサポートします。例をいくつか示します。
+
+[%header,cols="2*"]
+|===
+|式 |動作
+|`1/2 * * * * ?` |毎日 2 秒おきに実行。
+|`0 15 10 ? * *` |毎日午前 10 時 15 分に実行。`0 15 10 * * ? *` と `0 15 10 * * ?` は同じ結果になります。
+|`0 15 10 * * ? 2019` |2019 年の毎日午前 10 時 15 分に実行。
+|`0 * 14 * * ?` |毎日午後 2 時から 2 時 59 分まで、毎分実行。
+|`0 0/5 14 * * ?` |毎日午後 2 時から 2 時 55 分まで、5 分おきに実行。
+|`1 1 1 1,7 * ?` |毎年 1 月 1 日と 7 月 1 日 に (午前 1 時 1 分 1 秒に) 実行。
+|===
+
+Scheduler コンポーネントは、Quartz Scheduler の特殊も時もサポートします。
+
+* `*`: すべての値
+* `?`: 任意の 1 つの値
+* `-`: 値の範囲。例: `1-3`
+* `,`: 追加の値。例: `1,7`
+* `/`: 増分値。例: `1,7`
+* `L`: 週または月の最終日、または月の最後の特定の曜日 (例: `6L` は月の最後の土曜日)
+* `W`: 平日。月または曜日の項目で有効
+* `#`: 月の n 日目。例:`#3` は月の 3 日
+
+//source info: +http://www.quartz-scheduler.org/documentation/quartz-2.x/tutorials/crontrigger.html+
+
+次の例は、「hello」というメッセージを毎秒ログに記録します。
+
+[source,XML,linenums]
+----
+<flow name="cronFlow" doc:id="ae257a5d-6b4f-4006-80c8-e7c76d2f67a0" >
+  <scheduler doc:name="Scheduler" doc:id="e7b68ccb-c6d8-4567-87af-aa7904a50359" >
+    <scheduling-strategy >
+      <cron expression="* * * * * ?" timeZone="America/Los_Angeles"/>
+    </scheduling-strategy>
+  </scheduler>
+  <logger level="INFO" doc:name="Logger" doc:id="e2626dbb-54a9-4791-8ffa-b7c9a23e88a1" message='"hello"'/>
+</flow>
+----
+
+Cron 式を作成するための無料のオンラインツールがたくさんあります。
+
+=== タイムゾーン (timeZone)
+
+Cron 式では Java の `timeZone` 値がサポートされます。Java の短縮表記 (`PST` や `AGT`) は使用せず、Java の完全表記 (`America/Los_Angeles` や `America/Argentina/Buenos_Aires`) を使用してください。
+
+//source info: +https://docs.oracle.com/javase/8/docs/api/java/time/ZoneId.html+
+
+== デバッグ
+
+Studio の ​*[Debug Mode (デバッグモード)]*​ ビューでは、Mule アプリケーションはイベントをトリガできません。その代わりに、デバッグ時には Scheduler コンポーネントの下に表示される緑色の矢印アイコンをクリックすることで Scheduler を実行できます。
+
+
+== 関連情報
+
+* xref:scheduler-xml-reference.adoc[Scheduler XML リファレンス]

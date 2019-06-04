@@ -1,0 +1,103 @@
+= XML 暗号化
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: 暗号化, モジュール, 署名, 暗号化, xml, AES
+:toc:
+:toc-title:
+
+== 暗号化
+
+この例では、後で暗号化に使用される対称キーを格納するキーストアを設定します。
+
+.例: JCE 設定
+[source,xml,linenums]
+----
+<crypto:jce-config name="symmetricConfig" keystore="secret.jks" password="mule1234" type="JCEKS">
+    <crypto:jce-key-infos>
+        <crypto:jce-symmetric-key-info keyId="mySymKey" alias="aes128test" password="mule1234"/>
+    </crypto:jce-key-infos>
+</crypto:jce-config>
+----
+
+次の例では、XML encrypt 操作を使用して XML ドキュメントの特定の要素を暗号化します。
+
+.例: Encrypt 操作の使用
+[source,xml,linenums]
+----
+<crypto:xml-encrypt config-ref="symmetricConfig" keyId="mySymKey" algorithm="AES_CBC" elementPath="//song"/>
+----
+
+`elementPath` は、暗号化する要素を識別する XPath 式です。
+ニーズに応じて、対称キーまたは非対称キーを使用して XML ドキュメントを暗号化できます。
+
+== 復号化
+
+.例: JCE 設定
+[source,xml,linenums]
+----
+<crypto:jce-config name="jceConfig" keystore="keystore.jks" password="mule1234">
+    <crypto:jce-key-infos>
+        <crypto:jce-symmetric-key-info keyId="mySymKey" alias="aes128test" password="mule1234"/>
+        <crypto:jce-asymmetric-key-info keyId="myAsymKey" alias="test1" password="test1234"/>
+    </crypto:jce-key-infos>
+</crypto:jce-config>
+----
+
+次の例では、XML decrypt 操作 (`crypto:xml-decrypt`) を使用して XML ドキュメントを復号化します。この操作では、参照されるキーストアに保存されている非対称キーを使用します。
+
+.例: Decrypt 操作の使用
+[source,xml,linenums]
+----
+<crypto:xml-decrypt config-ref="jceConfig" keyId="myAsymKey"/>
+----
+
+ニーズに応じて、対称キーまたは非対称キーを使用して復号化できます。
+
+== 署名
+
+.例: JCE 設定
+[source,xml,linenums]
+----
+<crypto:jce-config name="asymmetricConfig" keystore="keystore.jks" password="mule1234">
+    <crypto:jce-key-infos>
+        <crypto:jce-asymmetric-key-info keyId="myAsymKey" alias="test1" password="test1234"/>
+    </crypto:jce-key-infos>
+</crypto:jce-config>
+----
+
+次の例では、非対称キーを使用して XML ドキュメントに署名します (XML エンベロープを作成し、署名されるコンテンツ内に署名を挿入する)。
+
+.例: エンベロープ署名
+[source,xml,linenums]
+----
+<crypto:xml-sign config-ref="asymmetricConfig" keyId="myAsymKey" type="ENVELOPING" digestAlgorithm="SHA256" elementPath="/PurchaseOrder/Buyer"/>
+----
+
+次の例では、XML ドキュメントの要素に基づいて、分離された XML 署名が作成されます。分離された署名は、署名されるコンテンツに挿入されずに個別の XML 要素として返されます。
+
+.例: 分離された署名
+[source,xml,linenums]
+----
+<crypto:xml-sign config-ref="asymmetricConfig" keyId="myAsymKey" type="DETACHED" digestAlgorithm="SHA256" elementPath="/PurchaseOrder/Buyer"/>
+----
+
+== 署名の検証
+
+.例: JCE 設定
+[source,xml,linenums]
+----
+<crypto:jce-config name="asymmetricConfig" keystore="keystore.jks" password="mule1234">
+    <crypto:jce-key-infos>
+        <crypto:jce-asymmetric-key-info keyId="myAsymKey" alias="test1" password="test1234"/>
+    </crypto:jce-key-infos>
+</crypto:jce-config>
+----
+
+次の例では、非対称キーを使用して、`elementPath` XPath 式で指定された XML 要素の署名を検証します。
+
+.例: Validate 操作の使用
+[source,xml,linenums]
+----
+<crypto:xml-validate config-ref="asymmetricConfig" keyId="myAsymKey" elementPath="/PurchaseOrder/Buyer"/>
+----

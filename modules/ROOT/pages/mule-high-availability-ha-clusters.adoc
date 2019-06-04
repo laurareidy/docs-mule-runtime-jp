@@ -1,0 +1,269 @@
+= Mule Runtime 高可用性 (HA) クラスタの概要
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: esb, デプロイ, 設定, クラスタ, ha, 高可用性, ダウンタイム
+
+​*クラスタ*​とは、ユニットとして機能する Mule Runtime のセットです。言い換えると、クラスタとは複数のノードで構成された仮想サーバです。クラスタ内のノード (Mule Runtime) は分散された共有メモリグリッドを通じて通信を行い、情報を共有します。つまり、データがさまざまな物理マシンのメモリ間で複製されます。
+
+image::cluster.png[]
+
+[NOTE]
+この機能の価格については、カスタマーサービス担当者にお問い合わせください。
+
+== クラスタリングの利点
+
+デフォルトでは、Mule Runtime のクラスタリングにより、システムの高可用性を実現できます。(代わりに高パフォーマンス用のクラスタを使用する場合は、下記の「<<Clustering for High Performance>>」を参照してください)。障害や計画的なダウンタイムが原因で Mule Runtime ノードが使用不可になった場合、クラスタ内の別のノードがワークロードを引き継ぎ、既存のイベントおよびメッセージの処理を続行できます。次の図は、2 ノードのクラスタによる受信メッセージの処理を示しています。処理負荷がノード間で分散されているのがわかります。ノード 1 がメッセージ 1 を処理するのと同時に、ノード 2 はメッセージ 2 を処理します。
+
+image::failovernofail.png[FailoverNoFail]
+
+一方のノードで障害が発生した場合、もう一方の障害の発生していないノードが障害の発生しているノードの作業を引き継ぎます。次の図で示しているように、ノード 2 で障害が発生した場合、ノード 1 はメッセージ 1 とメッセージ 2 の両方を処理します。
+
+image::failovernode2fail.png[FailoverNode2Fail]
+
+Mule Runtime のクラスタではすべてのノードが同時にメッセージを処理するため、クラスタによってパフォーマンスおよび拡張性も向上します。単一ノードのインスタンスと比較すると、クラスタのほうがサポートできるユーザも多く、ワークロードを複数のノードで共有するかノードをクラスタに追加することで、アプリケーションのパフォーマンスも向上できます。
+
+次の図では、ワークロードの共有をより詳しく示しています。両方のノードが受注処理に関するメッセージを処理します。ただし、一方のノードの負荷が大きい場合、その処理の 1 つ以上のステップの処理をもう一方のノードに移動できます。ここでは、割引処理ステップの処理がノード 1 に移動され、受注ステップの処理がノード 2 に移動されています。
+
+image::cluster-diagram.png[]
+
+自動フェイルオーバーによる高可用性、パフォーマンスの向上、拡張性の向上以外に、Mule Runtime のクラスタリングには次のような利点があります。
+
+* ファイル、データベース、FTP ソースなどのリソースへのアクセスの自動調整。Mule Runtime クラスタは、どのノード (Mule Runtime) がデータソースからの通信を処理するかを自動的に管理します。
+* クラスタ内の処理の自動負荷分散。フローを一連のステップに分割してこれらのステップを VM などのトランスポートと接続すると、各ステップはキューに入り、クラスタが有効になります。続いて、Mule Runtime のクラスタが任意のノードで各ステップを処理するため、ノード間で負荷がより効率的に分散されます。
+* アラートの生成。ノードがダウンした場合やノードが復活したときに表示されるアラートをセットアップできます。
+
+[NOTE]
+クラスタのすべての Mule Runtime はアクティブにメッセージを処理します。各 Mule Runtime は内部でも拡張可能です。単一の Mule Runtime でも複数のコアを活用することで容易に拡張できます。Mule Runtime が複数のコアを活用している場合であっても、クラスタ内では単一ノード (Mule Runtime) として稼働します。
+
+=== クラスタによって解決される同時実行の問題
+
+​*クラスタとしてバインドされていない*​複数のサーバで構成されたサーバグループがある場合、次のような問題が存在する可能性があります。サーバをクラスタとしてグループ化すれば、こうした問題に頭を悩ませることはありません。
+
+* *ファイルベースのトランスポート*: すべての Mule インスタンスは同じ mule ファイルフォルダに同時にアクセスするため、ファイル処理が重複することもあれば、ファイルが Mule アプリケーションによって削除または変更された場合には障害が発生する可能性もあります。
+
+* *マルチキャストトランスポート*: すべての mule インスタンスは同じ TCP 要求を受けてから重複メッセージを処理します。
+
+* *JMS トピック*: すべての mule インスタンスは同じ JMS トピックに接続するため、非クラスタリング Mule インスタンスを水平方向に拡張した場合、メッセージの処理が反復される場合があります。
+
+* *JMS request-reply/request-response (要求-返信/要求-応答)*: すべての Mule インスタンスは同じ応答キューのメッセージをリスンするため、Mule インスタンスが送信した要求に関連しない応答を受け取る可能性もあります。その結果、不正な応答になったり、フローがタイムアウトにより失敗したりする場合があります。
+
+* *Idempotent-redelivery-policy (冪等性再配信ポリシー)*: 同じ要求が異なる Mule インスタンスによって受信された場合、冪等性は機能しません。複製されたメッセージは使用できません。
+
+* *Salesforce ストリーミング API*: 同じアプリケーションの複数のインスタンスをデプロイした場合、API は単一コンシューマしかサポートしていないため、失敗します。接続されているインスタンスが停止またはクラッシュした場合のフェイルオーバーのサポートはありません。
+
+
+
+== クラスタリングについて
+
+そのままの設定の場合、クラスタの拡張は 8 個の Mule Runtime までにすることをお勧めします。クラスタ内のすべての Mule Runtime が 1 つにまとまり、単一のユニットとなります。そのため、クラスタ内のすべての Mule Runtime を単一の Mule Runtime であるかのようにデプロイ、監視、および停止することができます。8 個を超えるノードが必要な場合は、 https://www.mulesoft.com/support-and-services/mule-esb-support-license-subscription[MuleSoft サポート] にお問い合わせください。
+
+次に示すように、クラスタ内のすべての Mule Runtime はメモリを共有します。
+
+image::topology-4-cluster.png[topology_4-cluster]
+
+Mule は *active-passive (アクティブ-パッシブ)* モデルではなく、*active-active (アクティブ-アクティブ)* モデルを使用して Mule Runtime をクラスタリングします。
+
+*active-passive (アクティブ-パッシブ)* モデルでは、クラスタ内の一方のモデルが​*プライマリ*​、つまりアクティブノードとなり、もう一方が​*セカンダリ*​、つまりパッシブノードとなります。こうしたモデルのアプリケーションはプライマリノードで実行され、最初のノードで障害が発生している場合のみセカンダリノードで実行されます。このモデルでは、セカンダリノードの処理力は、プライマリノードで障害が発生するのを受動的に待機することで大半が無駄になります。
+
+*active-active (アクティブ-アクティブ)* モデルでは、クラスタ内でプライマリノードとなるノードはありません。クラスタ内のすべてのノードがアプリケーションをサポートします。このモデルのアプリケーションはすべてのノードで実行され、メッセージ処理さえもノード間で分割されて、ノード間で効率的に処理されます。
+
+== キューについて
+
+Mule Runtime (ノード) 間で​*負荷分散*​を行うために明示的に ​*VM キュー*​をセットアップできます。そのため、アプリケーションフロー全体に子フローのシーケンスが含まれる場合、クラスタは連続する各子フローをその時点で使用可能な任意の Mule Runtime (ノード) に割り当てることができます。可能性としては、下で示しているように、クラスタはアプリケーションフローの VM エンドポイントを通過するときに複数のノードで単一メッセージを処理することもできます。
+
+image::load-balancing.png[load_balancing]
+
+== 高信頼性アプリケーションについて
+
+​*高信頼性*​アプリケーションと言えるには、以下の要件を満たす必要があります。
+
+. メッセージの損失の許容がゼロであること
+. 基になるエンタープライズサービスバス (Mule) が信頼できること
+. 個別の接続の信頼性が高いこと
+
+​*トランザクション性*​として知られる機能はアプリケーションイベントシーケンスを追跡し、それぞれのメッセージ処理ステップが正常に完了されるようにします。そのため、失われたり不正に処理されたりするメッセージはありません。何らかの理由でステップが失敗した場合、トランザクションメカニズムが以前の処理イベントをすべてロールバックし、メッセージ処理シーケンスを再開します。
+
+JMS、VM、JDBC などのトランスポートにより、ビルトイントランザクションサポートが提供されるため、メッセージが確実に処理されるようになります。たとえば、トランザクションがコミットされた後でのみメッセージを JMS サーバから削除するようにインバウンド JMS 接続エンドポイントでトランザクションを設定できます。これにより、処理フロー中にエラーが発生した場合、元のメッセージは再処理できる状態で保持されます。
+
+トランザクションをサポートする異種トランスポート間でメッセージを移動するには、​*XA トランザクション*​を使用する必要があります。これにより、Mule Runtime はすべての異種トランスポートの関連付けられたトランザクションを単一ユニットとしてコミットするようになります。XA をはじめとする Mule Runtime でサポートされるトランザクションについての詳細は、xref:transaction-management.adoc[「トランザクション管理」]を参照してください。
+
+== トランスポートのクラスタサポート
+
+すべての Mule トランスポートがクラスタ内でサポートされます。トランスポートごとにインバウンドトラフィックにアクセスする方法が異なるため、このサポートの詳細は異なります。一般に、アウトバウンドトラフィックはクラスタ内外で同じように機能します。違いについては以下で強調表示しています。
+
+Mule Runtime は 3 つの基本的な種別のトランスポートをサポートしています。
+
+* ソケットベースのトランスポートは Mule が所有するネットワークソケットに送信された入力を読み取ります。例としては TCP、UDP、HTTP[S] などがあります。
+* リスナベースのトランスポートは同時の複数アクセサを十分にサポートするプロトコルを使用してデータを読み取ります。例としては、JMS や VM があります。
+* リソースベースのトランスポートは複数の同時アクセサは使用可能だがリソースの使用をネイティブに調整しないリソースからデータを読み取ります。たとえば、複数のプログラムがファイルの読み取り、処理、そして削除を行うことで、同じ共有ディレクトリのファイルを処理しているとします。これらのプログラムは明示的なアプリケーションレベルのロッキング戦略を使用して、同じファイルが複数回処理されないようにする必要があります。リソースベースのトランスポートの例としては、ファイル、FTP、SFTP、メール、JDBC などがあります。
+
+3 つの基本的な種別のトランスポートはすべてクラスタでサポートされますが、その方法は以下に示しているように異なります。
+
+* Socket-based
+** クラスタリングされた各 Mule Runtime は異なるネットワークノードで実行されるため、各インスタンスはそのノードに送信されたソケットベースのトラフィックのみを受信します。受信したソケットベースのトラフィックは、クラスタリングされたインスタンス間で分散するために<<Clustering and Load Balancing>>を実行する必要があります。
+** ソケットベースのトランスポートへの出力は特定のホスト/ポートの組み合わせに書き込まれます。ホスト/ポートの組み合わせが外部ホストの場合、特に考慮事項はありません。ローカルホストのポートの場合、クラスタ間でより効率的にトラフィックを分散するために、代わりにロードバランサでそのポートを使用することを検討してください。
+* Listener-based
+** リスナベースのトランスポートは複数のリーダおよびライタを完全にサポートしています。入力にも出力にも特に考慮事項はありません。
+** クラスタでは、VM トランスポートキューが共有のクラスタ全体のリソースである点に注意してください。クラスタは VM トランスポートキューへのアクセスを自動的に同期します。そのため、VM キューに書き込まれたメッセージを任意のクラスタノードで処理できます。これにより、VM はクラスタノード間でワークを共有するのに最適です。
+* Resource-based
+** Mule HA クラスタリングは自動的に各リソースへのアクセスを調整するため、クラスタリングされたインスタンスのうち 1 つだけが一度に各リソースにアクセスするようになります。そのため、通常はリソースベースのトランスポートから読み取られたメッセージをすぐに VM キューに書き込むことをお勧めします。これにより、他のクラスタノードがメッセージの処理に参加できます。
+** リソースベースのクラスタリングされたトランスポートへの書き込みには特に考慮事項はありません。
+*** ファイルベースのトランスポート (ファイル、FTP、SFTP) に書き込むときに、Mule は一意のファイル名を生成します。
+*** JDBC に書き込むときに、Mule は一意のキーを生成できます。
+*** メールの作成は、実質的にはリソースベースではなくリスナベースです。
+
+// TODO: PLG, OK TO hide or remove "Clustering and Reliable Applications" until we update it and incorporate reliability-patterns into the doc set?
+////
+HIDING SECTION FOR NOW:
+== Clustering and Reliable Applications
+
+High-reliability applications (ones that have zero tolerance for message loss) not only require the underlying Mule to be reliable, but that reliability needs to extend to individual connections. xref:reliability-patterns.adoc[Reliability Patterns] give you the tools to build fully reliable applications in your clusters.
+
+Current Mule documentation provides xref:reliability-patterns.adoc[code examples] that show how you can implement a reliability pattern for a number of different non-transactional transports, including HTTP, FTP, File, and IMAP. If your application uses a non-transactional transport, follow the reliability pattern. These patterns ensure that a message is accepted and successfully processed or that it generates an "unsuccessful" response allowing the client to retry.
+
+If your application uses transactional transports, such as JMS, VM, and JDBC, use transactions. Mule's built-in support for transactional transports enables reliable messaging for applications that use these transports.
+
+These actions can also apply to non-clustered applications.
+////
+
+== クラスタリングとネットワーキング
+
+=== 単一のデータセンターのクラスタリング
+
+クラスタノード間で信頼性のある接続を確立するには、クラスタのすべてのノードを同じ LAN に配置する必要があります。VPN を通じて接続された異なるデータセンターなど、地理的に離れた場所にノードが含まれるクラスタを実装することも可能ですが、お勧めはしません。
+
+ネットワークの中断や、メッセージの重複などの意図しない結果を招く可能性を下げるためには、すべてのクラスタノードを同じ LAN に配置するのが最もお勧めです。
+
+=== 分散型データセンターのクラスタリング
+
+WAN ネットワークを使用してクラスタノードをリンクすると、外部ルータやファイアウォールなど、障害が発生する可能性のあるポイントが多くなり、クラスタノード間で適切に同期が行われないおそれがあります。これはパフォーマンスに影響を及ぼすだけでなく、アプリケーションにおける副作用の可能性を考慮に入れる必要も生じます。たとえば、2 つのクラスタノードがネットワークリンクの障害による切断後に再接続した場合、次回の同期プロセスでメッセージが 2 回処理される可能性があり、重複が発生して、アプリケーションロジックで処理する必要が生じます。
+
+異なるデータセンターに配置されたクラスタのノードを使用でき、必ずしも同じ LAN に配置されている必要はありませんが、いくつか制限事項がある点に注意してください。
+
+この動作を防ぐには、Quorum プロトコルを有効にする必要があります。このプロトコルは、ノードの 1 つのセットがデータの処理を続行し、他のセットが再接続されるまで共有データに関して何も実行しないようにするために使用されます。基本的に、切断が発生した場合、ノードが最も多い方のみが稼働し続けます。たとえば、2 つのデータセンターがあり、一方は 3 つのノードがあり、もう一方には 2 つのノードがあるとします。2 つのノードがあるデータセンターで接続の問題が発生した場合、ノードが 3 つのデータセンターが機能し続け、もう一方のデータセンターは停止します。ノードが 3 つのデータセンターがオフラインになった場合、どちらのノードも機能しなくなります。こうした機能停止を防ぐには、少なくとも 3 つの同じ数のノードを持つデータセンターでクラスタを作成する必要があります。2 つのデータセンターがクラッシュすることは考えにくいため、1 つのデータセンターがオフラインになっても、クラスタは常に機能し続けることになります。
+
+IMPORTANT: 機能するのに十分なノードがクラスタパーティションにない場合、外部システムコールに対しては引き続き反応しますが、オブジェクトストアを経由したすべての操作は失敗し、データ生成できなくなります。
+
+.制限事項
+
+* Quorum はオブジェクトストア関連の操作でのみサポートされます。
+* 分散ロッキングはサポートされず、以下に影響を及ぼします。
+  - ファイルの並列に関するファイル/FTP トランスポートポーリング
+  - 冪等性再配信ポリシーコンポーネント
+  - 冪等性メッセージ検索条件コンポーネント
+* メモリ内メッセージングはサポートされず、以下に影響を及ぼします。
+  - VM トランスポート
+  - SEDA キュー
+* Quorum 機能は手動でのみ設定できます。
+
+xref:creating-and-managing-a-cluster-manually.adoc[手動によるクラスタの作成および管理]
+
+
+== クラスタリングと負荷分散
+
+TCP 要求 (この場合、TCP には SSL/TLS、UDP、Multicast、HTTP、HTTPS が含まれる) に対応するために Mule クラスタが使用される場合、クラスタリングされたインスタンス間で要求を分散するためにある程度の負荷分散が必要になります。さまざまなソフトウェアのロードバランサが使用できますが、そのうちの 2 つを紹介します。
+
+* オープンソースの HTTP サーバおよびリバースプロキシである Nginx。HTTP(S) の負荷分散に nginx の http://wiki.nginx.org/HttpUpstreamModule[HttpUpstreamModule] を使用できます。詳細は、Linode Library のエントリ http://library.linode.com/web-servers/nginx/configuration/front-end-proxy-and-software-load-balancing[「Use Nginx for Proxy Services and Software Load Balancing (プロキシサービスおよびソフトウェア負荷分散への Nginx の使用)」]を参照してください。
+* Apache Web サーバ。これは HTTP(S) ロードバランサとしても使用できます。
+
+TCP と HTTP(S) トラフィックの両方をルーティングできるハードウェアのロードバランサも多数あります。
+
+== 高パフォーマンス用のクラスタリング
+
+高パフォーマンスの実装は xref:runtime-manager::index.adoc[CloudHub] と xref:runtime-manager::deploying-to-pcf.adoc[Pivotal Cloud Foundry] で異なるため、このセクションはxref:runtime-manager::deploying-to-your-own-servers.adoc[オンプレミスデプロイメント]のみに適用されます。
+
+(信頼性ではなく) 高パフォーマンスが最大目標の場合は、​*パフォーマンスプロファイル*​を使用してパフォーマンスが最大になるように Mule クラスタまたは各アプリケーションを設定できます。クラスタ内で特定のアプリケーションのパフォーマンスプロファイルを実装することで、デプロイメントの拡張性を最大にすると同時に、パフォーマンスおよび信頼性の要件が異なるアプリケーションを同じクラスタにデプロイすることができます。コンテナレベルでパフォーマンスプロファイルを実装することで、そのコンテナ内のすべてのアプリケーションに適用できます。アプリケーションレベルの設定はコンテナレベルの設定より優先されます。
+
+パフォーマンスプロファイルの設定には 2 つの効果があります。
+
+* 分散キューが無効になり、代わりにローカルキューを使用して共有データグリッドにおけるデータの逐次化/非逐次化および分散を防止します。
+* バックアップなしでオブジェクトストアを実装し、複製を防止します。
+
+ _コンテナ_ レベルでパフォーマンスプロファイルを設定するには、コマンドラインまたは wrapper.conf から *`mule-cluster.properties`* またはシステムプロパティに追加します。
+
+`mule.cluster.storeprofile=performance`
+
+ _個別のアプリケーション_ レベルでパフォーマンスプロファイルを設定するには、以下で示しているように、設定ラッパー内にプロファイルを追加します。
+
+*パフォーマンスストアプロファイル*
+
+[source,xml,linenums]
+----
+<mule>
+   <configuration>
+      <cluster:cluster-config>
+         <cluster:performance-store-profile/>
+      </cluster:cluster-config>
+   </configuration>
+</mule>
+----
+
+アプリケーションレベルの設定はコンテナレベルの設定より優先されます。高パフォーマンス用にコンテナを設定するが、そのコンテナ内の 1 つ以上の個別のアプリケーションでは信頼性を優先するには、こうしたアプリケーションに次のコードを含めます。
+
+*信頼性ストアプロファイル*
+
+[source,xml,linenums]
+----
+<mule>
+    <configuration>
+        <cluster:cluster-config>
+            <cluster:reliable-store-profile/>
+        </cluster:cluster-config>
+    </configuration>
+</mule>
+----
+
+[WARNING]
+負荷分散をサポートしないエンドポイントで負荷が大きい場合、パフォーマンスプロファイルを適用するとパフォーマンスが低下する場合があります。非同期処理戦略、ロードバランサがない JMS トピック、マルチキャスト、または HTTP コネクタでファイルベースのトランスポートを使用している場合、大量のメッセージが単一ノードに入るとボトルネックが発生する可能性があるため、こうしたアプリケーションのパフォーマンスプロファイルを無効にしたほうがパフォーマンスが向上する場合があります。
+
+稼働状態を保つためにクラスタで必要なマシンの最小数を定義することもできます。これにより、一貫性が改善されます。xref:creating-and-managing-a-cluster-manually.adoc#quorum-management[「Quorum 管理」]を参照してください。
+
+////
+TODO: PLG, ok to HIDE or remove HA Cluster Demo UNTIL evaluating-mule-high-availability-clusters-demo is added to the 4.1 doc set, assuming that happens
+== HA Cluster Demo
+
+//TODO: UPDATE
+TODO: CHK/FIX LINKS /mule-user-guide/v/3.9/evaluating-mule-high-availability-clusters-demo?
+To evaluate Mule's HA clustering capabilities first-hand, continue on to the xref:3.9@mule-runtime::evaluating-mule-high-availability-clusters-demo.adoc[Mule HA Demo]. Designed to help new users evaluate the capabilities of Mule High Availability Clusters, the Mule HA Demo Bundle teaches you how to use the Mule Management Console to create a cluster of Mule runtimes, then deploy an application to run on the cluster. Further, this demo simulates two processing scenarios that illustrate the cluster’s ability to automatically balance normal processing load, and its ability to reliably remain active in a failover situation.
+////
+
+== ベストプラクティス
+
+クラスタリングに関しては多くの推奨事項があります。例を挙げます。
+
+* できるだけアプリケーションを一連のステップに整理し、各ステップがメッセージを 1 つのトランザクションストアから別のトランザクションストアに移動するようにします。
++
+////
+TODO: CHK/FIX LINKS
+TODO: PLG, OK to hide or remove the next bullet until we UPDATE /mule-user-guide/v/3.9/reliability-patterns and incorporate into the doc 4.1 docs
+* If your application processes messages from a non-transactional transport, use a xref:3.9@mule-runtime::reliability-patterns.adoc[reliability pattern] to move them to a transactional store such as a VM or JMS store.
+////
++
+* トランザクションを使用してトランザクショントランスポートからのメッセージを処理します。これにより、エラーが発生した場合、メッセージが再処理されるようになります。
+* VM や JMS トランスポートで使用するような分散ストアを使用します。こうしたストアはクラスタ全体に対して使用可能です。これは、ファイル、FTP、JDBC などのトランスポートで使用する非分散ストアよりも優れています。こうしたストアは一度に単一のノードによって読み取られます。
+* VM トランスポートを使用して最適なパフォーマンスを得ます。クラスタ全体が終了した後にデータを保存する必要があるアプリケーションに JMS トランスポートを使用します。
+* クラスタ内でニーズに最も合う数のノードを作成します。
+* 高信頼性アプリケーションを作成するには信頼性パターンを実装します。
+
+== 前提条件と制限事項
+
+* そのままの設定の場合は、クラスタの拡張は 8 個の Mule ノードまでにすることをお勧めします。
+// COMBAK: Comenting this out per JIRA SE-6162.
+// If you need more nodes than eight, contact https://www.mulesoft.com/support-and-services/mule-esb-support-license-subscription[MuleSoft Support].
+* クラスタには少なくとも 2 個の Mule Runtime が必要であり、それぞれを異なる物理 (または仮想) マシンで実行する必要があります。
+* クラスタのノード間の同期を維持するために、Mule HA にはサーバ間に信頼性の高いネットワーク接続が必要です。
+* Mule クラスタをセットアップするには次のポートを開いたままにしておく必要があります: ポート 5701 とポート 54327。
+* 新規クラスタメンバーの検出はマルチキャストを使用して実行されるため、マルチキャスト IP: 224.2.2.3 を有効にする必要があります。
+* TCP 要求に対応するには、Mule クラスタで何らかの負荷分散が必要です。使用できるサードパーティのロードバランサに関する詳細については、「<<Clustering and Load Balancing>>」を参照してください。フローを一連のステップに分割して各ステップを VM などのトランスポートで接続することで、処理の負荷分散を行うこともできます。このクラスタでは各ステップが有効であり、Mule によるノード間の負荷分散の効率が高まります。
++
+////
+TODO: CHK/FIX LINKS
+TODO: PLG, OK TO REMOVE this bullet? Or how to update it for 4.1. endpoint-configuration-reference is no longer part of 4.1 docs
+* If your xref:endpoint-configuration-reference.adoc[custom message source] does not use a message receiver to define node polling. Then you must configure your message source to implement a `ClusterizableMessageSource` interface. `ClusterizableMessageSource` dictates that only one application node inside a cluster contains the active (that is, started) instance of the message source; this is the ACTIVE node. If the active node falters, the `ClusterizableMessageSource` selects a new active node, then starts the message source in that node.
+////
+
+== 関連情報
+
+* xref:installing-an-enterprise-license.adoc[Enterprise ライセンスのインストール]
+* xref:runtime-manager::managing-servers.adoc#create-a-cluster[サーバの管理]

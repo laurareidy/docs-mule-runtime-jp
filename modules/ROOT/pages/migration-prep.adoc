@@ -1,0 +1,66 @@
+= Mule 4 への移行の準備
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+// Contacts/SMEs: Esteban Wasinger, Ana Felisatti, Mariano Gonzalez
+
+Mule 4 では多くの変更が導入されているため、Mule 3 からの移行を試みる前にその点を考慮に入れて計画を練ってください。
+
+[[when_to_start]]
+== Mule 4 の使用を開始するタイミング
+
+以下の場合、​*新しい*​プロジェクトはすべて Mule 4 で開発することをお勧めします。
+
+* 自分を含むチームが、ドキュメントや正式なトレーニングを通じて Mule 4 に対応したスキルを備えている場合。
+* 適切なデプロイメント環境がある場合 (下記を参照)。
+* すべてのアプリケーションを単一バージョンの Mule で実行する必要がない場合 (下記を参照)。
+
+すでに開発中または Mule 3 でデプロイされているプロジェクトがある場合 (プロスペクトまたは顧客)、Mule 3 から Mule 4 への移行ツールが利用できるようになるまで、これらのアプリケーションの移行はお待ちいただくことをお勧めします。ただし、このガイドに従って手動で移行することはできます。
+
+次のいずれかの条件を満たす場合、アプリケーションを移行します。
+
+* 使用している 3.x バージョンが期限切れになった場合。
+* 既存のアプリケーションに対して重大な更新を行う場合。
+* 重要な Mule 4 機能を利用したい場合。
+* すべてのアプリケーションを 1 つのバージョンで実行する必要があるため、すべてのアプリケーションを Mule 4 にアップグレードすることを決定した場合 (オンプレミス顧客の一部)。
+
+[[prepare_dev_environ]]
+== ローカル開発環境のセットアップ
+
+最初に、Studio 7 をダウンロードしてインストールする必要があります。ローカルでデプロイしている場合、Mule 4 スタンドアロンランタイムもダウンロードする必要があります。
+// TODO link to pages
+
+[[prepare_to_deploy]]
+== デプロイの準備
+次に、デプロイメント環境の準備を整える必要があります。現在の環境に応じて、必要なステップが異なる場合があります。
+
+[%header,cols="1,3"]
+|===
+|デプロイメントメカニズム | 手順
+
+|CloudHub
+|CloudHub は Mule 4 に対応しています。
+
+|ハイブリッドデプロイメント
+|スタンドアロンバージョンの Mule 4 をサーバにインストールする必要があります。
+
+|Anypoint Platform Private Cloud Edition (PCE)
+| PCE は Mule Runtime のバージョン 4 をサポートしています。
+
+|Anypoint Platform for Pivotal Cloud Foundry (PCF)
+| PCF は Mule Runtime のバージョン 4 をサポートしていません。
+|===
+
+// TODO link to instructions about installing standalone Mule 4
+
+[[write_code]]
+== コードの作成
+
+以上です! Mule 4 アプリケーションの構築およびデプロイを開始する準備ができました。
+
+移行プロセスの概要を把握し、Mule 4 で導入された変更を理解するには、以下のトピックをご確認ください。
+
+xref:migration-process.adoc[移行プロセスについて]
+
+xref:intro-overview.adoc[Mule 4 の概要]

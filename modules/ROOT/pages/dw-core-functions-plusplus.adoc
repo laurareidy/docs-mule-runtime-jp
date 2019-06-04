@@ -1,0 +1,599 @@
+= &#43;&#43;
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[plusplus1]]
+== &#43;&#43;&#40;Array<S&#62;, Array<T&#62;&#41;: Array<S &#124; T&#62;
+
+2 つのリスト (配列) の要素を連結して新しいリストにします。
+
+
+2 つの配列に含まれる要素の型が異なる場合、作成される配列内には
+`Array<S>` (配列 <S>) に含まれるすべての `S` 型の要素の後に 
+`Array<T>` (配列 <T>) に含まれるすべての `T` 型の要素が続きます。どちらの配列でも、複数の型の要素を混在させることができます。配列には、
+サポート対象であればどのデータ型でも含めることができます。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `source` | ソースリスト (Array (配列))。
+| `with` | ソースリストに連結するリスト。
+|===
+
+=== 例
+
+次の例では、`Array<Number>` を `Array<String>` に連結します。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  "result" : [0, 1, 2] ++ ["a", "b", "c"]
+}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "result": [0, 1, 2, "a", "b", "c"]
+}
+----
+
+=== 例
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  "a" : [0, 1, true, "my string"] ++ [2, [3,4,5], {"a": 6}]
+}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "a": [0, 1, true, "my string", 2, [3, 4, 5], { "a": 6}]
+}
+----
+
+
+[[plusplus2]]
+== &#43;&#43;&#40;String, String&#41;: String
+
+2 つの文字列の文字を連結します。
+
+
+文字列は文字の配列として扱われるため、`++` 演算子は各文字列の文字を
+1 文字の文字列からなる配列であるかのように
+連結します。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `source` | ソース文字列。
+| `with` | ソース文字列に連結する文字列。
+|===
+
+=== 例
+
+次の例では、`Mule` は `Array<String> ["M", "u", "l", "e"]` として扱われます。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  "name" : "Mule" ++ "Soft"
+}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "name": MuleSoft
+}
+----
+
+
+[[plusplus3]]
+== &#43;&#43;&#40;Object, Object&#41;: Object
+
+2 つのオブジェクトを連結して、1 つのフラット化したオブジェクトを返します。
+
+
+`++` 演算子は各オブジェクトからすべてのキー-値ペアを抽出し、
+まとめて結合し、1 つのオブジェクトにします。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `source` | ソースオブジェクト。
+| `with` | ソースオブジェクトに連結するオブジェクト。
+|===
+
+=== 例
+
+次の例では、2 つのオブジェクトを連結し、XML に変換します。
+
+==== ソース
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+output application/xml
+---
+"concat" : {aa: "a", bb: "b"} ++ {cc: "c"}
+----
+
+==== 出力
+
+[source,XML,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<concat>
+  <aa>a</aa>
+  <bb>b</bb>
+  <cc>c</cc>
+</concat>
+----
+
+
+[[plusplus4]]
+== &#43;&#43;&#40;Date, LocalTime&#41;: LocalDateTime
+
+`LocalTime` (ローカル時刻) を `Date` (日付) に付加して `LocalDateTime` (ローカル日時) 値を返します。
+
+
+`Date` (日付) および `LocalTime` (ローカル時刻) インスタンスは、標準 Java 表記を
+パイプ (`|`) 記号で囲んで記述します。結果は、標準 Java 形式の
+`LocalDateTime` (ローカル日時) オブジェクトです。2 つのオブジェクトが連結される順序に
+意味はないため、論理的には `Date ++ LocalTime` と 
+`LocalTime ++ Date` の結果は同じになります。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `date` | `Date` (日付)。
+| `time` | `LocalTime` (ローカル時刻)。タイムゾーンなしの時刻形式。
+|===
+
+=== 例
+
+次の例では、`Date` (日付) オブジェクトと `LocalTime` (ローカル時刻) オブジェクトを
+連結して、`LocalDateTime` (ローカル日時) を返します。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  "LocalDateTime" : (|2017-10-01| ++ |23:57:59|)
+}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+   "LocalDateTime": "2017-10-01T23:57:59"
+}
+----
+
+
+[[plusplus5]]
+== &#43;&#43;&#40;LocalTime, Date&#41;: LocalDateTime
+
+`LocalTime` (ローカル時刻) を `Date` (日付) に付加して `LocalDateTime` (ローカル日時) を返します。
+
+
+2 つのオブジェクトが連結される順序に
+意味はないため、論理的には `LocalTime ++ Date` と 
+`Date ++ LocalTime` の結果は同じになります。
+
+=== 例
+
+次の例では、`LocalTime` (ローカル時刻) オブジェクトと `Date` (日付) オブジェクトを
+連結して、`LocalDateTime` (ローカル日時) を返します。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `time` | `LocalTime` (ローカル時刻)。タイムゾーンなしの時刻形式。
+| `date` | `Date` (日付)。
+|===
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+   "LocalDateTime" : (|23:57:59| ++ |2003-10-01|)
+}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+   "LocalDateTime": "2017-10-01T23:57:59"
+}
+----
+
+
+[[plusplus6]]
+== &#43;&#43;&#40;Date, Time&#41;: DateTime
+
+`Date` (日付) を`Time` (時刻) に付加して `DateTime` (日時) を返します。
+
+
+2 つのオブジェクトが連結される順序に意味はないため、
+論理的には `Date` (日付) + `Time` (時刻) と `Time` (時刻) + `Date` (日付) の結果は同じになります。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `date` | `Date` (日付)。
+| `time` | `Time` (時刻)。タイムゾーン (`Z` または `HH:mm`) を含めることができる時刻形式。
+|===
+
+=== 例
+
+次の例では、`Date` (ローカル時刻) オブジェクトと `Time` (日付) オブジェクトを
+連結して、`DateTime` (ローカル日時) を返します。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  "DateTime" : |2017-10-01| ++ |23:57:59-03:00|,
+  "DateTime2" : |2017-10-01| ++ |23:57:59Z|
+}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "DateTime": "2017-10-01T23:57:59-03:00",
+  "DateTime2": "2017-10-01T23:57:59Z"
+}
+----
+
+
+[[plusplus7]]
+== &#43;&#43;&#40;Time, Date&#41;: DateTime
+
+`Date` (日付) を`Time` (時刻) オブジェクトに付加して `DateTime` (日時) を返します。
+
+
+2 つのオブジェクトが連結される順序に意味はないため、
+論理的には `Date` (日付) + `Time` (時刻) と `Time` (時刻) + `Date` (日付) の結果は同じになります。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `time` | `Time` (時刻)。タイムゾーン (`Z` または `HH:mm`) を含めることができる時刻形式。
+| `date` | `Date` (日付)。
+|===
+
+=== 例
+
+次の例では、`Time` (時刻) オブジェクトと `Date` (日付) オブジェクトを
+連結して、`DateTime` (日時) オブジェクトを返します。最初の `LocalTime` (ローカル時刻) オブジェクトは Time (時刻) に変更されています。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  "DateTime1" : (|23:57:59| as Time) ++ |2017-10-01|,
+  "DateTime2" : |23:57:59Z| ++ |2017-10-01|,
+  "DateTime3" : |23:57:59+02:00| ++ |2017-10-01|
+}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "DateTime1": "2017-10-01T23:57:59Z",
+  "DateTime2": "2017-10-01T23:57:59Z",
+  "DateTime3": "2017-10-01T23:57:59+02:00"
+}
+----
+
+
+[[plusplus8]]
+== &#43;&#43;&#40;Date, TimeZone&#41;: DateTime
+
+`TimeZone` (タイムゾーン) を `Date` (日付) 型の値に付加して `DateTime` (日時) の結果を返します。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `date` | `Date` (日付)。
+| `timezone` | `TimeZone` (タイムゾーン) (`Z` または `HH:mm`)。
+|===
+
+=== 例
+
+次の例では、`Date` (日付) と `TimeZone` (タイムゾーン) (`-03:00`) を連結して、
+`DateTime` (日時) を返します。`DateTime` (日時) のローカル時刻は `00:00:00` (深夜 0 時) です。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{ "DateTime" : (|2017-10-01| ++ |-03:00|) }
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "DateTime": "2017-10-01T00:00:00-03:00"
+}
+----
+
+
+
+[[plusplus9]]
+== &#43;&#43;&#40;TimeZone, Date&#41;: DateTime
+
+`Date` (日付) を`TimeZone` (時刻) に付加して `DateTime` (日時) を返します。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `date` | `Date` (日付)。
+| `timezone` | `TimeZone` (タイムゾーン) (`Z` または `HH:mm`)。
+|===
+
+=== 例
+
+次の例では、`TimeZone` (タイムゾーン) (`-03:00`) と `Date` (日付) を連結して、
+`DateTime` (日時) を返します。`DateTime` (日時) のローカル時刻は `00:00:00` (深夜 0 時) です。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{ "DateTime" : |-03:00| ++ |2017-10-01| }
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "DateTime": "2017-10-01T00:00:00-03:00"
+}
+----
+
+
+
+[[plusplus10]]
+== &#43;&#43;&#40;LocalDateTime, TimeZone&#41;: DateTime
+
+`TimeZone` (日付) を`LocalDateTime` (時刻) に付加して `DateTime` (日時) を返します。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `dateTime` | `LocalDateTime` (ローカル時刻)。タイムゾーンなしの日時。
+| `timezone` | `TimeZone` (タイムゾーン) (`Z` または `HH:mm`)。
+|===
+
+=== 例
+
+次の例では、`LocalDateTime` (日付) と `TimeZone` (タイムゾーン) (`-03:00`) を連結して、
+`DateTime` (日時) を返します。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{ "DateTime" : (|2003-10-01T23:57:59| ++ |-03:00|) }
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "DateTime": "2003-10-01T23:57:59-03:00"
+}
+----
+
+
+[[plusplus11]]
+== &#43;&#43;&#40;TimeZone, LocalDateTime&#41;: DateTime
+
+`LocalDateTime` (日付) を`TimeZone` (時刻) に付加して `DateTime` (日時) を返します。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `dateTime` | `LocalDateTime` (ローカル時刻)。タイムゾーンなしの日時。
+| `timezone` | `TimeZone` (タイムゾーン) (`Z` または `HH:mm`)。
+|===
+
+=== 例
+
+次の例では、`TimeZone` (タイムゾーン) (`-03:00`) と `LocalDateTime` (日付) を連結して、
+`DateTime` (日時) を返します。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{ "TimeZone" : (|-03:00| ++ |2003-10-01T23:57:59|) }
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "TimeZone": "2003-10-01T23:57:59-03:00"
+}
+----
+
+
+[[plusplus12]]
+== &#43;&#43;&#40;LocalTime, TimeZone&#41;: Time
+
+`TimeZone` (日付) を`LocalTime` (時刻) に付加して `Time` (日時) を返します。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `time` | `LocalTime` (ローカル時刻)。タイムゾーン付きの時刻形式。
+| `timezone` | `TimeZone` (タイムゾーン) (`Z` または `HH:mm`)。
+|===
+
+=== 例
+
+次の例では、`LocalTime` (日付) と `TimeZone` (タイムゾーン) (`-03:00`) を連結して、
+`Time` (日時) を返します。出力では、未指定の秒には `:00` が返されています。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{ "Time" : (|23:57| ++ |-03:00|) }
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "Time": "23:57:00-03:00"
+}
+----
+
+
+
+[[plusplus13]]
+== &#43;&#43;&#40;TimeZone, LocalTime&#41;: Time
+
+`LocalTime` (日付) を`TimeZone` (時刻) に付加して `Time` (日時) を返します。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `time` | `LocalTime` (ローカル時刻)。タイムゾーンなしの時刻形式。
+| `timezone` | `TimeZone` (タイムゾーン) (`Z` または `HH:mm`)。
+|===
+
+=== 例
+
+次の例では、`TimeZone` (タイムゾーン) (`-03:00`) と `LocalTime` (日付) を連結して、
+`Time` (日時) を返します。出力では、未指定の秒には `:00` が返されています。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{ "Time" : (|-03:00| ++ |23:57|) }
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "Time": "23:57:00-03:00"
+}
+----
+
+

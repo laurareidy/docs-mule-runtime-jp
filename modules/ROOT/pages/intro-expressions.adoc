@@ -1,0 +1,52 @@
+= Mule 4 の概要: DataWeave 式言語
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Mule 3 では、Mule 式言語 (MEL) と DataWeave の両方を習得する必要があります。MEL の場合、バイナリデータ (XML や JSON ドキュメント) からのペイロードを Java オブジェクトに変換する必要があり、その結果、たとえばデータを特定の場所にルーティングするときに、そのデータにアクセスする式を記述できるようになります。
+
+Mule 4 のデフォルトの式言語は DataWeave です。この変更を組み込みのストリーミング機能と組み合わせることで、多くの一般的なタスクが簡素化されます。
+
+* ペイロードデータに基づいてイベントをルーティングできる (Java オブジェクトに変換する必要がない)。
+* バイナリデータを、フロー内の任意の時点 (ログへの記録時など) の式から簡単に照会できる。
+* ストリーミングが透過的に行われるようになる。データストリームがメモリ量を上回っていないか、ストリームを二度コンシュームしていないかなどと心配する必要がなくなります。
+
+DataWeave 2.0 にはさまざまな改良が行われており、詳細はxref:intro-dataweave2.adoc[「DataWeave 2.0」]セクションに記載されています。
+
+基本的に、式はこれまでと同じように機能します。データの抽出、データの記録、データのルーティング先の決定などに式を使用できます。MEL と同様、データのプロパティにアクセスする構文は極めてシンプルです。
+
+[source,xml,linenums]
+----
+<logger message="#[payload]"/>
+<set-variable variableName="httpResponseStatus" value="#[attributes.statusCode]"/>
+----
+
+MEL と異なる点は、DataWave を使用した場合、フロー内の任意の時点にあるデータに簡単にアクセスできることで、データを中間オブジェクトに変換すべきかどうか心配することがありません。Mule 3 では次の例のようになります。
+[source,xml,linenums]
+----
+<http:listener path="/hello"/> <!-- receives a JSON HTTP Body -->
+<json:json-to-object/> <!-- convert to Java objects -->
+<choice> <!-- route data based on the data -->
+  <when expression="#[payload.customer == 'Acme, Inc']">
+    <!-- do some logic -->
+  </when>
+</choice>
+----
+Mule 4 では、JSON を中間形式に変換する必要がありません。式を使用すると、元の基本的なデータを失うことなくデータに直接アクセスできます。そして、Mule 4 が自動的にデータストリーミングとランダムアクセスをすべて透過的に処理します。
+[source,xml,linenums]
+----
+<http:listener path="/hello"/> <!-- receives a JSON HTTP Body -->
+<choice> <!-- route data based on the data -->
+  <when expression="#[payload.customer == 'Acme, Inc']">
+    <!-- do some logic -->
+  </when>
+</choice>
+----
+
+== 関連情報
+
+xref:intro-transformations.adoc[変換とストリーミング]
+
+xref:migration-dataweave.adoc[DataWeave 1.0 から 2.x への移行]
+
+xref:dataweave.adoc[DataWeave 言語]

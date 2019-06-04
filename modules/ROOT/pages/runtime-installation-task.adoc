@@ -1,0 +1,188 @@
+= Mule のダウンロードおよびインストール
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Mule をダウンロードしてインストールする前に、Java SE JDK 1.8 がインストールされていることを確認してください。例:
+
+[source,console,linenums]
+----
+$ java -version
+java version "1.8.0_111"
+Java(TM) SE Runtime Environment (build 1.8.0_111-b14)
+Java HotSpot(TM) 64-Bit Server VM (build 25.111-b14, mixed mode)
+----
+
+== Mule のダウンロード
+
+. Mule 4 のバイナリファイルをダウンロードサイトからダウンロードして展開します。
++
+https://support.mulesoft.com/s/downloads[https://support.mulesoft.com/s/downloads]
++
+Mule 4 のバイナリファイルは、ダウンロードサイトの *[Downloads (ダウンロード)]* > ​*[Mule Runtime]*​にあります。
++
+. 環境変数の `MULE_HOME` を、ファイルを展開したフォルダ内の  `mule` ディレクトリに設定します。
++
+バージョン 4.1.5 を `Downloads` ディレクトリに展開した場合の例を示します。
++
+* Windows 環境:
++
+[source,console]
+----
+$ env:MULE_HOME=C:\Downloads\mule-enterprise-standalone-4.1.5\
+----
++
+* Linux/Unix 環境:
++
+[source,console]
+----
+$ export MULE_HOME=~/Downloads/mule-enterprise-standalone-4.1.5/
+----
+
+== Mule の実行
+
+次のコマンドを実行することで、お使いの環境で Mule がエラーなく動作するかどうかを確認できます。
+
+* Windows 環境:
++
+[source,powershell]
+----
+$ $MULE_HOME\bin\mule.bat
+----
+
+* Linux/Unix 環境:
++
+[source,console]
+----
+$ $MULE_HOME/bin/mule
+----
+
+これらのコマンドは、Mule をフォアグランドで実行し、起動スクリプトによってターミナルの標準出力に情報が表示されます。Mule の動作中は、他のコマンドを実行することはできません。
+
+Mule を停止するには、スクリプトが動作しているターミナルで `CTRL-C` を押します。
+
+== Windows サービスとしての Mule の実行
+
+Windows サービスとして Mule を実行するには、まず次のように実行して Mule をインストールします。
+
+[source,powershell]
+----
+$ $MULE_HOME\bin\mule.bat install
+----
+
+インストール後、Mule をサービスとして実行することができます。
+
+[source,powershell]
+----
+$ $MULE_HOME\bin\mule.bat start
+----
+
+[NOTE]
+====
+Windows が再起動すると、`mule stop` コマンドを使用した場合と同じように Mule サービスが停止します。
+唯一異なる状況は、Windows がタイムアウトによってプロセスをキルした場合です。
+====
+
+=== インストール後の wrapper.conf ファイルへのプロパティの追加
+
+Mule を Windows サービスとしてインストールした後で、`wrapper.additional.conf` ファイルで新しいプロパティを宣言することで `wrapper.conf` ファイルのプロパティを上書きできます。
+
+使用している Mule エディションによって動作が異なります。
+
+* Mule Community Edition
++
+. 新しいプロパティを追加したら、Windows サービスを再インストールまたは再起動します。
+. プロパティを追加し、そのインデックスが `wrapper-additional.conf` ファイルの最大インデックスより大きいことを確認します。そうでなければ、プロパティは上書きされません。
++
+たとえば、`wrapper-additional.conf` に次のプロパティがあるとします。
++
+`wrapper.java.additional.n=-Dproperty=value`
++
+`n` が最大のインデックスであれば、`wrapper.conf` ファイルにはインデックスを増やしてプロパティを追加する必要があります。
++
+`wrapper.java.additional.n+1=-DyourProperty=valueOfYourProperty`
+
+* Mule Enterprise Edition
++
+. デフォルトでは、Mule をサービスとしてインストールした後で 20 個のプロパティを追加できます。
+. サービスをインストールする際に、次のコマンドライン引数を使用して、必要な追加プロパティを設定します。
++
+`-additionalJavaProperties=numberOfExtraProperties`
+
+== Linux/Unix デーモンとしての Mule の起動
+
+Mule を Linux/Unix デーモンとして実行するには、まず次のように実行して Mule をインストールします。
+
+[source,console]
+----
+$ $MULE_HOME/bin/mule install
+----
+
+インストール後、Mule をデーモンとして実行することができます。
+
+[source,console]
+----
+$ $MULE_HOME/bin/mule start
+----
+
+[NOTE]
+====
+また、インストールせずに Mule を実行することもできます。この場合は、現在のユーザセッションのバックグラウンドとして Mule が起動します。
+====
+
+次の例では、Mule を Unix コンソールから起動しています。
+
+[source,console,linenums]
+----
+$ $MULE_HOME/bin/mule start
+MULE_HOME is set to ~/Downloads/mule-enterprise-standalone-4.1.5
+MULE_BASE is set to ~/Downloads/mule-enterprise-standalone-4.1.5
+Starting Mule Enterprise Edition...
+Waiting for Mule Enterprise Edition.................
+running: PID:87318
+----
+
+== Mule アプリケーションのデプロイ
+
+. Mule を起動します。
+. Mule が起動したら、パッケージ化された JAR ファイルを `$MULE_HOME` の下にある `apps` ディレクトリに移動することで、Mule アプリケーションをデプロイできます。
+
+== Mule の停止
+
+Mule を停止するには `stop` コマンドを使用します。
+
+次の例では、Mule を Unix コンソールから停止しています。
+
+[source,console,linenums]
+----
+$ $MULE_HOME/bin/mule stop
+MULE_HOME is set to /Applications/mule-enterprise-standalone-4.1.5
+MULE_BASE is set to /Applications/mule-enterprise-standalone-4.1.5
+Stopping Mule Enterprise Edition...
+Stopped Mule Enterprise Edition.
+----
+
+== Mule サービスまたはデーモンの削除
+
+システムからサービスまたはデーモンを削除するには、`remove` コマンドを使用します。
+
+次の例では、Mule を Unix コンソールから削除しています。
+
+[source,console,linenums]
+----
+$ $MULE_HOME/bin/mule remove
+MULE_HOME is set to /Applications/mule-enterprise-standalone-4.1.5
+MULE_BASE is set to /Applications/mule-enterprise-standalone-4.1.5
+Detected Mac OSX:
+Mule Enterprise Edition is not running.
+Removing Mule Enterprise Edition daemon...
+----
+
+== Anypoint Monitoring の有効化
+
+必要に応じて、オンプレミスランタイムのクラウド管理対応バージョン用の xref:monitoring::am-installing.adoc[Anypoint Monitoring をインストール]して、サーバ上で動作するアプリケーションを監視できます。
+
+== 関連情報
+
+* xref:7.1@studio::to-download-and-install-studio.adoc[Anypoint Studio 7.0 のインストール]
+* xref:mule-runtime-updates.adoc[Mule 4 の新機能]

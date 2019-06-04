@@ -1,0 +1,76 @@
+= DataWeave 言語
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, 変換, トランスフォーマ, 形式, 集約, 名前変更, 分割, 変換の絞り込み, xml, json, csv, pojo, java オブジェクト, メタデータ, DataWeave, data weave, datawave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング
+
+DataWeave は、Mule アプリケーションを介して受け取ったデータにアクセスし、変換するための MuleSoft 式言語です。DataWeave は、Mule アプリケーション内でスクリプトと式を実行する Mule Runtime と緊密に統合します。
+
+DataWeave は、Mule イベントのデータに対して動作します。一般には、これを使用してメッセージペイロード内のデータにアクセスし、データを変換します。たとえば、アプリケーション内のコンポーネントで 1 つのシステムからデータを取得した後、DataWeave を使用して、そのデータ内の選択した項目を新しいデータ形式に変更して出力します。次に、アプリケーション内の別のコンポーネントを使用してそのデータを別のシステムに渡すことができます。
+
+DataWeave 言語のいくつかの重要な機能を以下の簡単な例で示します。
+
+* ある形式から別の形式へのデータ変換。例では、`application/json` 入力を `application/xml` 出力に変換しています。
+* 入力データ構造内の項目にアクセスするデータセレクタ。スクリプトは、メッセージペイロード入力から JSON オブジェクトのキー (`payload.title` など) を選択し、その値を出力します。
+* 入力項目 `upper(payload.author)` の値に対するコア DataWeave 関数の使用。
+
+.入力ペイロード
+[source,json,linenums]
+----
+{
+  "title": "Java 8 in Action",
+  "author": "Mario Fusco",
+  "year": 2014
+}
+----
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/xml
+---
+{
+  order: {
+    'type': 'Book',
+    'title': payload.title,
+    'author': upper(payload.author),
+    'year': payload.year
+  }
+}
+----
+
+.出力ペイロード
+[source,xml,linenums]
+----
+<?xml version='1.0' encoding='UTF-8'?>
+<order>
+  <type>Book</type>
+  <title>Java 8 in Action</title>
+  <author>MARIO FUSCO</author>
+  <year>2014</year>
+</order>
+----
+
+さらに複雑なデータ操作と変換が可能です。
+
+DataWeave では、XML および JSON に加えていくつかのファイル入力形式と出力形式がサポートされます。また、データを操作するための多くの関数が提供され、データ構造内の項目にアクセスするためのセレクタが含まれます。配列、キー-値ペア、Java オブジェクト、文字列、数値に加えて多くのデータ型を処理できます。型強制がサポートされるほか、スクリプト内での独自の関数、データ型、変数の作成と使用もサポートされます。
+
+アプリケーションを Anypoint Studio または Design Center で作成するか、手書きの XML 設定ファイルとして作成する場合、メッセージプロセッサ (コンポーネント、コネクタ、モジュール) 内で DataWeave の式とスクリプトを記述します。
+
+* Transformer コンポーネントの目的は、簡単な形式変換または複雑なデータ抽出および変換プロセスにかかわらず、データ変換を実行するスクリプトを作成することです。
++
+xref:transform-component-about.adoc[「Transform Message コンポーネント」]を参照してください。
++
+* 多くの Mule メッセージプロセッサが DataWeave 式をサポートしているため、必要な Mule イベントの各部分でコア DataWeave 関数にアクセスし、使用できます。
++
+xref:dataweave-language-introduction.adoc[「DataWeave スクリプト」]で Set Payload のインライン DataWeave スクリプトの例を参照してください。また、`message` 属性については xref:logger-component-reference.adoc[「Logger コンポーネント」]の例、Set Payload (`<ee:set-payload>`) および Set Variable コンポーネントについては xref:for-each-scope-concept.adoc[「For Each スコープ」] の例、xref:connectors::file/file-write.adoc[<file:content>] については File Connector のドキュメントを参照してください。
+
+== 関連情報
+
+* xref:about-mule-event.adoc[Mule イベント]
+* xref:dataweave-formats.adoc[DataWeave でサポートされる形式]
+* xref:dataweave-selectors.adoc[DataWeave セレクタ]
+* xref:dataweave-language-introduction.adoc[DataWeave スクリプト]
+* xref:about-components.adoc[Core コンポーネント]
+* xref:connectors::index.adoc[コネクタおよびモジュール]

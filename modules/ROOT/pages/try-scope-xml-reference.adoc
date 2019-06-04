@@ -1,0 +1,92 @@
+= Try スコープ XML リファレンス
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Try スコープは、次の構造で定義します。
+
+
+* 1 つのルート要素 `<try>`
+
+* Try スコープが定義するエラー処理ルールに従って実行されるコンポーネントは、`try` 要素の子要素として定義されます。1 つまたは複数のコンポーネントを定義できます。
+
+* 1 つの `<error-handler>` 要素で、スコープのすべてのエラー処理戦略を定義します。
+
+* エラーハンドラでは、1 つまたは複数の `on-error-continue` と `on-error-propagate` によってさまざまな戦略を定義します。いずれか 1 つは必須です。
+
+* 一致するエラーが発生した時点で実行されるコンポーネントは、`on-error` 要素の子要素として定義されます。1 つまたは複数のコンポーネントを定義できます。
+
+[source,xml,linenums]
+----
+<try>
+  <!-- COMPONENTS TO TRY TO USE -->
+  <error-handler>
+    <on-error-continue>
+      <!-- COMPONENTS TO USE IN CASE OF ERROR -->
+    </on-error-continue>
+    <on-error-propagate>
+      <!-- COMPONENTS TO USE IN CASE OF ERROR -->
+    </on-error-propagate>
+  </error-handler>
+</try>
+----
+
+Try スコープ (`on-error-*`) の各エラー処理戦略は、条件に従って実行されます。この条件は、通常は現在のエラーと一致するエラー種別 (または複数種別のリスト)です。`error.cause.message.contains("fatal")` のように、自由に作成した式として条件を定義することもできます。
+
+[NOTE]
+条件は順番に評価され、最初に一致した戦略のみが実行されます。
+
+
+
+
+
+
+
+2 つのエラー処理戦略を定義した例を示します。それぞれがロガーコンポーネントを実行します。
+
+
+[source,xml,linenums]
+----
+<try>
+  <http:request config-ref="HTTP-config" method="GET" path="/" />
+  <error-handler>
+    <on-error-continue enableNotifications="true" logException="true" type="CONNECTIVITY">
+      <logger level="INFO" doc:name="Logger" message="Connectivity Error"/>
+    </on-error-continue>
+    <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" type="EXPRESSION">
+      <logger level="INFO" doc:name="Logger" message="Expression error" />
+    </on-error-propagate>
+  </error-handler>
+</try>
+----
+
+== Try のプロパティ
+
+[%header,cols="20a,20,60a"]
+|===
+|プロパティ | Default (デフォルト) |説明
+|`transactionalAction` | INDIFFERENT | スコープ内のアクションをトランザクションとして扱うかどうかを定義します。可能な値:
+
+* INDIFFERENT: スコープ内のアクションをトランザクションとして扱いません。
+
+* ALWAYS_BEGIN:スコープを実行する度に、新しいトランザクションが開始されます。
+
+* BEGIN_OR_JOIN: フローの現在の処理ですでにトランザクションが開始されている場合は、そのトランザクションに結合します。開始されていなければ、新しいトランザクションを開始します。(実行順序が変化する場合にのみ適用されます。)
+
+|`transactionalType` | LOCAL | 使用するトランザクションの種別を定義します。可能な値:
+
+* "LOCAL"
+* "MULTI"
+* "XA"
+
+|===
+
+
+
+
+
+== 関連情報
+
+* xref:try-scope-concept.adoc[Try スコープの概念]
+
+* xref:error-handling.adoc[エラー処理]

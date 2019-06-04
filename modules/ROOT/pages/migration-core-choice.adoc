@@ -1,0 +1,63 @@
+= Choice ルータの移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+// sme: DF, author: sduke?
+
+次を除き、Mule 3 と Mule 4 の Choice ルータはほとんど変更されていません。
+
+* DataWeave が式言語となり、when ステートメントで MEL の代わりに実際に使用されます。
+* `<otherwise>` ブロックは省略可能になりました。
+
+== when ブロックの式言語
+
+when 式は MEL から DataWeave に変更する必要があります。これは、あらゆる形式を解釈する DataWeave の機能を利用し、必要のない変換を回避できることを意味します。たとえば、ユーザを表す JSON ドキュメントが HTTP 経由で投稿されるフローがあり、そのユーザが未成年かどうかを確認する必要があるとします。
+
+.Mule 3 の例: MEL
+[source,xml,linenums]
+----
+<flow name="checkAge">
+  <http:listener path="person" method="POST" config-ref="http" />
+  <json:json-to-object-transformer />
+  <choice>
+    <when expression="#[payload.age > 21]">
+      <logger message="adult" />
+    </when>
+    <otherwise>
+      <logger message="underage" />
+    </otherwise>
+  </choice>
+</flow>
+----
+
+Mule 4 では、形式が JSON か Java かを気にする必要はなく、ただ次を実行します。
+
+.Mule 4 の例: DataWeave 2
+[source,xml,linenums]
+----
+<flow name="checkAge">
+  <http:listener path="person" method="POST" config-ref="http" />
+  <choice>
+    <when expression="#[payload.age > 21]">
+      <logger message="adult" />
+    </when>
+    <otherwise>
+      <logger message="underage" />
+    </otherwise>
+  </choice>
+</flow>
+----
+
+== 省略可能な otherwise
+
+Mule 3 では `<otherwise>` ブロックは必須でした。代替ロジックが不要だった場合、`<otherwise>` ブロックに含まれるのは重要ではないロガーになることが多々ありました。Mule 4 では `<otherwise>` ブロックは省略可能で、必要ない場合は指定する必要がありません。
+
+
+== 関連情報
+
+xref:intro-error-handlers.adoc[Mule 4 の概要: エラーハンドラ]
+
+xref:migration-mel.adoc[MEL から DataWeave への移行]
+
+xref:migration-dataweave.adoc[DataWeave 1.0 から 2.x への移行]

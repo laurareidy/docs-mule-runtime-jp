@@ -1,0 +1,72 @@
+= Enterprise ライセンスのインストール
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Mule, Studio, enterprise, ee, Premium 機能, 有料機能, 購入, ライセンス, ライセンス付与
+
+Mule Runtime Engine (Mule) Enterprise Edition (EE) のトライアルバージョンは、評価目的で提供されています。Enterprise のトライアルライセンスは、Mule と Anypoint Studio について知るには最適ですが、Mule の使用に制限があり、本番ユーザには適していません。
+
+Mule Runtime を本番環境で使用する前に、次の手順を実行してトライアルでない ​*Enterprise ライセンス*​を取得してインストールしてください。
+
+. MuleSoft アカウント担当者または http://www.mulesoft.com/contact[MuleSoft 営業チーム]に連絡して、`license.lic` ファイルの形式で ​*Enterprise ライセンス*​を取得します。
+. インストールする前に、以前のライセンスを `$MULE_HOME` ディレクトリから削除することをお勧めします。これを行うには、`$MULE_HOME/conf/` に移動して既存の `muleLicenseKey.lic` ファイルを削除します。
+. 複数のプラットフォームにライセンスをインストールする場合は、続行する前に新しい `license.lic` ファイルを別の場所にバックアップします。
+. Mule サーバが​*停止済み (実行していない)*​であることを確認してから、システムのターミナルまたはコマンドラインを開きます。
+. *Mac/Unix/Linux* では、`$MULE_HOME/bin` ディレクトリから次のコマンドを実行します。
++
+`mule -installLicense ~/license.lic` +
+ +
+*Windows* では、まず `license.lic` ファイルを \bin フォルダにコピーしてから、コマンドラインで次のコマンドを実行します。 +
+ +
+`mule -installLicense license.lic `
+. `$MULE_HOME/conf` ディレクトリに `muleLicenseKey.lic` という新しいファイルが保存されます。これによって、ライセンスがインストールされたことが示されます。
+. もう一度、通常の方法で Mule サーバを​*起動*​します。
++
+
+== Enterprise Edition ライセンスの確認または削除
+
+Mule サーバが​*停止済み*​であることを確認してから、システムのターミナルまたはコマンドラインを開きます。
+
+Enterprise ライセンスが正常にインストールされたことを確認するには、次のコマンドを実行します。
+
+`mule -verifyLicense`
+
+以前にインストールしたライセンスをアンインストールするには、次のコマンドを実行します。
+
+`mule -unInstallLicense`
+
+ライセンスのインストールが失敗し、手動で `$MULE_HOME/conf/muleLicenseKey.lic` を削除する必要があることがあります。
+
+== ライセンスキーファイルのダウンロード
+
+* https://support.mulesoft.com[サポートポータル]にログインします。ログイン情報を持っていない場合は、カスタマーサクセスマネージャにお問い合わせください。
+
+* サポートポータルホームページの上部にある [Subscriptions (サブスクリプション)] タブをクリックします。
+
+* ライセンスキーの対象となるサブスクリプションの [Subscription Name (サブスクリプション名)] をクリックします。[Subscription Name (サブスクリプション名)] (右から 2 番目の列) をクリックする必要があることに注意してください。そうしないと、適切なページに移動できません。
+
+* ページ左側の下部にある [License ID (ライセンス ID)] 番号をクリックします。
+
+* [View (表示)] ボタンをクリックしてライセンスキーをダウンロードします。
+
+== 埋め込まれた Mule への Enterprise ライセンスのインストール
+
+本番環境にはお勧めしませんが、Studio にバンドルされている Mule に Enterprise ライセンスをインストールすることもできます。
+
+. Mule Enterprise Edition をダウンロードしてインストールします。
+. アカウント担当者または http://www.mulesoft.com/contact[MuleSoft 営業チーム]に連絡して、`license.lic` ファイルの形式で ​*Enterprise Edition ライセンス*​を取得します。
+. 上記の手順を最初のステップから実行して、Mule Enterprise Edition に新しいライセンスをインストールします。
+. `$MULE_HOME/conf` ディレクトリから、保存された新しいライセンスファイル `muleLicenseKey.lic` をコピーします。
+. `muleLicenseKey.lic` ファイルを Studio にバンドルされた Mule の埋め込みアプリケーションのクラスパスに貼り付けます。
+
+== 製品ライセンスのインストール
+
+SAP コネクタまたはその他の Premium コネクタを使用するには、製品ライセンスを取得してインストールする必要があります。アカウント担当者または http://www.mulesoft.com/contact[MuleSoft 営業チーム]に連絡して、上記のいずれかの製品のライセンスを取得します。
+
+[TIP]
+https://repository.mulesoft.org/nexus-ee/content/repositories/releases-ee/[MuleSoft Enterprise Maven カスタマーリポジトリ]では、トライアルバージョンやコミュニティバージョンに含まれていない Mule Enterprise のモジュール、コネクタ、その他のコンポーネントにアクセスできます。詳細は、xref:mmp-concept.adoc[「Mule Maven プラグイン」]を参照してください。
+
+== 関連情報
+
+* xref:mule-application-about.adoc[Mule アプリケーション]
+* xref:connectors::index.adoc[コネクタおよびモジュール]

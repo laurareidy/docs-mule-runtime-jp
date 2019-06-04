@@ -1,0 +1,133 @@
+= DataWeave を使用した Java メソッドのコール
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, esb, 変換, トランスフォーマ, 形式, 集約, 名前変更, 分割, 変換の絞り込み, xml, json, csv, pojo, java オブジェクト, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング
+
+DataWeave ステートメントから、Mule プロジェクトにある任意の Java クラスの Java メソッドをコールできます。DataWeave では、静的メソッド (クラスの特定のインスタンスに属するメソッドではなく、Java クラスに属するメソッド) のみをコールできます。
+
+
+== Java メソッドのコール
+
+
+メソッドをコールする前に、まず属するクラスを DataWeave コードにインポートする必要があります。DataWeave モジュールをインポートするときのように、`java!` をステートメントに含めて Java クラスをインポートできます。
+
+たとえば、以下は文字列の最後に乱数を追加する 1 つのメソッドがある簡単な Java クラスです。このクラスは、Mule プロジェクトの `src/main/java` フォルダの「utils」という名前の Java パッケージの一部として作成されていることが前提となっています。
+
+[source,java,linenums]
+----
+package utils;
+
+import java.util.Random;
+
+public class MyUtils {
+
+	public static String appendRandom(String base) {
+		return base + new Random().nextInt();
+	}
+
+}
+----
+
+次のいずれかの方法で DataWeave コードから `appendRandom()` メソッドをコールできます。
+
+* クラスをインポートして、メソッドを参照する:
++
+[source,dataweave,linenums]
+----
+%dw 2.0
+import java!utils::MyUtils
+output application/json
+---
+{
+	a: MyUtils::appendRandom("myString")
+}
+----
+
+* クラス全体ではなく 1 つ以上のメソッドをインポートする:
++
+[source,dataweave,linenums]
+----
+%dw 2.0
+import java!utils::MyUtils::appendRandom
+output application/json
+---
+{
+	a: MyUtils::appendRandom("myString")
+}
+----
+
+* メソッドが静的メソッドの場合、1 行でインポートしてコールする:
++
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+	a: java!utils::MyUtils::appendRandom(vars.myString)
+}
+----
+
+3 つのすべての方法で、ランダムな文字列が追加された変数値が返されます。
+
+[source,json,linenums]
+----
+{
+  "a":"myString969858409"
+}
+----
+
+== Java クラスのインスタンス化
+
+DataWeave コードで、任意のクラスの新しいオブジェクトをインスタンス化できます。インスタンスを作成したら、DataWeave でそのインスタンスメソッドをコールできなくなります。ただし、その変数を参照することはできます。
+
+
+以下は、メソッドと変数がある簡単な Java クラスです。
+
+[source,java,linenums]
+----
+package utils;
+public class MyClass {
+
+	private String foo;
+	 public MyClass(String foo) {
+		 this.foo = foo;
+	}
+
+	 public String getFoo() {
+		return foo;
+	}
+
+}
+----
+
+以下の DataWeave の例では、まず「MyClass」クラスをインポートし、次にその新しいインスタンスを作成して、そのインスタンス変数「foo」をコールします。オブジェクトにはメソッド「getFoo()」がありますが、DataWeave でコールすることはできません。
+
+
+[source,dataweave,linenums]
+----
+%dw 2.0
+import java!utils::MyClass
+output application/json
+---
+{
+	a: MyClass::new("myString").foo
+}
+----
+
+この出力は次のようになります。
+
+[source,json,linenums]
+----
+{
+  "a":"myString"
+}
+----
+
+
+
+
+== 関連情報
+
+* xref:dataweave-formats.adoc[DataWeave でサポートされる形式]

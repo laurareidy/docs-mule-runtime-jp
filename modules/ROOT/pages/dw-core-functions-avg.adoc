@@ -1,0 +1,44 @@
+= avg
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[avg1]]
+== avg&#40;Array<Number&#62;&#41;: Number
+
+リスト (配列) 内の数値の平均を返します。
+
+
+リストが空か、リストに非数値が含まれる場合は
+エラーになります。
+
+=== 例
+
+次の例では、複数の配列の平均を返します。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  a: avg([1, 1000]),
+  b: avg([1, 2, 3])
+}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "a": 500.5,
+  "b": 2.0
+}
+----
+
+

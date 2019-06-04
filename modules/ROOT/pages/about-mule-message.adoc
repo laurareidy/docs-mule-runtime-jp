@@ -1,0 +1,221 @@
+= Mule メッセージ構造
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, コンポーネント, 要素, メッセージ, Mule メッセージ, アーキテクチャ
+
+Mule メッセージは、Mule アプリケーションのフロー内で処理されるときに、
+通常は外部ソースのメッセージコンテンツとメタデータのコンテナとして
+機能する、Mule イベントの一部です。
+
+Mule イベントは不変であるため、Mule メッセージを変更するたびに
+新しいインスタンスが作成されます。メッセージを受信するフロー内の各プロセッサは、
+次の要素で構成される新しい Mule メッセージを返します。
+
+* メッセージ​*ペイロード*。メッセージの本文が含まれます。たとえば、
+ファイルの内容、データベースのレコード、REST または
+Web サービス要求への応答など。
+* メッセージ​*属性*。ペイロードに関連付けられたメタデータ。
+
+image::mule-message-structure-82af1.png[]
+
+Mule メッセージは、HTTP リスナが応答を受信したときや
+Scheduler コンポーネントがフローの実行をトリガしたときと同様に、
+Mule フロー内のメッセージソースがフローの開始をトリガしたときに
+xref:about-mule-event.adoc[Mule イベント]の一部として作成されます。 
+たとえば、Mule アプリケーションの HTTP リスナは応答を受信したときに、
+応答のコンテンツをそのペイロードとして含み、そのコンテンツに
+関連付けられたメタデータも含む Mule メッセージを使用して
+Mule イベントを作成します。フロー内のメッセージプロセッサ
+(Core コンポーネント、File Read 操作、HTTP 要求など) は、
+その設定に従って、Mule イベントに存在する Mule メッセージデータを
+取得、設定、処理できます。
+
+Anypoint Studio では、
+xref:7.3@studio::datasense-explorer.adoc[DataSense Explorer] にフローの
+特定ポイントでの Mule メッセージの構造が表示されます。
+
+== メッセージペイロード
+
+メッセージペイロードには、メッセージのコンテンツまたは本文が含まれます。たとえは、
+ペイロードには HTTP 要求の結果、データベースコネクタの Select 操作
+で取得したレコードの内容、またはファイルコネクタや FTP コネクタへの
+Read 操作で取得したファイルの内容が含まれる可能性があります。
+
+
+ペイロードのコンテンツは、Mule フロー内のメッセージプロセッサによって設定、
+強化、新しい形式への変換、情報の抽出、または Mule イベント変数
+への保存と新規ペイロードの生成が行われ、フロー内を移動するときに
+変更されます。
+
+Mule メッセージのペイロードは、xref:dataweave-variables-context.adoc[Mule Runtime 変数] `payload` を使用する
+DataWeave 式で選択できます。
+ たとえば、
++`https://jsonplaceholder.typicode.com/users`+ の JSON コンテンツに対する HTTP 要求への応答の `payload` を表示するように設定された Logger コンポーネントは、
+Studio コンソールでは次のようになります (読みやすくするため短縮表示)。
+
+.例: HTTP 応答ペイロード
+[source,txt,linenums]
+----
+[
+  {
+    "id": 1,
+    "name": "Leanne Graham",
+    "username": "Bret",
+    "email": "Sincere@april.biz",
+    "address": {
+      "street": "Kulas Light",
+      "city": "Gwenborough",
+      "zipcode": "92998-3874",
+      "geo": {
+        "lat": "-37.3159",
+        "lng": "81.1496"
+      }
+    }
+  },
+  {
+    "id": 2,
+    "name": "Ervin Howell",
+    "username": "Antonette",
+    "email": "Shanna@melissa.tv",
+    "address": {
+      "street": "Victor Plains",
+      "city": "Wisokyburgh",
+      "zipcode": "90566-7771",
+      "geo": {
+        "lat": "-43.9509",
+        "lng": "-34.4618"
+      }
+    }
+  }
+]
+----
+
+単純な JSON ファイルに対する File Read 操作の出力の
+`payload` を表示するように設定された Logger コンポーネントは、
+Studio コンソールでは次のようになります。
+
+.例: ファイルペイロード
+[source,txt,linenums]
+----
+{ "hello" : "world" }
+----
+
+フロー内の次のメッセージプロセッサは、このペイロードに対して、
+`payload.'hello'` を含むペイロード内の JSON オブジェクトの値を選択し、
+先行する JSON ペイロードを文字列 `"world"` で置き換える
+アクションなどを実行できます。
+
+////
+The Transform component is a message processor that can use DataWeave to modify
+an input payload to a new output. These modifications include changing the set
+of fields to output or changing the format of the data. For example, you might
+use it to change the format from XML to JSON. You might exclude a field that 
+contains personal identifiers or private data for a customer, such as the 
+social security or medical record number, or you might add a new field to 
+the output.
+
+* `payload`: You access the payload through the keyword `payload` from a 
+connector or component in your flow, and you can use DataWeave selectors, 
+such as `payload.someField` to access fields within the payload.
+////
+
+== 属性
+
+属性には、メッセージの本文 (またはペイロード) に関連付けられた
+メタデータが含まれます。メッセージの特定の属性は、そのメッセージに関連付けられたコネクタ
+(HTTP、FTP、ファイルなど) によって異なります。メタデータはコネクタによって
+受信または返されたヘッダーとプロパティ、およびコネクタまたは
+Core コンポーネント (Transform Message など) によって入力された他の
+メタデータで構成されます。
+
+Mule メッセージの属性は、xref:dataweave-variables-context.adoc[Mule Runtime 変数] `attributes` を使用する
+DataWeave 式で選択できます。
+ たとえば、Logger コンポーネントを介して HTTP 応答 
+メタデータを表示する `attributes` 変数を使用している場合、Studio コンソールの
+出力は次のようになります。
+
+.例: HTTP 応答の属性
+[source,txt,linenums]
+----
+{
+   Status Code=200
+   Reason Phrase=OK
+   Headers=[
+      date=Sun, 20 Jan 2019 19:13:51 GMT
+      content-type=text/html;
+      charset=UTF-8
+      transfer-encoding=chunked
+      connection=keep-alive
+      set-cookie=__cfduid=d03462713a0b2c57c8d2ad3bf311287041548011631;
+      expires=Mon, 20-Jan-20 19:13:51 GMT;
+      path=/;
+      domain=.typicode.com;
+      HttpOnly
+      x-powered-by=Express
+      vary=Origin, Accept-Encoding
+      access-control-allow-credentials=true
+      cache-control=public, max-age=14400
+      last-modified=Tue, 15 Jan 2019 18:17:15 GMT
+      via=1.1 vegur
+      cf-cache-status=HIT
+      expires=Sun, 20 Jan 2019 23:13:51 GMT
+      expect-ct=max-age=604800,
+      report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"
+      server=cloudflare
+      cf-ray=49c3dc570c2f281c-SJC
+   ]
+}
+----
+
+この例は、
+Web ページ +`https://jsonplaceholder.typicode.com/users`+ に対する HTTP Request 操作からの応答です。
+
+各属性は、等号 (`=`) で区切られたキー/値のペアになって
+います。属性の値にアクセスするには、そのキーを使用します。たとえば、
+フローでコネクタまたはコンポーネント (Logger など) を使用している場合、
+読み込んでいる HTTP 応答やファイルの属性にアクセスできます。
+
+* `attributes.'statusCode'`: `200` などの HTTP 状況コードを選択。
+* `attributes.headers.'date'`: HTTP 応答の
+ヘッダーから `Sun, 20 Jan 2019 18:54:54 GMT` を選択。
+* `attributes.headers.'content-type'`: HTTP コンテンツタイプ
+`application/json; charset=utf-8` を選択。
+
+`attributes.headers."content-type"` 内の引用符は、
+解析エラーを回避するために必要です。属性名で有効な識別子は、
+数字、文字、アンダースコアのみです。引用符がないと、
+名前は `attributes.headers.content - type` のように解析されます。
+
+
+ファイルメタデータの場合、属性は異なります。たとえば、
+Logger コンポーネントを介してファイルメタデータを
+表示する `attributes` 変数を使用している場合、Studio コンソールの出力は次のようになります。
+
+.例: ファイルの属性
+[source,txt,linenums]
+----
+LocalFileAttributes[
+  lastModifiedTime=2019-01-20T08:17:55,
+  lastAccessTime=2019-01-20T10:54:55,
+  creationTime=2019-01-20T08:17:55,
+  size=22,
+  regularFile=true,
+  directory=false,
+  symbolicLink=false,
+  path=/Users/me/Desktop/myJson.json,
+  fileName=myJson.json
+----
+
+各属性は、キー/値のペア (`fileName=myJson.json` など) になっています。
+属性の値を選択するには、次のようにそのキーを参照します。
+
+* `attributes.'fileName'`: `myJson.json` などの HTTP 状況コードを返す。
+** `attributes.size`: ファイルのサイズを返す。ここでは `22`。
+
+== 関連情報
+
+* xref:dataweave-variables-context.adoc[定義済み変数]
+* xref:about-mule-event.adoc[Mule イベント]
+* xref:dataweave-selectors.adoc[DataWeave セレクタ]
+* xref:set-payload-transformer-reference.adoc[Set Payload トランスフォーマ]

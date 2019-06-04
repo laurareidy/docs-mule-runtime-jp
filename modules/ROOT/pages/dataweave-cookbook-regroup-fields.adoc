@@ -1,0 +1,171 @@
+= 項目の再グループ化
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, 変換, トランスフォーマ, 形式, xml, json, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング, groupby, mapobject
+
+これらの DataWeave の例では、ある項目に基づいてグループ化されている入力を取得し、別の項目に基づいてデータをグループ化する新しい構造に変換します。
+
+両方の例で、次の関数を使用します。
+
+* `subject` で項目を整理する `groupBy`
+* 入力の項目を新しい階層にマップする `mapObject` および `map`
+
+== 例: XML から JSON
+
+.DataWeave
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+classrooms: payload..*teacher groupBy $.subject mapObject ((teacherGroup, subject) -> {
+   class: {
+     name: subject,
+     teachers: { (teacherGroup map {
+       teacher:{
+           name: $.name,
+           lastName: $.lastName
+       }
+     })
+   }
+  }
+})
+----
+
+.入力 XML
+[source,xml,linenums]
+----
+<school>
+    <teachers>
+        <teacher>
+            <name>Mariano</name>
+            <lastName>De Achaval</lastName>
+            <subject>DW</subject>
+        </teacher>
+        <teacher>
+            <name>Emiliano</name>
+            <lastName>Lesende</lastName>
+            <subject>DW</subject>
+        </teacher>
+        <teacher>
+            <name>Leandro</name>
+            <lastName>Shokida</lastName>
+            <subject>Scala</subject>
+        </teacher>
+    </teachers>
+</school>
+----
+
+.出力 JSON
+[source,json,linenums]
+----
+{
+  "classrooms": {
+    "class": {
+      "name": "Scala",
+      "teachers": {
+        "teacher": {
+          "name": "Leandro",
+          "lastName": "Shokida"
+        }
+      }
+    },
+    "class": {
+      "name": "DW",
+      "teachers": {
+        "teacher": {
+          "name": "Mariano",
+          "lastName": "De Achaval"
+        },
+        "teacher": {
+          "name": "Emiliano",
+          "lastName": "Lesende"
+        }
+      }
+    }
+  }
+}
+----
+
+== 例: JSON から JSON
+
+この DataWeave の例では、JSON オブジェクトの階層を変更します。出力では、`language` で項目をグループ化し、各コースの参加者の名前が含まれる新しい要素 `attendees` を追加します。
+
+.DataWeave
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+"langs" : payload.langs groupBy $.language mapObject ((nameGroup, language) -> {
+     "language" : language,
+     "attendees" :
+     (nameGroup map {
+           name: $.name
+     })
+})
+----
+
+.入力 JSON
+[source,json,linenums]
+----
+{
+  "langs": [
+    {
+      "name": "Alex",
+      "language": "Java"
+    },
+    {
+      "name": "Kris",
+      "language": "Scala"
+    },
+    {
+      "name": "Jorge",
+      "language": "Java"
+    }
+  ]
+}
+----
+
+.出力 JSON
+[source,json,linenums]
+----
+{
+  "langs": {
+    "language": "Scala",
+    "attendees": [
+      {
+        "name": "Kris"
+      }
+    ],
+    "language": "Java",
+    "attendees": [
+      {
+        "name": "Alex"
+      },
+      {
+        "name": "Jorge"
+      }
+    ]
+  }
+}
+----
+
+== 関連する例
+
+* xref:dataweave-cookbook-map.adoc[データのマップ]
+
+* xref:dataweave-cookbook-reference-multiple-inputs.adoc[複数の入力の参照]
+
+* xref:dataweave-cookbook-define-function-to-flatten-list.adoc[リスト内のデータをフラット化する関数の定義]
+
+* xref:dataweave-cookbook-zip-arrays-together.adoc[複数の配列要素のグループ化]
+
+== 関連情報
+
+* xref:dataweave-types.adoc[DataWeave の型]
+
+* xref:dataweave-selectors.adoc[DataWeave セレクタ]
+
+* xref:dataweave-cookbook.adoc[DataWeave の解説書]

@@ -1,0 +1,40 @@
+= トランスフォーマの移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+// Contacts/SMEs: Ana Felissati, Pablo La Greca
+
+Mule 4 では `transformers` は必要なくなりました。DataWeave がデフォルトの式言語になり、反復可能なストリーム機能がサポートされるようになったため、トランスフォーマが必要なシナリオは (まったくとは言わないまでも) ほとんど存在しません。
+
+== 型のトランスフォーマの移行
+
+Mule 3 では、異なる型を使用して同じデータを表現できます。たとえば、JSON は `String`、`InputStream`、`OutputHandler`、または `ByteArray` を使用して保存できます。同じように、XML はこれらの同じ型を使用するか、Java DOM ドキュメントで表現できます。
+
+Mule 4 では、バイナリ以外のすべての形式が自動的に Mule によって処理されます。そのため、コンテンツが含まれている型を気にする必要がありません。
+
+=== 文字列変換に対する InputStream
+
+Mule 3 では、`InputStream` によって保持されるデータを複数のプロセッサでコンシュームできるように、`<object-to-string-transformer>` が一般に使用されていました。Mule 4 には反復可能なストリームの概念があるため、これは必要なくなりました。
+
+=== JSON および XML のオブジェクトモデル表現
+
+Mule 3 の XML または JSON ドキュメントのコンテンツにアクセスするには、後で Java コードまたは MEL を使用できるように Java オブジェクト表現モデルへの変換が必要でした。Mule 4 では、runtime の式言語が JSON および XML (およびその他の多くの形式) を完全にサポートしているため、この変換は必要なくなりました。単に DataWeave 式を使用してデータにアクセスします。
+
+== カスタムトランスフォーマの移行
+
+ほとんどの場合、DataWeave によってサポートされる形式を処理するために使用していたカスタムトランスフォーマは必要なくなったため、式言語を使用するために移行できます。複数の場所で同じ変換を実行する必要がある場合、DataWeave スクリプトをファイルに外部化できます。
+
+DataWeave がサポートしていない方法でデータを変換する場合、Java モジュールまたはスクリプティングモジュールを使用し、カスタムコードを使用して変換を実行する必要があります。
+
+== 関連情報
+
+xref:dataweave.adoc[DataWeave 言語]
+
+xref:connectors::scripting/scripting-module.adoc[スクリプティングモジュール]
+
+xref:connectors::java/java-module.adoc[Java モジュール]
+
+xref:streaming-about.adoc[Mule アプリケーションでのストリーミング]
+
+https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4/[Why DataWeave is the Main Expression Language in Mule 4 Beta (Mule 4 ベータ版で DataWeave が主要な式言語である理由)]

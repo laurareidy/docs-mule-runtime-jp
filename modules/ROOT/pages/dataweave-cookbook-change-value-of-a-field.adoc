@@ -1,0 +1,135 @@
+= 項目の値の変更
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, 変換, トランスフォーマ, 形式, 名前変更, xml, json, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング, mapobject, unless, otherwise
+
+この DataWeave の例では、一部の XML 要素の値を変更します。ここでは、機密データが含まれるキーの値を一連のアスタリスク (`\****`) に変更します。
+
+次の関数を使用します。
+
+* 入力のユーザを調べる `mapObject`。ユーザごとに他の 2 つの `mapObject` 関数を使用して、個人情報とログイン情報の両方の項目を調べます。
+* `ssn` および `password` キーの値をマスクする `if` と `else`。
+
+.DataWeave
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/xml
+---
+users: { (payload.users mapObject (userObject) -> {
+    user: {
+         personal_information: userObject.personal_information mapObject (value, key) ->
+         {
+            (if (key ~= "ssn") (key): "****"  else (key): value)
+         },
+         login_information: userObject.login_information mapObject (value, key) ->
+         {
+            (if (key ~= "password") (key): "****" else (key): value)
+         }
+      }
+   })
+}
+----
+
+.入力 XML
+[source,xml,linenums]
+----
+<users>
+    <user>
+        <personal_information>
+            <first_name>Emiliano</first_name>
+            <middle_name>Romoaldo</middle_name>
+            <last_name>Lesende</last_name>
+            <ssn>001-08-84382</ssn>
+        </personal_information>
+        <login_information>
+            <username>3miliano</username>
+            <password>mypassword1234</password>
+        </login_information>
+    </user>
+    <user>
+        <personal_information>
+            <first_name>Mariano</first_name>
+            <middle_name>Toribio</middle_name>
+            <last_name>de Achaval</last_name>
+            <ssn>002-05-34738</ssn>
+        </personal_information>
+        <login_information>
+            <username>machaval</username>
+            <password>mypassword4321</password>
+        </login_information>
+    </user>
+</users>
+----
+
+.出力 XML
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<users>
+  <user>
+    <personal_information>
+      <first_name>Emiliano</first_name>
+      <middle_name>Romoaldo</middle_name>
+      <last_name>Lesende</last_name>
+      <ssn>****</ssn>
+    </personal_information>
+    <login_information>
+      <username>3miliano</username>
+      <password>****</password>
+    </login_information>
+  </user>
+  <user>
+    <personal_information>
+      <first_name>Mariano</first_name>
+      <middle_name>Toribio</middle_name>
+      <last_name>de Achaval</last_name>
+      <ssn>****</ssn>
+    </personal_information>
+    <login_information>
+      <username>machaval</username>
+      <password>****</password>
+    </login_information>
+  </user>
+</users>
+----
+
+
+
+////
+Without explicitly defined keys:
+
+%dw 2.0
+output application/xml
+---
+users: { (payload.users mapObject {
+    user: {
+         personal_information: $.personal_information mapObject {
+              ($$): $ unless $$ ~= "ssn" otherwise "****"
+         },
+         login_information: $.login_information mapObject {
+            ($$): $ unless $$ ~= "password" otherwise "****"
+         }
+      }
+   })
+}
+
+////
+
+
+== 関連する例
+
+* xref:dataweave-cookbook-perform-basic-transformation.adoc[XML から JSON への変換]
+
+* xref:dataweave-cookbook-output-a-field-when-present.adoc[存在する項目の出力]
+
+* xref:dataweave-cookbook-insert-attribute.adoc[XMLタグへの属性の挿入]
+
+== 関連情報
+
+* xref:dataweave-types.adoc[DataWeave の型]
+
+* xref:dataweave-selectors.adoc[DataWeave セレクタ]
+
+* xref:dataweave-cookbook.adoc[DataWeave の解説書]

@@ -1,0 +1,44 @@
+= Idempotent Message Validator
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Anypoint Studio, 検索条件, 条件, ゲート, 冪等性
+
+受信メッセージの一意の ID を確認することによって、一意のメッセージのみがフローの実行を継続するようにします。
+
+== Idempotent Message Validator
+
+冪等性のあるメッセージ検証機能は、一意のメッセージのみが渡されることを確認します。そのために、受信メッセージの一意の ID をチェックします。この一意の ID を計算するには、データからのハッシュ (SHA、MD5) を計算できる DataWeave `Crypto` 関数を含む DataWeave 式を使用できます。
+
+=== パラメータ
+
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|===
+| Name (名前) | 型 | 説明 | デフォルト値 | 必須
+| ID Expression (ID の式) | 式 | メッセージから ID を抽出するときに使用する式。 | #[correlationId] | {nbsp}
+| Value Expression (値の式) | 式 | メッセージから値を抽出するときに使用する式。この結果が、ID が一意であった場合にオブジェクトストアに保存される内容です。 | #[correlationId] | {nbsp}
+| Object Store (オブジェクトストア) | Object Store (オブジェクトストア) | 処理されたメッセージ ID が保存されるグローバルオブジェクトストアを参照する名前または非公開オブジェクトストアの定義。 | オブジェクトストアマネージャによって作成されたオブジェクトストア。永続的ではなく、エントリ TTL は 5 分、有効期限間隔は 6 秒です。 | {nbsp}
+| Store Prefix (ストアプレフィックス) | String (文字列) | オブジェクトストア名のプレフィックスを定義します。これは内部で作成されたオブジェクトストアにのみ使用します。 | _configFileName_._flowName_.IdempotentMessageValidator | {nbsp}
+|===
+
+==== スロー
+
+* `MULE:DUPLICATE_MESSAGE`
+
+== メッセージのハッシュ
+
+DataWeave では、いくつかのハッシュ関数が定義されている `Crypto` ライブラリをインポートできます。これは、メッセージのハッシュを計算することによって一意の ID を計算する場合に便利です。たとえば、メッセージから MD5 ハッシュを取得してそれを ID として使用する場合、パラメータ *[ID Expression (ID の式)]* は次のようになります。
+
+----
+#[
+    %dw 2.0
+    output text/plain
+    import dw::Crypto
+    ---
+    Crypto::hashWith(message,'MD5')
+]
+----
+
+== 関連情報
+
+* xref:dw-crypto.adoc[Crypto (dw::Crypto)]

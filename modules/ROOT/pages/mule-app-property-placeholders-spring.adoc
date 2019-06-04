@@ -1,0 +1,30 @@
+= Spring 設定用のプレースホルダの作成
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Mule アプリケーションの Spring モジュールはすべての種類の Spring 設定を使用できます。Spring プロパティプレースホルダは `.properties` ファイル (たとえば、`spring-properties.properties`) で設定できます。このファイルは、Spring モジュールと完全に相互運用可能です。
+
+このファイルのプロパティは次の形式になります。
+----
+springPropertyA=springPropertyAValue
+springPropertyB=springPropertyBValue
+----
+
+// The prefix (`${`) and suffix (`}`) is fixed in Spring.
+
+Anypoint Studio では、ファイルは Mule アプリケーションのプロジェクトディレクトリに保存する必要があります。
+
+* `/src/main/resources`
+
+設定プロパティと呼ばれるグローバル要素を通じて `.properties` ファイルを Mule アプリケーションに追加できます。この要素の XML は次のようになります。
+
+`<configuration-properties file="spring-properties.properties" doc:name="Spring Property Placeholders" doc:id="07ee5c11-bc54-4d55-91b8-ce02f743cb7a" />`
+
+YAML ファイルを使用して Spring プロパティプレースホルダを作成することはできませんが、Spring 以外のモジュールでは可能です。
+
+== 関連情報
+
+* xref:configuring-properties.adoc[プロパティの設定]
+
+* xref:mule-app-properties-to-configure.adoc[Mule アプリケーション用のプロパティプレースホルダの作成]

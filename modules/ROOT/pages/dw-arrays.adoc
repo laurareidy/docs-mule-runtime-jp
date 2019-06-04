@@ -1,0 +1,21 @@
+= Arrays (dw::core::Arrays)
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+このモジュールには、配列を処理するためのヘルパー関数が含まれます。
+
+このモジュールを使用するには、DataWeave コードにインポートする必要があります。その方法として、たとえば、行 `import * from dw::core::Arrays` を DataWeave スクリプトの
+ヘッダーに追加します。
+
+== 関数
+|===
+| Name (名前)
+| xref:dw-arrays-functions-countby.adoc[countBy]
+| xref:dw-arrays-functions-divideby.adoc[divideBy]
+| xref:dw-arrays-functions-every.adoc[every]
+| xref:dw-arrays-functions-some.adoc[some]
+| xref:dw-arrays-functions-sumby.adoc[sumBy]
+|===
+
+

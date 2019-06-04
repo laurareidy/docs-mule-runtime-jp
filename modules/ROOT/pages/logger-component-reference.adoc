@@ -1,0 +1,72 @@
+= Logger コンポーネント
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Mule, esb, Studio, Logger, ログ, log, 通知, エラー, デバッグ
+
+このコアコンポーネントでは、エラーメッセージ、状況通知、ペイロードなどの重要な情報をログに記録するというやり方で、Mule アプリケーションを監視し、デバッグすることもできます。Logger はフローの任意の場所に追加でき、各自が指定した文字列、記述した DataWeave 式の出力、文字列と式の組み合わせをログに記録するように設定できます。
+
+[WARNING]
+--
+Logger は、値に文字列と式を組み合わせることができる数少ないコンポーネントの 1 つです。1 つの式で DataWeave 文字列を補間または連結する場合は他の場所で行います。
+--
+
+設定したメッセージはアプリケーションのログファイルに記録されます。Studio では、コンソールに表示されます。次の例では、メッセージをブラウザの [Set Payload (ペイロードを設定)] に表示すると同時に、ログにも記録します。
+
+image::logger-flow.png[]
+
+.例: フローの XML 設定
+[source,xml,linenums]
+----
+<http:listener-config name="HTTP_Listener_Configuration" host="localhost" port="8081"/>
+<flow name="logger-example-Flow">
+  <http:listener config-ref="HTTP_Listener_Configuration" path="/"/>
+  <set-payload value="Hello MuleSoft!"/>
+  <logger message="#[payload]" level="INFO"/>
+</flow>
+----
+
+== Logger の設定
+
+image::logger.png[]
+
+[%header,cols="1,1,2,2"]
+|===
+| 項目 | 値 | 説明 | 例
+
+| Message (メッセージ) | String (文字列) または DataWeave 式 | Mule のログメッセージを指定します。デフォルトで、メッセージはアプリケーションのログファイルに記録されます。 |
+`message="Current payload is #[payload]"`
+
+| レベル |
+選択可能なオプション:
+
+DEBUG、ERROR、INFO (デフォルト)、TRACE、WARN |
+ログレベルを指定します。
+
+|
+`level="ERROR"`
+
+| Category (カテゴリ) | String (文字列) | `log4j2.xml` ファイルに追加するカテゴリ名を指定する省略可能な設定です。カテゴリの用途の例として、カテゴリに基づいてログメッセージをルーティングすることや、カテゴリに基づいてログレベルを設定することが考えられます。 |
+`category="MyCustomCategory"`
+
+|===
+
+== 例
+
+次の Logger は、文字列と式を組み合わせて、メッセージの処理状態を監視するように設定されています。
+
+[source,xml,linenums]
+----
+<logger category="monitoring" message="Message #[payload.id] processed successfully" level="INFO"/>
+----
+
+次の Logger は、1 つの式と DataWeave の文字列連結を使用して、フローの処理時間を記録するように設定されています。
+
+[source,xml,linenums]
+----
+ <logger category="performance" message="#['Message ' ++ payload.id ++ ' took ' ++ vars.processingTime ++ ' milliseconds to process']" level="INFO"/>
+----
+
+== 関連情報
+
+xref:dataweave-types.adoc#dw_type_string[DataWeave の文字列型]

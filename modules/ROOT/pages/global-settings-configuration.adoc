@@ -1,0 +1,70 @@
+= グローバル設定
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: 設定, 微調整, グローバル, グローバル設定
+
+Mule アプリケーションのグローバル設定 (デフォルトトランザクションタイムアウトやデフォルトエラーハンドラなど) は、xref:about-mule-configuration.adoc[Mule 設定ファイル]のルートレベルにある `<configuration>` 要素で設定できます。 +
+例:
+
+[source,xml,linenums]
+----
+<mule>
+  ...
+  <configuration defaultTransactionTimeout="31337" defaultErrorHandler="genericErrorHandler">
+    ...
+  </configuration>
+  ...
+</mule>
+----
+
+== Configuration (設定)
+
+Mule アプリケーションインスタンスのデフォルトと一般設定を指定します。
+
+=== 設定の属性
+
+[%header%autowidth.spread]
+|===
+|Name (名前) |説明
+|`defaultResponseTimeout` |同期応答を待つデフォルトの時間 (ミリ秒)。 +
+*型*: `string` +
+*必須*: いいえ +
+*デフォルト*: `10000`
+|`defaultTransactionTimeout` |トランザクションのデフォルトのタイムアウト (ミリ秒)。これは、トランザクションでも設定できます。その場合、このデフォルトではなくトランザクションの設定が使用されます。 +
+*型*: `string` +
+*必須*: いいえ +
+*デフォルト*: `30000`
+|`defaultErrorHandler-ref` |すべてのフローのデフォルトのエラーハンドラ。これは、グローバルエラーハンドラへの参照である必要があります。 +
+*型*: `string` +
+*必須*: いいえ +
+*デフォルト*: なし
+|`shutdownTimeout` |(Mule 2.2.2 以降) Mule をシャットダウンする前に、処理中のメッセージの処理が完了するのを待つ時間 (ミリ秒)。このしきい値に達すると、Mule はスレッドの中断を開始するため、メッセージが失われる可能性があります。同じ Mule インスタンスに非常に多くのサービスがある場合や、処理に数秒以上かかるコンポーネントがある場合、あるいは大きなペイロードや遅いトランスポートを使用している場合は、シャットダウンが適切に行われるようにこの値を大きくする必要があります。指定した値はサービスに適用され、ディスパッチャにも別個に適用されます。そのため、デフォルト値の 5000 ミリ秒の場合、シャットダウンが開始されてから Mule がメッセージの処理とディスパッチを適切に行う時間は 10 秒間です。 +
+*型*: `integer` +
+*必須*: いいえ +
+*デフォルト*: `5000`
+|`maxQueueTransactionFilesSize` |トランザクションログファイルが永続的なトランザクションキューのために使用するおおよその最大容量 (メガバイト)。この数値は、XA トランザクションとローカルトランザクションの両方のトランザクションログファイルセットに適用されることを考慮する必要があります。両方の種別のトランザクションが使用されている場合は、使用されるおおよその最大容量は、設定値の 2 倍になります。
+*型*: `integer`
+*必須*: いいえ +
+*デフォルト*: `500`
+|`defaultObjectSerializer-ref` |省略可能。アプリケーションのデフォルトとして使用する ObjectSerializer への参照。 +
+*型*: `string` +
+*必須*: いいえ +
+*デフォルト*: なし
+|===
+
+=== <configuration...> の子要素
+
+[%header%autowidth.spread]
+|===
+|Name (名前) |基数 |説明
+|`dynamic-config-expiration` |0..1 |動的設定のデフォルトの有効期限設定。コネクタによって使用されます。これは、コネクタでも設定できます。その場合、このデフォルトではなくコネクタの設定が使用されます。
+|`expression-language` |0..1 |Mule Expression Language (MEL) の設定。
+|`cluster-config` |0..1 |Mule アプリケーションクラスタの設定。
+|===
+
+== 関連情報
+
+* xref:error-handling.adoc[エラー処理]
+* xref:mule-sdk::static-dynamic-configs.adoc[Dynamic Configurations (動的設定)]
+* xref:mule-high-availability-ha-clusters.adoc[Mule 高可用性クラスタ]

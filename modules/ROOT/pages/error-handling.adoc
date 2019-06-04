@@ -1,0 +1,73 @@
+= エラーハンドラ
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: エラー処理, 例外, 例外のキャッチ, 例外
+
+概要レベルの観点では、Mule で発生するエラーは、システムエラーとメッセージングエラーの 2 つのカテゴリのいずれかに分類されます。
+
+== メッセージングエラー
+
+フロー内で問題が発生すると、Mule はメッセージングエラー (xref:mule-error-concept.adoc[Mule エラー]) をスローします。Mule エラーを処理するには、スコープに似た Error Handler コンポーネントの内部に xref:on-error-scope-concept.adoc[On Error] コンポーネントをセットアップできます。デフォルトでは、未処理のエラーはすべて記録され、伝達されます。
+
+Mule フローで処理中の Mule イベントでエラーが発生すると、通常のフロー実行は停止し、プロセスは Error Handler コンポーネントに転送されます。Error Handler コンポーネントの内部に、エラー種別と式を照合する On Error コンポーネントをセットアップします。各 On Error コンポーネント内で、定義するエラーパスには任意の数のイベントプロセッサを組み込むことができるため、必要に応じて正確にエラーを処理できます。Error Handler コンポーネントは、エラーに一致する最初の On Error スコープにエラーを転送します。
+
+次の図は、イベントプロセッサで Mule エラーがスローされたときの動作を示しています。
+
+image::error-handling-39be7.png[]
+
+デフォルトのエラー処理動作は、フローごとに、またはフロー内で上書きできます。一連のコンポーネントを xref:try-scope-concept.adoc[Try スコープ]にグループ化し、フローのエラー処理動作をさらに上書きすることもできます。デフォルトのエラーハンドラも、アプリケーションの設定で目的のハンドラへの参照を使用してカスタマイズできます。
+
+次の例では、すべての未処理のエラーにデフォルトのペイロードを設定します。
+
+.例: アプリケーションの XML 設定
+[source,xml,linenums]
+----
+<configuration defaultErrorHandler-ref="allErrorHandler"/>
+
+<error-handler name="allErrorHandler">
+    <on-error-continue>
+        <set-payload value="#['An unhandled error occurred: ' ++ error.description]"/>
+    </on-error-continue>
+</error-handler>
+----
+
+エラーハンドラを参照してデフォルトを指定できるのと同じように、フロー内でもエラーハンドラを参照できます。
+
+次の例では、参照によってすべてのエラーを記録するエラーハンドラを使用するフローをセットアップします。
+
+.例: アプリケーションの XML 設定
+[source,xml,linenums]
+----
+<error-handler name="loggingErrorHandler">
+    <on-error-continue>
+        <logger message="#['Error: ' ++ error.description ++ ', Payload: ' ++ payload]"/>
+    </on-error-continue>
+</error-handler>
+
+<flow name="withSharedHandler">
+    <http:request url="http://example.com"/>
+    <error-handler ref="loggingErrorHandler"/>
+</flow>
+----
+
+== システムエラー
+
+システムレベルで例外が発生すると、システムエラーがスローされます。
+
+Mule イベントが関係していない場合、これらのエラーはシステムエラーハンドラによって処理されます。
+
+システムエラーハンドラは、次の状況で発生した例外を処理します。
+
+* アプリケーションの起動中。
+* 外部システムへの接続が失敗した場合。
+
+システムエラーが発生すると、Mule は、登録されているリスナにエラー通知を送信し、エラーを記録し、エラーが接続の失敗によるものであれば再接続戦略を実行します。
+
+システムエラーハンドラは、Mule では設定できません。
+
+== 関連情報
+
+* xref:mule-error-concept.adoc[Mule エラー]
+* xref:on-error-scope-concept.adoc[On-Error エラーハンドラ]
+* xref:try-scope-concept.adoc[Try スコープ]

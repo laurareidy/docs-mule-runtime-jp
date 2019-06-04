@@ -1,0 +1,236 @@
+= プロパティの設定
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+プロパティプレースホルダやシステムプロパティなどのプロパティを設定できます。
+
+== プロパティプレースホルダ
+
+Mule 設定では、 http://ant.apache.org/[Ant] スタイルのプロパティプレースホルダを使用できます。例:
+
+[source,xml,linenums]
+----
+<email:smtp-config name="config">
+    <email:smtp-connection host="${smtp.host}" port="${smtp.port}"/>
+</email:smtp-config>
+----
+
+後続のセクションで説明されているように、これらのプレースホルダの値は、さまざまな方法で使用可能にすることができます。
+
+== グローバルプロパティ
+
+`<global-property>` 要素を使用すると、Mule 設定内 (別の Mule 設定ファイル内など) からプレースホルダの値を設定できます。グローバルプロパティ構文を使用して、`.yaml` または `.properties` ファイルの値を参照し、設定プロパティまたはセキュアな設定プロパティに連動する新しい (グローバル) プロパティを作成できます。設定プロパティを参照するには、プロパティファイルのセクションを読み取ります。
+
+[source,xml,linenums]
+----
+<global-property name="smtp.host" value="smtp.mail.com"/>
+<global-property name="smtp.subject" value="Subject of Email"/>
+----
+
+== プロパティファイル
+
+カスタムファイルのプロパティを読み込むには、カスタムプロパティファイルを `src/main/resources` に配置し、`<configuration-properties>` タグを使用します。
+
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+
+<configuration-properties file="smtp.yaml"/>
+
+<flow name="myProject_flow1">
+    <logger message="${propertyFromFile}" doc:name="System Property Set in Property File"/>
+</flow>
+----
+
+複数のプロパティファイルを読み込むには、読み込むファイルごとに `<configuration-properties/>` タグを定義します。
+
+* `<configuration-properties/>` タグで参照される複数のファイルでプロパティが定義されている場合、最初の定義が保持されます。
+
+これらのファイルは、Mule プロジェクト内の `src/main/resources` に配置されている必要があります。または、絶対パスを使用することもできます。
+
+[[supported_files]]
+== サポートされているファイル
+
+設定プロパティでは、YAML 設定ファイルとプロパティファイルの両方がサポートされています。型の検証とオートコンプリートを追加できるため、YAML 設定ファイルを使用することをお勧めします。
+
+`String` 型のみがサポートされています。
+
+YAML ファイルの例:
+
+[source,xml]
+----
+<configuration-properties file="ports.yaml"/>
+----
+
+`ports.yaml` を次に示します。
+
+[source,yaml,linenums]
+----
+smtp:
+    port: "8957"
+http:
+    port: "8081"
+----
+
+プロパティファイルの例:
+
+[source,xml]
+----
+<configuration-properties file="ports.properties"/>
+----
+
+`ports.properties` を次に示します。
+
+[source,xml,linenums]
+----
+smtp.port=8957
+http.port=8081
+----
+
+== File Properties
+
+プレースホルダの値は、ファイルの内容全体になることもあります。プレースホルダの値は、次のような文字列値になります。
+
+.properties-file.txt
+----
+Some content
+----
+
+[source,xml]
+----
+<mule:set-payload value="${file::properties-file.txt}"/>
+----
+
+ペイロードの値は `"Some content"` になります。他のプロパティファイルと同様に、これらのファイルは Mule プロジェクト内の `src/main/resources` に配置されている必要があります。絶対パスを使用することもできます。
+
+この方法は、設定ファイルをモジュール化する場合に役立ちます。設定ファイル、SQL クエリ、変換から大きなコンテンツを抽出して設定ファイルを明確化し、そのコンテンツを再利用できます。
+
+== システムプロパティ
+
+プレースホルダの値は、JDK システムプロパティから取得できます。コマンドラインから Mule を開始する場合、次のようにプロパティを指定します。
+
+----
+mule -M-Dsmtp.username=JSmith -M-Dsmtp.password=ChangeMe
+----
+
+Mule を Web アプリケーションとしてデプロイする場合、`conf/wrapper.conf` でシステムプロパティを編集することもできます。コンテナで Mule を実行するとき
+
+プログラムで Mule を開始する場合、Mule コンテキストを作成して開始する前に次のようにプロパティを指定します。
+
+[source,text,linenums]
+----
+System.getProperties().put("smtp.username", "JSmith");
+System.getProperties().put("smtp.password", "ChangeMe");
+----
+
+== カスタムプロパティプロバイダ
+
+Mule API を使用して、カスタムプロパティプロバイダの実装を作成できます。詳細は、xref:custom-configuration-properties-provider.adoc[「カスタム設定プロパティプロバイダ」]を参照してください。
+
+=== Anypoint Studio でシステムプロパティを設定する
+
+Anypoint Studio でプロジェクトを起動するときに、[Run Configurations (設定を実行)] メニューでプロパティを追加できます。
+
+. Package Explorer でプロジェクトを右クリックします。
+. *[Run As (別のユーザとして実行)]* > *[Run Configurations (設定を実行)]* をクリックします。
+. *[Arguments (引数)]* タブを選択します。
+. *[VM arguments (VM 引数)]* 項目に引数 (プロパティ名の前に *-D*) を追加します。
++
+image::arguments-tab.png[Arguments+Tab]
++
+これで、アプリケーションをデプロイするたびに Studio でプロパティを使用できるようになりました。次の構文を使用してプロパティを参照できます。
++
+[source,xml]
+----
+<logger message="${propertyFromJVMArg}" doc:name="System Property Set in Studio through JVM args"/>
+----
+
+== 環境変数
+
+環境変数はさまざまな方法で定義でき、アプリケーションから環境変数にアクセスする方法も複数あります。環境変数の定義方法に関係なく、次の構文を使用して参照することをお勧めします。
+
+----
+${variableName}
+----
+
+=== OS の環境変数
+
+OS で定義された変数を参照するには、次の構文を使用します。
+
+[source,xml]
+----
+<logger message="${USER}" doc:name="Environment Property Set in OS" />
+----
+
+=== Anypoint Studio で環境変数を設定する
+
+Studio の [Run Configuration (設定を実行)] メニューで変数を設定できます。
+
+. Package Explorer でプロジェクトを右クリックします。
+. *[Run As (別のユーザとして実行)]* > *[Run Configurations (設定を実行)]* を選択します。
+. [Environment (環境)] タブを選択します。
+. *[New (新規)]* ボタンをクリックし、変数に名前と値を割り当てます。
++
+image::environment-tab.png[Environment+Tab]
+
+これで、デプロイするたびに Studio で変数を使用できるようになりました。次の構文を使用して変数を参照できます。
+
+[source,xml]
+----
+<logger message="${TEST_ENV_VAR}" doc:name="Environment Property Set in Studio"/>
+----
+
+NOTE: 構文では、OS の変数を参照するときと、ここで定義した変数を参照するときの区別はありません。名前が重複する場合、これらの変数の作成時に、これらの変数で元の OS の変数を上書きするかどうかを定義できるラジオボタンを選択できます。
+
+image::environment-tab2.png[Environment+Tab2]
+
+== プロパティファイルの動的な設定
+
+一般的な設定のユースケースは、プロパティに連動するファイル (`env` など) を設定して、使用するファイル (開発フェーズの `development-properties` ファイルや本番ファイルなど) を決定することです。
+
+[source,xml]
+----
+<configuration-properties file="${env}-properties.yaml"/>
+----
+
+そのため、`env` プロパティの値によって、設定プロパティの読み込みに使用するファイルが決まります。その `env` プロパティは、グローバルプロパティ、システムプロパティ、または環境プロパティで設定できます。
+
+[source,xml,linenums]
+----
+<global-property name="env" value="dev"/>
+
+<configuration-properties file="${env}-properties.yaml"/>
+----
+
+`env` プロパティのデフォルト値は `dev` になりますが、システムプロパティや環境プロパティで上書きできます。この設定は、Anypoint Studio でメタデータを解決するために​*必要*​になります。コマンドラインで渡されるプロパティのデフォルト値を定義しないと、それらの値に連動するすべてのメッセージプロセッサのアプリケーションモデルを作成するときにエラーが発生します。
+
+== Runtime Manager でプロパティ値を設定する
+
+アプリケーションを xref:runtime-manager::index.adoc[Runtime Manager] にデプロイする場合、Runtime Manager コンソールでプロパティを設定することもできます。これらは、xref:runtime-manager::deploying-to-cloudhub.adoc[CloudHub にデプロイ]するときや、xref:runtime-manager::managing-applications-on-cloudhub.adoc[すでに実行中のアプリケーション]で定義できます。
+
+環境変数またはアプリケーションプロパティを作成する手順は、次のとおりです。
+
+. Anypoint Platform アカウントにログインします。
+. [Runtime Manager] をクリックします。
+. *[Deploy Application (アプリケーションをデプロイ)]* をクリックして新しいアプリケーションをデプロイするか、実行中のアプリケーションを選択して *[Manage Application (アプリケーションを管理)]* をクリックします。
+. *[Settings (設定)]* セクションで *[Properties (プロパティ)]* タブを選択します。
+
+詳細は、xref:runtime-manager::managing-applications-on-cloudhub.adoc[「Managing Applications on CloudHub (CloudHub でのアプリケーションの管理)」]およびxref:runtime-manager::secure-application-properties.adoc[「Secure Application Properties (セキュアなセキュリティプロパティ)」]を参照してください。
+
+== プロパティ階層
+
+設定プロパティは上書き可能です。これらが処理される階層は、次のとおりです。
+
+. システムプロパティ
+. 環境プロパティ
+. デプロイメントプロパティ
+. アプリケーションプロパティ
+
+そのため、たとえば、システムプロパティで設定プロパティが定義されているが、アプリケーション設定プロパティもある場合、そのアプリケーションの値は最後のプロパティになります。
+
+また、アプリケーションプロパティは、環境プロパティ、システムプロパティ、デプロイメントプロパティに連動でき、 デプロイメントプロパティは、システムプロパティに連動できます (以下同様)。

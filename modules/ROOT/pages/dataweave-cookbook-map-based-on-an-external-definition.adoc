@@ -1,0 +1,114 @@
+= 定義に基づいた動的なマップ
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, 変換, トランスフォーマ, 形式, 集約, 名前変更, 分割, 変換の絞り込み, xml, json, csv, pojo, java オブジェクト, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング
+
+定義入力に応じて動的に実行内容を変更できる変換を作成できます。この DataWeave の例では、ペイロード入力と `mapping` という名前の変数の両方を取得します。この変数は、各項目の名前の変更方法とそれぞれで使用するデフォルト値を指定します。
+
+この例では、以下を使用します。
+
+* 入力配列のすべての要素を調べる `map` 関数。および、各要素の各項目を調べる 2 番目の `map` 関数。
+* `mapping` 変数で指定された変更を適用するカスタム関数。
+* デフォルト値を設定する `default`。これは、`mapping` 変数から取得します。
+
+
+.DataWeave
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+var applyMapping = (input, mappingsDef) -> (
+   mappingsDef map (def) -> {
+    (def.target) : input[def.source] default def."default"
+  }
+)
+---
+payload.sfdc_users.*sfdc_user map (user) -> (
+        applyMapping(user, vars.mappings)
+)
+----
+
+
+.入力ペイロード
+[source,xml,linenums]
+----
+<sfdc_users>
+    <sfdc_user>
+      <sfdc_name>Mariano</sfdc_name>
+      <sfdc_last_name>Achaval</sfdc_last_name>
+      <sfdc_employee>true</sfdc_employee>
+    </sfdc_user>
+    <sfdc_user>
+      <sfdc_name>Julian</sfdc_name>
+      <sfdc_last_name>Esevich</sfdc_last_name>
+      <sfdc_employee>true</sfdc_employee>
+    </sfdc_user>
+    <sfdc_user>
+      <sfdc_name>Leandro</sfdc_name>
+      <sfdc_last_name>Shokida</sfdc_last_name>
+    </sfdc_user>
+</sfdc_users>
+----
+
+
+.入力変数 `mappings`
+[source,json,linenums]
+----
+[
+  {
+    "source": "sfdc_name",
+    "target": "name",
+    "default": "---"
+  },
+  {
+    "source": "sfdc_last_name",
+    "target": "lastName",
+    "default": "---"
+  },
+  {
+    "source": "sfdc_employee",
+    "target": "user",
+    "default": true
+  }
+]
+----
+
+.出力 JSON
+[source,json,linenums]
+----
+[
+  [
+    {"name": "Mariano"},
+    {"lastName": "Achaval"},
+    {"user": "true"}
+  ],
+  [
+    {"name": "Julian"},
+    {"lastName": "Esevich"},
+    {"user": "true"}
+  ],
+  [
+    {"name": "Leandro"},
+    {"lastName": "Shokida"},
+    {"user": true}
+  ]
+]
+----
+
+
+== 関連する例
+
+* xref:dataweave-cookbook-rename-keys.adoc[キーの名前の変更]
+
+* xref:dataweave-cookbook-exclude-field.adoc[出力からの項目の除外]
+
+* xref:dataweave-cookbook-output-a-field-when-present.adoc[存在する項目の出力]
+
+
+
+== 関連情報
+
+* xref:dataweave-selectors.adoc[DataWeave セレクタ]
+
+* xref:dataweave-cookbook.adoc[DataWeave の解説書]

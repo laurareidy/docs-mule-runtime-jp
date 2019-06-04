@@ -1,0 +1,36 @@
+= システムプロパティ
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+システムプロパティを使用して、Mule アプリケーションのコネクタまたはコンポーネントが使用するプロパティプレースホルダ値を指定または上書きできます。MuleSoft では、アプリケーションを新しい環境にデプロイして Mule アプリケーション用の設定プロパティファイルの値を上書きする必要がある場合には、この方法をお勧めします。
+
+システムプロパティは以下の方法で管理できます。
+
+* Anypoint Studio のプロジェクトの [Run Configurations (設定を実行)] ウィンドウから。
+* スタンドアロン Mule インスタンスのコマンドラインから。
+
+== Anypoint Studio でシステムプロパティを設定する
+
+Studio の Package Explorer からプロジェクトを起動するときにプロパティを追加できます。
+
+. Package Explorer で Mule アプリケーション用のプロジェクトを右クリックします。
+. [Run As (別のユーザとして実行)] -> [Run Configurations (設定を実行)] をクリックします。
+. [Arguments (引数)] タブを選択します。
+. 引数を [VM Arguments (VM 引数)] 項目に追加し、プロパティ名の先頭に `-D` を追加します。
++
+image::arguments-tab.png[Arguments+Tab]
++
+Studio からアプリケーションをデプロイする場合、プロパティプレースホルダの新しい値がそのプレースホルダについて設定された他の値よりも優先されます。
+
+`<logger message="${propertyFromJVMArg}" doc:name="System Property Set in Studio through JVM args"/>`
+
+== JDK システムプロパティからのプレースホルダ値の設定
+
+Mule スタンドアロンでは、次の例のように、コマンドラインから JDK システムプロパティを通じてプロパティプレースホルダを設定および変更できます。
+
+`mule -M-Dsmtp.username=JSmith -M-Dsmtp.password=ChangeMe`
+
+== 関連情報
+
+* xref:configuring-properties.adoc[Mule 設定プロパティ]

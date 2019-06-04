@@ -1,0 +1,13 @@
+= Runtime 型 (dw::Runtime)
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+|===
+a| 型 a| 定義 a| 説明
+
+a| TryResult
+a| `type TryResult = { success: Boolean, result?: T, error?: { kind: String, message: String, stack?: Array<String&#62;, location?: String } }`
+a| オブジェクトと結果またはエラーメッセージ。`success` が `false` の場合は、`error` が含まれます。`true` の場合は `result` が含まれます。
+
+|===

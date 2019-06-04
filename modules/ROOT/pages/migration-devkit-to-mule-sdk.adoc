@@ -1,0 +1,39 @@
+= DevKit から Mule SDK への移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+// author: Marra
+
+////
+MG:
+SDK docs are already MVP. There're a couple of new features but not critical for release
+////
+
+// Explain generally how and why things changed between Mule 3 and Mule 4.
+ここに概要。
+
+このセクションの内容
+
+* <<topic_1>>
+* <<topic_2>>
+
+[[topic_1]]
+== topic_1
+
+3.x から 4.x へ何が変更されたのかを説明する。
+
+.Mule 3 の例
+----
+Mule 3 example goes here.
+----
+
+.Mule 4 の例
+----
+Mule 4 example goes here.
+----
+
+[[topic_2]]
+== topic_2
+
+同じパターンに従う。

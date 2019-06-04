@@ -1,0 +1,14 @@
+= 操作について
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+操作では、Mule アプリケーションの特定のアクションを適用します。外部ソースへの要求を生成したり、アプリケーションのパッケージ構造内のローカルリソースを参照したりする場合に使用できます。
+
+たとえば、データベースコネクタの Select および Insert 操作、メールコネクタの Send および List 操作などがあります。
+
+//COMBAK: Add See Alsos
+== 関連情報
+
+* xref:connectors::index.adoc[コネクタおよびモジュール]
+* xref:about-components.adoc[Mule アプリケーションコンポーネント]

@@ -1,0 +1,91 @@
+= Transform Message コンポーネントへの出力の追加 (Anypoint Studio)
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+単一の Transform Message コンポーネントにより、出力 Mule イベントの各部分 (ペイロード、変数、属性) を定義することができます。それぞれの異なる出力部分は、`<ee:transform>` XML 要素内の個別の対象 XML 要素に、DataWeave コードの別のブロックとして定義する必要があります。Anypoint Studio 7 でこれを行うには、[Transform (変換)] ペインの個別のタブで DataWeave コードを作成します。たとえば、1 つのタブでペイロードを定義し、別のタブで属性を定義すると、これらはどちらも同じ出力 Mule イベントの一部となります。
+
+
+
+新しい出力対象を追加する手順は次の通りです。
+
+
+. ​*[Add new target (新規対象の追加)]*​ をクリックします。
++
+image:using-dataweave-in-studio-34a3e.png[]
++
+. この新しい DataWeave 変換の結果を出力 Mule メッセージのどこに配置するかを指定します。新しい変数やプロパティを作成する場合は、名前を指定する必要があります。
++
+image::dw-new-variable.png[新規変数]
+
+
+複数の出力の実行順序が変わることがあります。各変換が実行順序や他の出力の影響を受けないようにしてください。
+
+== Transform Message コンポーネントを設定 XML ファイルで定義する方法
+ペイロードは、`<ee:message>` 要素の子要素である `<ee:message>` 要素で定義します。
+
+[source,xml,linenums]
+----
+<ee:transform doc:name="Set Transactions XML" doc:id="5c58d889-896d-495a-b2f6-fe1613ae8044" >
+  <ee:message >
+    <ee:set-payload ><![CDATA[%dw 2.0
+                              output application/xml
+                              ...]]>
+----
+
+属性は、`<ee:message>` 要素の子要素である `<ee:message>` 要素でまとめて定義します。
+
+[source,xml,linenums]
+----
+<ee:transform doc:name="Set Transactions XML">
+  <ee:message >
+    <ee:set-payload ><![CDATA[%dw 2.0
+                              output application/xml
+                              ...]]>
+    </ee:set-payload/>
+
+    <ee:set-attributes>
+    <![CDATA[%dw 2.0
+             output application/java
+             ---
+            { }]]>
+    </ee:set-attributes>
+  </ee:message>
+  ...
+</ee:transform>
+----
+
+各変数は、`<ee:variables>` 親要素の子要素である `<ee:variable>` 要素で定義します。`<ee:variables>` 要素は `<ee:transform>` 要素の直接の子であるため、`<ee:message>` 要素には含まれません。この XML 構造は、変数とメッセージが親イベントオブジェクトと一緒に保持されることを表しています。
+
+Transform Message コンポーネント内で定義される変数対象の例を次に示します。
+
+
+[source,xml,linenums]
+----
+<ee:transform doc:name="Set accounts var" doc:id="15e226ab-8204-4d84-ab4b-f4fcdd088656">
+  <ee:message>
+  ...
+  </ee:message>
+  <ee:variables>
+    <ee:set-variable variableName="accounts">
+      <![CDATA[%dw 2.0
+               output application/json
+               ---
+               ...]]>
+    </ee:variable>
+  </ee:variables>
+</ee:transform>
+----
+
+
+
+
+== 関連情報
+
+xref:transform-component-about.adoc[Transform Message コンポーネント]
+
+xref:transform-change-target-output-transformation-studio-task.adoc[変換の出力対象の変更]
+
+xref:mule-message-structure.adoc[Mule メッセージ構造]
+
+xref:dataweave.adoc[DataWeave 言語]

@@ -1,0 +1,46 @@
+= HMACWith
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[hmacwith1]]
+== HMACWith&#40;Binary, Binary&#41;: String
+
+入力コンテンツの HMAC ハッシュを計算し (秘密暗号化キーを使用)、その結果を小文字の 16 進文字列に変換します。
+
+
+`HMACBinary` も参照してください。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `content` | 入力コンテンツ。`Binary` 値。
+| `secret` | `content` を暗号化するときに使用される秘密暗号化キー (`Binary`)。
+|===
+
+=== 例
+
+次の例では、HMAC と秘密値を使用して入力コンテンツを暗号化します。
+
+==== ソース
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+import dw::Crypto
+output application/json
+---
+{ "HMACWith" : Crypto::HMACWith("key_re_loca" as Binary, "xxxxx" as Binary) }
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "HMACWith": "2e2da2e51286db8afa9900f51218529cda3dd32a" }
+----
+

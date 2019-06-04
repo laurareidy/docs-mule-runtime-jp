@@ -1,0 +1,51 @@
+= pluralize
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[pluralize1]]
+== pluralize&#40;String&#41;: String
+
+単数形の文字列を複数形にします。
+
+
+入力がすでに複数形 (「boxes」など) の場合、出力は入力と一致します。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `text` | 複数形にする文字列。
+|===
+
+=== 例
+
+次の例では、入力文字列「box」を複数形にして「boxes」を返します。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+import * from dw::core::Strings
+output application/json
+---
+ { "pluralize" : pluralize("box") }
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "pluralize" : "boxes" }
+----
+
+
+[[pluralize2]]
+== pluralize&#40;Null&#41;: Null
+
+*pluralize* を null 値に使用できるようにするヘルパー関数。
+

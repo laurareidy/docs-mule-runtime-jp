@@ -1,0 +1,168 @@
+= Mule エラーハンドラへの Exception Strategy (例外戦略) の移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+// sme: afelisatti, author: fer?
+
+次の例で、Mule 3 のさまざまな Exception Strategy (例外戦略) の移行について説明し、Mule 4 の新しいエラー処理コンポーネントについて考えます。
+
+IMPORTANT: これらの例では、`when` 属性内で使用される式の移行については説明していません。
+式の移行についてはxref:migration-mel.adoc[「DataWeave への MEL の移行」]、Java モジュールを使用して例外を分析する方法についてはxref:connectors::java/java-throwable.adoc[「Throwable の使用」]を参照してください。
+
+== Catch Exception Strategy (キャッチ例外戦略)
+
+//TODO: CLEAN UP, ELABORATE
+
+catch exception strategy (キャッチ例外戦略) は、すべてのエラーを受け入れる単一の `on-error-continue` コンポーネントを使用するエラーハンドラに相当します。これはデフォルトの設定です。
+
+.Mule 3 の例
+[source,xml,linenums]
+----
+<flow name="catch">
+  <!-- flow logic -->
+  <catch-exception-strategy>
+    <!-- error handling logic -->
+  </catch-exception-strategy>
+</flow>
+----
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<flow name="catch">
+  <!-- flow logic -->
+  <error-handler>
+    <on-error-continue>
+      <!-- error handling logic -->
+    </on-error-continue>
+  </error-handler>
+</flow>
+----
+
+== Rollback Exception Strategy (ロールバック例外戦略)
+単純な (再配信のない) rollback exception strategy (ロールバック例外戦略) は、すべてのエラーを受け入れる単一の `on-error-propagate` コンポーネントを使用するエラーハンドラに相当します。これはデフォルトの設定です。
+//TODO: CLEAN UP, ELABORATE
+
+.Mule 3 の例
+[source,xml,linenums]
+----
+<flow name="rollback">
+  <!-- flow logic -->
+  <rollback-exception-strategy>
+    <!-- error handling logic -->
+  </rollback-exception-strategy>
+</flow>
+----
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<flow name="rollback">
+  <!-- flow logic -->
+  <error-handler>
+    <on-error-propagate>
+      <!-- error handling logic -->
+    </on-error-propagate>
+  </error-handler>
+</flow>
+----
+
+== 再配信の指定
+
+//TODO: CLEAN UP, ELABORATE
+
+* `idempotent-redelivery-policy` は `redelivery-policy` に名前が変更されます。
+* `org.mule.runtime.core.api.exception.MessageRedeliveredException` は `REDELIVERY_EXHAUSTED` エラー種別に置き換わりました。
+* `dead-letter-queue` は削除されます。DLQ にパブリッシュするために実行されるアウトバウンド操作は、`REDELIVERY_EXHAUSTED` エラーの処理の一部として実行する必要があります。次に例を示します。
++
+.Mule 3 の例
+[source,xml,linenums]
+----
+<idempotent-redelivery-policy maxRedeliveryCount="${maxRedeliveryAttempts}">
+    <dead-letter-queue>
+        <http:request ... />
+    </dead-letter-queue>
+</idempotent-redelivery-policy>
+----
++
+.Mule 4 の例
+[source,xml,linenums]
+----
+<redelivery-policy maxRedeliveryCount="${maxRedeliveryAttempts}"/>
+
+...
+
+<error-handler>
+    <on-error-propagate type="REDELIVERY_EXHAUSTED">
+        <http:request ... />
+    </on-error-propagate>
+</error-handler>
+
+----
++
+* `rollback-exception-strategy` では `maxRedelivery` がサポートされなくなりました。`maxRedelivery` を指定する `<redelivery-policy>` 要素は、`message-source` 内に作成する必要があります。
+
+== Choice Exception Strategy (選択肢例外戦略)
+
+内部に catch/rollback exception strategy (キャッチ/ロールバック例外戦略) を含む choice exception strategy (選択肢例外戦略) は、前述のとおり、例外戦略の種類に応じて on-error continue または on-error propagate を使用するエラーハンドラに相当します。
+
+//TODO: CLEAN UP, ELABORATE
+
+.Mule 3 の例
+[source,xml,linenums]
+----
+<flow name="choice">
+  <!-- flow logic -->
+  <choice-exception-strategy>
+      <rollback-exception-strategy when="#[some_expression_here]">
+          <!-- error handling logic -->
+      </rollback-exception-strategy>
+      <catch-exception-strategy/>
+    </choice-exception-strategy>
+</flow>
+----
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<flow name="choice">
+  <!-- flow logic -->
+  <error-handler>
+    <on-error-propagate when="#[some_expression_here]">
+      <!-- error handling logic -->
+    </on-error-propagate>
+    <on-error-continue/>
+  </error-handler>
+</flow>
+----
+
+== Reference Exception Strategy (参照例外戦略)
+
+ガイドラインに従って前述の例外戦略はすでに移行されているので、実際の参照の移行は `error-handler` 参照を追加するだけです。
+
+//TODO: CLEAN UP, ELABORATE
+
+.Mule 3 の例
+[source,xml,linenums]
+----
+<flow name="reference">
+  <!-- flow logic -->
+  <exception-strategy ref="referencedHandler"/>
+</flow>
+----
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<flow name="reference">
+  <!-- flow logic -->
+  <error-handler ref="referencedHandler"/>
+</flow>
+----
+
+== 関連情報
+
+xref:error-handling.adoc[エラーハンドラ]
+
+https://blogs.mulesoft.com/dev/mule-dev/how-to-error-handling-mule-4-beta/[ブログ: A Look into Error Handling in Mule 4 Beta (Mule 4 ベータ版のエラー処理の調査)]

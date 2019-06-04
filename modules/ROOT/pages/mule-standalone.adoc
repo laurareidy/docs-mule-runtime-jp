@@ -1,0 +1,16 @@
+= Mule インストール
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Mule, Studio, enterprise, ee, Premium 機能, 有料機能, 購入, ライセンス, ライセンス付与
+
+独自の環境でホストする場合、本番環境で長所を発揮するランタイムエンジンである Mule をインストールするだけで済みます。
+
+以下の場合は、インストールについて気にする必要はありません。
+
+* 開発およびテストに Studio を使用する場合。Studio には Mule が含まれています。
+* Mulesoft が Mule のインスタンスをホストする場合。
+
+Mule をインストールする必要がない場合、このセクションはスキップしてください。
+
+Mule をインストールする必要がある場合は、xref:hardware-and-software-requirements.adoc[ハードウェアおよびソフトウェアの要件を満たしていることを確認]し、xref:runtime-installation-task.adoc[Mule をダウンロードしてインストール]してください。

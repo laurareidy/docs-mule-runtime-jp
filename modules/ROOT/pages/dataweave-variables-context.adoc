@@ -1,0 +1,146 @@
+= 定義済み変数
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+DataWeave 式は、さまざまな Mule Runtime オブジェクトから値を取得可能な変数を受け入れます。よく使用される変数として、Mule イベントの主要部分である `attributes`、`payload`、`vars` などがあります。
+
+[%header,cols="2s,3,4a"]
+|===
+|変数 |説明 |項目と例
+
+|`app`
+|コンテキストの Mule アイテム。
+a|
+* 項目:
+** `encoding` (エンコード): Mule メッセージプロセッサで使用されるエンコード。
+** `name` (名前): プロジェクトおよび Mule アプリケーションの名前。
+//Yes, it is supported. It should give you access to the application components/beans
+//`registry`: IS THIS STILL SUPPORTED? I GOT AN ERROR WITH app.registry.
+//I don't think this makes sense for users
+//** TODO `standalone`: _TODO_: Returns `true` or `false`. FINISH BELOW
+** `standalone` (スタンドアロン): `true` または `false` を返します。
+** `workDir` (作業ディレクトリ): Mule アプリケーションの作業ディレクトリ。Studio の場合、これは Eclipse プラグインディレクトリです。
+** `registry` (レジストリ): Mule レジストリエントリのマップ。
+* 例: `&#35;[app.encoding]` は `UTF-8` などを返します。
+
+|`attributes`
+|Mule メッセージオブジェクト (`message`) の属性 (メタデータ)。
+a|
+* 項目: メッセージ種別に応じて異なります (HTTP Request 属性など)。
+* 例: `&#35;[attributes]` はメッセージ属性を返します。HTTP Request の場合、#[attributes.header] は HTTP ヘッダーメタデータを返します。また、&#35;[attributes.version] は HTTP/1.1 などを返します。
+
+|`authentication`
+| 認証情報へのアクセスを提供します。
+//See https://github.com/mulesoft/mule-api/blob/master/src/main/java/org/mule/runtime/api/security/Authentication.java but ask Gateway team whether this should be documented
+a|
+* 項目:
+** `principal` (主体): 認証の主要部分 (ユーザやオブジェクトなど)。
+** `credentials` (ログイン情報): 認証のログイン情報。
+** `properties` (プロパティ): 認証のプロパティのマップ。
+* 例: `&#35;[authentication.principal]`
+
+|`correlationId`
+|処理されるメッセージの `correlationId` (相関 ID)。
+//_TODO_
+a|
+* 項目: 項目はありません。
+* 例: `&#35;[correlationId]` は `0-f77404d0-e699-11e7-a217-38c9864c2f8f` などを返します。
+
+|`dataType`
+|メッセージペイロードのデータ型。
+a|
+// It does have fields. See https://github.com/mulesoft/mule-api/blob/master/src/main/java/org/mule/runtime/api/metadata/DataType.java
+* 項目: 項目はありません。
+* 例: `&#35;[dataType]` は `SimpleDataType` などを返します。
+
+|`error`
+|Mule メッセージオブジェクトに関連付けられたエラー。
+a|
+// See https://github.com/mulesoft/mule-api/blob/master/src/main/java/org/mule/runtime/api/message/Error.java
+* 項目:
+** `description` (説明): エラーの簡潔な説明。
+** `detailedDescription` (詳細説明): 詳細な説明を入力できます。
+** `errorType` (エラー種別): エラーの種別。
+** `cause` (原因): エラーを発生させた内部 Java `Throwable`。
+** `errorMessage` (エラーメッセージ): (省略可能) 失敗したコンポーネントから出力される Mule メッセージ (HTTP のようなコンポーネントで応答が無効な場合に使用されます)。
+** `childErrors`: (省略可能) 内部エラーのリスト (スキャッタギャザー など、エラーを集約するコンポーネントから出力されます)。
+* 例: `&#35;[error.description]``
+
+|`flow`
+|非推奨: 現在のフローの名前。フロー名は静的であるため、この項目は非推奨であり、ロガーなど特定のコンポーネントでのみ使用できます。
+a|
+* 項目:
+** `name`
+* 例: `testFlow` という名前のフロー内で実行されたときに、`&#35;[flow.name]` は `testFlow` を返します。
+
+|`message`
+|処理されるパッケージ (`payload` (ペイロード) と `attributes` (属性))。
+a|
+* 項目:
+** `payload` (ペイロード): メッセージペイロード。ペイロードが null の場合は `null`。
+** `dataType` (データ型): メッセージペイロードのデータ型。
+** `attributes` (属性): メッセージ属性。属性が null の場合は `null`。
+* 例: `&#35;[message]`
+
+|`mule`
+|アプリケーションが現在実行されている Mule インスタンス。
+a|
+* 項目:
+// This refers to the ID of the cluster when executing in High Availability (cluster) mode.
+// TODO: _TODO: what is the cluster ID?_
+** `clusterId` (クラスタ ID): Mule Runtime が高可用性クラスタに含まれる場合はクラスタの ID。
+** `home` (ホーム): ホームディレクトリ。
+** `nodeId` (ノード ID): クラスタノード ID。
+** `version` (バージョン): Mule バージョン。
+* 例: `&#35;[mule.version]` は `4.0.0` などを返します。
+
+|`payload`
+|処理中の現在の Mule メッセージオブジェクト (`message` (メッセージ)) の本文。
+a|
+* 項目: 現在のペイロードに応じて異なります。
+* 例: `&#35;[payload]` はメッセージの本文を返します。
+
+|`server`
+|Mule インスタンスが実行されているオペレーティングシステム。Mule が実行されている物理サーバと JVM の両方に関する情報を公開します。
+a|
+* 項目:
+** `env` (環境): オペレーティングシステム環境変数のマップ。
+** `fileSeparator` (ファイル区切り文字): ファイルパスのコンポーネントを区切る文字。UNIX では `/`、Windows では `\`。
+** `host` (ホスト): サーバの完全修飾ドメイン名。
+** `ip` (IP): サーバの IP アドレス。
+** `locale` (ロケール): JRE のデフォルトロケール (`java.util.Locale`)。言語 (`locale.language`)、国 (`locale.country`) で使用できます。
+** `javaVendor` (Java ベンダー): JRE バージョン。
+** `javaVersion` (Java バージョン): JRE ベンダー名。
+// `nanoSeconds`  removed from Mule 4? Yes, because DW provides this already
+** `osArch` (OS アーキテクチャ): オペレーティングシステムアーキテクチャ。
+** `osName` (OS 名): オペレーティングシステム名。
+** `osVersion` (OS バージョン): オペレーティングシステムバージョン。
+** `systemProperties` (システムプロパティ): Java システムプロパティのマップ。
+** `timeZone` (タイムゾーン): JRE のデフォルトタイムゾーン (`java.util.TimeZone`)。
+** `tmpDir` (一時ディレクトリ): JRE で使用する一時ディレクトリ。
+** `userDir` (ユーザディレクトリ): ユーザディレクトリ。
+** `userHome` (ユーザホーム): ユーザホームディレクトリ。
+** `userName` (ユーザ名): ユーザ名。
+* 例: `&#35;[server.osName]` は `Mac OS X` などを返します。
+
+|`vars`
+|処理中の現在の Mule イベントに現在設定されているすべての変数。
+a|
+* 項目: 項目はありません。
+* 例: `&#35;[vars.myVar]` は `myVar` の値を返します。
+|===
+
+////
+_TODO_: For MIGRATION guide?
+* message.`flowVars` and message.`sessionVars` not in Mule4 -> Yes, best not mention them
+* apps.registry supported anymore? -> Yes. It's `app.registry`
+* these message fields: -> I would not document them other than explaining they are only for compatibility
+`id`
+`rootId`
+`inboundProperties`
+`inboundAttachments`
+`outboundProperties`
+`outboundAttachments`
+* server: `server.dateTime` removed from Mule 4? -> Yes, DW provides date methods already
+////

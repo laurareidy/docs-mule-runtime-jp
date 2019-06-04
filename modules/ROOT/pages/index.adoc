@@ -1,0 +1,172 @@
+= Mule の概要
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Mule, はじめに, 変換, メッセージ, payload
+
+Mule Runtime Engine (Mule) は、Mule アプリケーションを実行する軽量のインテグレーションエンジンです。
+ユーザは、ポイントツーポイントのインテグレーションではなく MuleSoft の API 主導の接続性を使用してシステム、サービス、API、デバイスに接続する Mule アプリケーションを作成できます。  Mule アプリケーションは、メッセージルーティング、データマッピング、オーケストレーション、信頼性、セキュリティ、スケーラビリティの機能を提供します。
+
+Mule を使用して次の操作を実行できます。
+
+* エンタープライズサービスバス (ESB) パターンでデータをアプリケーションに接続する。
+* API を構築する。
+* DataWeave 言語を使用して、データに対するアクセス、クエリ、変換を実行する。
+* 高可用性、クラスタリング、パフォーマンス管理を大規模に設定する。
+* インテグレーションワーカー、ESB、または API ゲートウェイをオンプレミスまたはクラウドにデプロイする。
+* 自己調整するリアクティブ Mule Runtime Engine を使用して自動的にスレッドプールを管理する。
+* エラーコンストラクトと Try スコープを使用して迅速にデバッグする。
+* クラスローダを分離して、Mule アプリケーションをランタイムやコネクタの変更から保護する。
+
+[[install_deploy_manage]]
+== インストール、デプロイ、管理
+
+Mule アプリケーションを実行するには、Mule Runtime Engine がインストールされている環境に Mule アプリケーションをデプロイする必要があります。
+
+Mule は、xref:studio::index.adoc[Studio] IDE 内で Anypoint Platform 上の xref:design-center::index.adoc[Design Center] と共にパッケージ化されているため、設計するときに Mule アプリケーションを実行できます。
+
+Mule アプリケーションの本番デプロイや本番準備デプロイには、xref:runtime-manager::index.adoc[Runtime Manager] を使用して Mule アプリケーションを CloudHub 内のランタイムやサポートされているその他のサービスとしてのプラットフォーム (PaaS) にリリースできます。
+
+* xref:runtime-manager::cloudhub.adoc[CloudHub] は、Anypoint Platform 用の完全に管理されたクラウドベースのサービスとしてのインテグレーションプラットフォーム (iPaaS) で、Mule Runtime やアプリケーションを実行するインフラストラクチャを用意しなくても Mule アプリケーションを実行できます。Runtime Manager を使用して、CloudHub への Mule アプリケーションのデプロイ、Mule Runtime バージョンの選択、アプリケーションを実行するのに必要な vCore 数の設定などを行います。
+* ハイブリッドデプロイメントモデルでは、自社が管理するデータセンターで Mule アプリケーションとランタイムを実行しながら、クラウドからそれらを管理します。
+** リモート Mule Runtime (スタンドアロンまたはネイキッド Mule とも呼ばれる) の場合は、データセンターから Mule Runtime を起動しますが、Mule アプリケーションのデプロイと管理は Runtime Manager を使用してクラウドから実行できます。このデプロイモデルでは、インフラストラクチャと Mule Runtime を自社で用意します (xref:mule-standalone.adoc[「Mule インストール」]参照)。
+** ハイブリッド PaaS デプロイの場合は、自社のデータセンターで PaaS をセットアップして実行し、Runtime Manager を使用して PaaS 内で Mule アプリケーションを管理します。この場合、アプリケーションを実行するインフラストラクチャを自社で用意します。Mule アプリケーションの高可用性を保証するには、Runtime Manager を使用して Mule Runtime を管理します。
+xref:anypoint-platform-pcf::index.adoc[Anypoint Platform for PCF] は、ハイブリッド PaaS ソリューションの一例です。MuleSoft には、組み込みの PaaS ソリューション、xref:runtime-fabric::index.adoc[Runtime Fabric] もあります。Runtime Fabric では、「コンテナ化」された環境で Mule Runtime を実行します。
+
+Runtime Manager を使用するのに加えて、デプロイ用のコマンドといくつかの Anypoint Platform ユースケースが含まれる xref:runtime-manager::anypoint-platform-cli-commands.adoc[Anypoint CLI 3.x] を使用して Mule アプリケーションのデプロイと管理を実行することもできます。
+
+デプロイオプションについての詳細は、xref:runtime-manager::deployment-strategies.adoc[「Deployment Strategies (デプロイ戦略)」]を参照してください。
+
+== イベント駆動型アーキテクチャ
+
+Mule は、外部または内部のリソースによって開始されたイベントに応答することで機能します。外部イベントのリスナや内部でトリガされるイベントのスケジューラなど、さまざまなソースと連携します。
+
+Mule は、イベントをイベントプロセッサでメッセージとして処理します。また、バッチプロセッサを使用して大量のメッセージをバッチに分割して処理することもできます。
+
+この動作は、Mule のイベント駆動型アーキテクチャ (EDA) を反映しています。このトピックについての詳細は、xref:about-mule-event.adoc[「Mule イベント」]を参照してください。
+
+[[flows]]
+== フロー
+
+Mule アプリケーション内で、イベント処理コンポーネントは 1 つ以上のフローと呼ばれるコンテナのようなコンポーネントに配置されます。
+
+基本的なフローアーキテクチャを理解することは、Mule を理解するための鍵です。
+基本的に、すべての Mule フローにはメッセージを受信または処理する一連のコンポーネントが含まれています。
+
+.Design Center での簡単なフロー
+image::flow-example.png[Design Center での簡単なフロー]
+
+最もシンプルなレベルでは、フローは一連のイベントプロセッサです。フローに入ったメッセージは、さまざまなプロセッサを通過します。一般的なフローでは、Mule アプリケーションはイベントソース (HTTP リスナなど) を使用してメッセージを受信し、そのメッセージを新しい形式に変換し、何らかのビジネスロジックを処理してから、処理されたメッセージを外部システムに向けてそのシステムが読み取れる形式で記述します。
+
+処理を管理しやすい単位に分割するために、通常、Mule アプリケーションには 1 つのフローではなく複数の相互に関係するフローが含まれています。フローは、他のフローを直接参照としてコールできます。
+
+このトピックについての詳細は、xref:about-flows.adoc[「フローおよびサブフロー」]とxref:mule-application-about.adoc[「Mule アプリケーション」]を参照してください。
+
+== イベントソース
+
+イベントソース (またはトリガ) は、フローの最初のコンポーネントです。このコンポーネントは、トリガイベントを受信し、対応する Mule イベントオブジェクトを作成し、そのイベントを処理するためにフローの次のコンポーネントに転送します。
+
+外部クライアントは、Mule フローでの処理をいくつかの通信プロトコルや方法でトリガできます。たとえば、JMS、HTTP、FTP、JDBC、ファイルなどを使用できます。
+Mule は、これらの通信プロトコルや方法を標準メッセージ形式に変換し、それをフローのイベントプロセッサに渡します。
+
+Mule のイベントソースは、標準プロトコルまたはサードパーティ API を使用して、特定の外部ソースに接続できます。また、Scheduler コンポーネントを設定することも可能です。
+一部のスケジューラは、外部リソースの特定の変更 (外部リソースの新規ファイルやテーブル行など) へのポーリングを実行できます。フローをトリガできるリスナやコネクタ操作の例として、次のようなものがあります。
+
+* 関連するコネクタでの HTTP、JMS、VM リスナ
+* データベースコネクタでの On Table Row 操作
+* ファイルコネクタや FTP コネクタでの On New or Updated File 操作
+* スケジューラ
+
+xref:mule-sdk::index.adoc[Mule SDK] を使用して独自のイベントソースを作成することもできます。
+
+== イベントプロセッサ
+
+イベントソースによってフローがトリガされると、Mule イベントはフロー内を通過し、後続のコンポーネントによって処理されます。デフォルトでは、Mule イベントを受信する各イベントプロセッサは、新しい Mule メッセージを返します。通常、このメッセージにはプロセッサが返す属性セットとメッセージペイロードが含まれます。プロセッサは、新しいメッセージを出力としてフロー内の次のプロセッサに渡します。
+
+Mule アプリケーションで使用できるイベントプロセッサには、次のものがあります。
+
+* モジュールやコネクタからの操作。たとえば、外部リソースからの読み込みや外部リソースへの書き込み、Mule アプリケーション内でのデータの検証などがあります。
++
+一部の操作は、外部のリソースおよびサービス (Salesforce、Workday、ServiceNow などの多数の外部データベースやシステムを含む) や他の Mule アプリケーションへのクライアント要求を行うことができます。または、カスタムコードの実行、OAuth 設定のサポート、非同期キューを使用した通信の処理を実行できる操作もあります。他にもさまざまな操作があります。
++
+* Core コンポーネントは、データの転送、データ変換の実行、イベント処理中に発生したエラー処理など、Mule アプリケーション内のタスクを実行できます。
++
+トランスフォーマ (Transform Message や Set Variable など) は、ノード間でデータを交換するために重要です。トランスフォーマを使用することで、Mule は Mule イベント内のメッセージデータを別のアプリケーションやサービスが読み取れる形式に変換できます。
++
+また、Mule ではメッセージのコンテンツ強化 (xref:target-variables.adoc[対象パラメータ]を使用) も有効なため、追加データを取得して、メッセージに添付することができます。
+
+xref:mule-sdk::index.adoc[Mule SDK] を使用して独自のイベントプロセッサを作成することもできます。
+
+このトピックについての詳細は、xref:about-components.adoc[「Core コンポーネント」]とxref:connectors::index.adoc[「コネクタおよびモジュール」]を参照してください。
+
+//image::flow1-1.png[Flow1-1]
+
+=== Anypoint Studio と Design Center
+
+Mule アプリケーションの設計は、Anypoint Studio、Design Center、または手書きの XML によって実行できます。Studio および Design Center の UI では、メッセージプロセッサがフローコンポーネント内のアイコンとして表されます。Studio では、それらが設定 XML 内の XML 要素としても表されます。
+
+////
+The example below is a simple flow created in Anypoint Studio's visual editor;
+click the *XML Editor* tab to view the XML of a Mule project that holds the same
+flow.
+
+[.ex]
+=====
+[discrete.view]
+=== Studio Visual Editor
+
+image::simple-flow2.png[simple+flow2]
+
+[discrete.view]
+=== XML Editor
+
+[source,xml,linenums]
+----
+include::{examplesdir}/mule-concepts.xml[]
+----
+=====
+////
+
+このトピックについての詳細は、xref:design-center::about-designing-a-mule-application.adoc[「Mule フローデザイナ (Design Center)」]とxref:studio::index.adoc[「Anypoint Studio」]を参照してください。
+
+[[dataweave]]
+== DataWeave
+
+DataWeave は、Mule で式を作成するために使用される主言語です。
+Transform Message コンポーネントに加えて、多くのメッセージ処理コンポーネントの項目内で DataWeave を使用して Mule イベントからのデータを操作、変換、抽出できます。
+
+実行時に、Mule はフローを実行するときに式を評価して、次のことを行います。
+
+* 現在のメッセージを処理するために必要なデータの抽出。
+* メッセージ内の値の設定または操作。
+
+このトピックについての詳細は、xref:dataweave.adoc[「DataWeave 言語」]を参照してください。
+
+== バッチ処理
+
+Mule は Batch Job をサポートしています。Batch Job では、メッセージを個別のレコードに分割し、各レコードを処理し、結果を報告してから、必要に応じて処理済みの出力を他のシステムやキューに転送します。この機能は特に、ストリーミング入力を使用する場合や、SaaS アプリケーション間で「ほぼリアルタイム」のデータインテグレーションを設計する場合に役立ちます。
+
+Studio と Design Center には、バッチプロセスを設定するために使用できるさまざまなバッチコンポーネントがあります。このトピックについての詳細は、xref:batch-processing-concept.adoc[「バッチプロセッサ」]を参照してください。
+
+== API ゲートウェイ
+
+Mule Runtime には、埋め込み API ゲートウェイが含まれています。これにより、コードを記述することなく、セキュリティポリシーを API に適用し、受信メッセージや送信メッセージを強化し、API に機能を追加できます。詳細は、API Manager のドキュメントのxref:api-manager::runtime-agw-landing-page.adoc[「API Gateway (API ゲートウェイ)」]で、Mule Runtime Engine に関する情報を参照してください。
+
+== 非ブロック実行エンジン
+
+Mule 実行エンジンは非ブロックランタイムに基づいています。これは、タスク指向の実行モデルで、非ブロック IO コールを使用し、シンプルな方法で調整設定を行うことができます。
+
+フローは常に同期的に機能します。ファイアアンドフォーゲットなどの非同期パターンを実現する必要がある場合は、xref:async-scope-reference.adoc[Async (`<async>`)] コンポーネントを使用できます。
+
+Mule イベントプロセッサは、CPU Intensive (CPU 負荷大)、CPU Light (CPU 負荷小)、IO Intensive (IO 負荷大) のいずれの操作を行うかをランタイムに示します。これらのワークロード種別によって、ランタイムはさまざまなワークロードを調整することができ、最適なパフォーマンスを実現するためにユーザがスレッドプールを手動で管理する必要がなくなります。ランタイムは、システム内で使用可能なリソース (メモリや CPU コアなど) を調査し、スレッドプールを自動的に調整します。
+
+実行エンジン、スレッドモデル、調整オプションの詳細なドキュメントは、xref:execution-engine.adoc[「実行エンジン」]を参照してください。
+
+[[version]]
+== Mule のバージョン設定
+
+使用する Mule のバージョンによって、Mule アプリケーションで実行できる内容と Mule との互換性がある機能や製品が決まります。
+Mule アプリケーションのフロー内を通過する Mule イベントを処理する xref:about-components.adoc[Core コンポーネント]は、Mule にバンドルされ、Mule と同じバージョンの Core モジュールの一部です。
+xref:connectors::index.adoc[モジュール、コネクタ]、xref:dataweave-language-guide.adoc[DataWeave 言語]、いくつかの MuleSoft 製品には、固有のバージョン設定システムがありますが、特定のバージョンの Mule と互換性があります。たとえば、DataWeave 2.0 と Studio 7.x は Mule 4.x Runtime と互換性があり、DataWeave 1.0 と Studio 6.x は Mule 3.x Runtime と互換性があります。Mule アプリケーションで使用するコネクタやモジュールが、Mule バージョンと互換性があることを確認する必要があります。 
+
+//TODO? LINK TO A COMPATIBILITY MATRIX OR SOMETHING. DOES ONE EXIST? PROB SHOULD.

@@ -1,0 +1,92 @@
+= Scheduler XML リファレンス
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Scheduler 用の XML には次の要素があります。
+
+* `scheduler` 親要素は他の要素を包含します。
+* `scheduling-strategy` ブロックは `scheduler` の内部に置かれます。
+* `fixed-frequency` または `cron` 要素は `scheduling-strategy` ブロックの内部に置かれます。
+
+== 固定周波数 (`<fixed-frequency>`) のプロパティ
+
+[%header,cols="34,33,33"]
+|===
+|属性 |説明 |例
+|`frequency`
+|時間単位で指定されるトリガ頻度。`0` または負の値に指定すると、デフォルト値 (1 分) が使用されます。
+|`frequency="1000"`
+
+| `timeUnit`
+| frequency 値と startDelay 値の時間単位:
+
+MILLISECONDS (ミリ秒)、SECONDS (秒)、MINUTES (分)、HOURS (時)、DAYS (日)
+| `timeUnit="MILLISECONDS"`
+
+| `startDelay`
+| フローを最初にトリガしたときに、Mule はスケジューラの最初の実行を指定時間だけ遅らせます。この時間は、頻度と同じ時間単位で表されます。
+| `startDelay="0"`
+|===
+
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+
+    <flow name="componentsFlow">
+        <scheduler>
+            <scheduling-strategy>
+                <fixed-frequency startDelay="5" frequency="10" timeUnit="SECONDS"/>
+            </scheduling-strategy>
+        </scheduler>
+        <logger message="my message"/>
+    </flow>
+
+</mule>
+----
+
+== Cron (`<cron>`) のプロパティ
+
+Cron 式を使用することで、より複雑なスケジューリング戦略を設定できます。
+
+[%header,cols="4*"]
+|===
+|パラメータ |デフォルト値 |説明 |例
+| `expression`
+| -
+| Cron 式を使用してトリガのタイミングを指定します。
+| `expression="1 1 1 1,7 * ?"`
+
+| `timeZone`
+| システムプロパティとして渡されるタイムゾーン、またはマシンのオペレーティングシステムで設定されているタイムゾーン。
+| https://docs.oracle.com/javase/7/docs/api/java/util/TimeZone.html[Java のタイムゾーン]形式のタイムゾーン
+| `timeZone="America/Argentina/Buenos_Aires"`
+|===
+
+Cron 式を使用した例:
+
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+
+    <flow name="componentsFlow">
+        <scheduler>
+            <scheduling-strategy>
+                <cron expression="0 0 12 * * ?"/>
+            </scheduling-strategy>
+        </scheduler>
+        <logger message="my message"/>
+    </flow>
+
+</mule>
+----
+
+== 関連情報
+
+* xref:scheduler-concept.adoc[スケジューラエンドポイント (トリガ)]

@@ -1,0 +1,116 @@
+= XML タグへの属性の挿入
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, 変換, トランスフォーマ, 形式, xml, json, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング
+
+この DataWeave の例では、`@(key:value)` 構文 (`@(loc: "US")` など) を使用して、属性を XML タグに挿入します。この例では、「title」タグに 2 つの属性を入力し、各「author」タグにも 1 つの属性を入力します。
+
+次の関数を使用します。
+
+* 入力の各本を調べる `mapObject`。
+* 各本の著者を調べる `map`。
+
+.DataWeave
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/xml
+---
+bookstore: payload.bookstore mapObject (book) -> {
+      book : {
+      title @(lang: "en", year: book.year): book.title,
+      price: book.price,
+      (book.*author map
+      author @(loc: "US"): $)
+    }
+}
+----
+
+
+.入力
+[source,xml,linenums]
+----
+<?xml version='1.0' encoding='US-ASCII'?>
+<bookstore>
+  <book>
+    <title>Everyday Italian</title>
+    <year>2005</year>
+    <price>30</price>
+    <author>Giada De Laurentiis</author>
+  </book>
+  <book>
+    <title>Harry Potter</title>
+    <year>2005</year>
+    <price>29.99</price>
+    <author>J K. Rowling</author>
+  </book>
+  <book>
+    <title>XQuery Kick Start</title>
+    <year>2003</year>
+    <price>49.99</price>
+    <author>James McGovern</author>
+    <author>Per Bothner</author>
+    <author>Kurt Cagle</author>
+    <author>James Linn</author>
+    <author>Vaidyanathan Nagarajan</author>
+  </book>
+  <book>
+    <title>Learning XML</title>
+    <year>2003</year>
+    <price>39.95</price>
+    <author>Erik T. Ray</author>
+  </book>
+</bookstore>
+----
+
+
+
+.出力 XML
+[source,xml,linenums]
+----
+<?xml version='1.0' encoding='US-ASCII'?>
+<bookstore>
+  <book>
+    <title lang="en" year="2005">Everyday Italian</title>
+    <price>30</price>
+    <author loc="US">Giada De Laurentiis</author>
+  </book>
+  <book>
+    <title lang="en" year="2005">Harry Potter</title>
+    <price>29.99</price>
+    <author loc="US">J K. Rowling</author>
+  </book>
+  <book>
+    <title lang="en" year="2003">XQuery Kick Start</title>
+    <price>49.99</price>
+    <author loc="US">James McGovern</author>
+    <author loc="US">Per Bothner</author>
+    <author loc="US">Kurt Cagle</author>
+    <author loc="US">James Linn</author>
+    <author loc="US">Vaidyanathan Nagarajan</author>
+  </book>
+  <book>
+    <title lang="en" year="2003">Learning XML</title>
+    <price>39.95</price>
+    <author loc="US">Erik T. Ray</author>
+  </book>
+</bookstore>
+----
+
+
+
+
+== 関連する例
+
+* xref:dataweave-cookbook-output-self-closing-xml-tags.adoc[自己終了 XML タグの出力]
+
+* xref:dataweave-cookbook-remove-certain-xml-attributes.adoc[指定した XML 属性の削除]
+
+* xref:dataweave-cookbook-include-xml-namespaces.adoc[XML 名前空間を含める]
+
+== 関連情報
+
+* xref:dataweave-selectors.adoc[DataWeave セレクタ]
+
+* xref:dataweave-cookbook.adoc[DataWeave の解説書]

@@ -1,0 +1,590 @@
+= DataWeave の型
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, esb, 変換, トランスフォーマ, 形式, 集約, 名前変更, 分割, 変換の絞り込み, xml, json, csv, pojo, java オブジェクト, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング
+
+DataWeave は、配列、ブール、オブジェクト、日付、日時を含め、さまざまな型のデータで動作します。DataWeave が提供する型はモジュールにバンドルされ、モジュールにも、関連する関数が含まれます。
+
+`dw::Core` モジュール内の型 (Core 型) は、Core モジュールをインポートしなくても使用できます。他のモジュールについては、モジュールをインポートしてその関数と型を使用できるようにする必要があります。
+
+このトピックでは、以下を含め、いくつかの DataWeave 型の概要および一般的なパターンについて説明します。
+
+* <<conditional_elements_array,配列>>と<<conditional_elements_object,オブジェクト>>に対して `if` 式を使用する条件付き要素。
+* <<string_interpolation>>
+* 日付の各部分にアクセスするための <<date_decomposition>>
+* <<date_format_change>>
+* オブジェクトの各部への動的なアクセスを可能にする <<dynamic_keys>> および <<dynamic_elements>>
+* <<dw_type_regex>> 式の使用
+
+[[dw_type_array]]
+== Array (配列) (dw::Core 型)
+
+配列には、サポートされるすべての型の要素を保持できます。配列の例を次に示します。
+
+.例: DataWeave 配列
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+var x = "words"
+---
+[ "My", "three", x ]
+----
+
+[[conditional_elements_array]]
+=== 条件付き要素
+
+配列では、条件に基づいて表示する (または表示しない) 要素を定義できます。
+
+条件付き要素は、次の例のように、`(value) if condition` の形式をとります。
+
+.例: if 条件
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+[(1) if true, (2) if false]
+----
+
+.出力
+[source,json,linenums]
+----
+[1]
+----
+
+[[dw_type_boolean]]
+== Boolean (ブール) (dw::Core 型)
+
+`Boolean` は、キーワード `true` および `false` によって定義されます。
+
+[[dw_type_cdata]]
+== CData (dw::Core 型)
+
+XML では、`CData` という名前のカスタム型を定義します。これは `String` を継承し、拡張します。これを使用して、CDATA XML ブロックを識別します。CDATA 内でコンテンツをラップするか、CDATA ブロック内に入力文字列が到達したかどうかを確認するように、これを使用してライターに指示することができます。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/xml encoding="UTF-8"
+---
+{
+  users:
+  {
+    user : "Mariano" as CData,
+    age : 31 as CData
+  }
+}
+----
+
+.出力
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<users>
+  <user><![CDATA[Mariano]]></user>
+  <age><![CDATA[31]]></age>
+</users>
+----
+
+
+[[dw_type_dates]]
+== 日時 (dw::Core 型)
+
+DataWeave の日付は https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html[ISO-8601 標準]に従い、リテラルは `|` 文字の間に定義されます。
+
+この言語には次のネイティブの日付型があります。
+
+* `Date`
+* `DateTime`
+* `LocalDateTime`
+* `LocalTime`
+* `Period`
+* `Time`
+* `TimeZone`
+
+[[dw_type_dates_date]]
+=== Date (日付)
+
+`Year`、`Month`、および `Day` で表され、`|yyyy-MM-dd|` として指定される `Date`。`Date` 型に Time コンポーネントはありません。
+
+.例
+[source,dataweave,linenums]
+----
+|2003-10-01|
+----
+
+[[dw_type_dates_datetime]]
+=== DateTime
+
+タイムゾーン内の日付と時刻。これは `Date` + `Time` + `TimeZone` を接続したものです。
+
+.例
+[source,dataweave,linenums]
+----
+|2003-10-01T23:57:59-03:00|
+----
+
+=== LocalDateTime
+
+現在の `TimeZone` 内の `DateTime`。
+
+.例
+[source,dataweave,linenums]
+----
+|2003-10-01T23:57:59|
+----
+
+[[dw_type_dates_localtime]]
+=== LocalTime
+
+現在の `TimeZone` 内の `Time`。
+
+[[dw_type_dates_period]]
+=== Period (期間)
+
+期間には次の形式があります。
+
+- `P[n]Y[n]M[n]DT[n]H[n]M[n]S`
+- `P<date>T<time>``
+
+[n] は、[n] の後の各日時要素の値で置き換えられます。
+
+`P` は、期間表現の先頭に配置する期間の指定子です。
+
+- `Y` は年指定子です (例: `|P1Y|`)
+- `M` は月指定子です (例: `|P1M|`)
+- `D` は日指定子です (例: `|P1D|`)
+
+`T` は、表現の Time コンポーネントの前に配置される時刻の指定子です。
+
+- `H` は時指定子です (例: `|PT1H|`)
+- `M` は分指定子です (例: `|PT1M|`)
+- `S` は秒指定子です (例: `|PT1S|`)
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+a: |20:00:00| + |PT1M1S|
+----
+
+.出力
+[source,json,linenums]
+----
+{
+  "a": "20:01:01"
+}
+----
+
+[[dw_type_dates_time]]
+=== Time (時刻)
+
+特定の `TimeZone` 内の時刻。`|HH:mm:ss.SSS|` として指定されます。
+
+.例
+[source,dataweave,linenums]
+----
+|23:59:56|
+----
+
+[[dw_type_dates_timezone]]
+=== TimeZone
+
+グリニッジ標準時 (GMT) を基準とする相対的な `Time`。`TimeZone` には `+` または `-` を含める必要があります。たとえば、`|03:00|` は時刻ですが、`|+03:00|` は `TimeZone` です。
+
+.例
+[source,dataweave,linenums]
+----
+|-08:00|
+----
+
+[[date_decomposition]]
+=== 日付複合
+
+日付の各部分にアクセスするには、特別なセレクタを使用する必要があります。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+var myDate = |2003-10-01T23:57:59.700-03:00|
+---
+{
+  year: myDate.year,
+  month: myDate.month,
+  day: myDate.day,
+  hour: myDate.hour,
+  minutes: myDate.minutes,
+  seconds: myDate.seconds,
+  milliseconds: myDate.milliseconds,
+  nanoseconds: myDate.nanoseconds,
+  quarter: myDate.quarter,
+  dayOfWeek: myDate.dayOfWeek,
+  dayOfYear: myDate.dayOfYear,
+  offsetSeconds: myDate.offsetSeconds
+}
+----
+
+.出力
+[source,json,linenums]
+----
+{
+  "year": 2003,
+  "month": 10,
+  "day": 1,
+  "hour": 23,
+  "minutes": 57,
+  "seconds": 59,
+  "milliseconds": 700,
+  "nanoseconds": 700000000,
+  "quarter": 4,
+  "dayOfWeek": 3,
+  "dayOfYear": 274,
+  "offsetSeconds": -10800
+}
+----
+
+[[date_format_change]]
+=== 日付の形式の変更
+
+以下の方法で *as* を使用することで、必要な形式で日付を指定できます。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+formattedDate: |2003-10-01T23:57:59| as String {format: "yyyy-MM-dd"}
+----
+
+.出力
+[source,json,linenums]
+----
+{
+  "formattedDate": "2003-10-01"
+}
+----
+
+複数の似た変換を実行する場合、ヘッダーでカスタム型をディレクティブとして定義し、各日付をその型として設定することをお勧めします。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+type Mydate = String { format: "yyyy/MM/dd" }
+---
+{
+  formattedDate1: |2003-10-01T23:57:59| as Mydate,
+  formattedDate2: |2015-07-06T08:53:15| as Mydate
+}
+----
+
+.出力
+[source,json,linenums]
+----
+{
+  "formattedDate1": "2003/10/01",
+  "formattedDate2": "2015/07/06"
+}
+----
+
+型名は大文字と小文字を区別します。
+
+[[dw_type_enum]]
+== Enum (列挙) (dw::Core 型)
+
+この型は https://docs.oracle.com/javase/7/docs/api/java/lang/Enum.html[Enum Java クラス]に基づきます。
+これは、次の例で示されているように、クラスの完全な Java クラス名を指定する `class` プロパティと共に常に使用する必要があります。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/java
+---
+"Male" as Enum {class: "com.acme.GenderEnum"}
+----
+
+[[dw_type_iterator]]
+== Iterator (イテレータ) (dw::Core 型)
+
+`Iterator` 型は、配列を反復処理する https://docs.oracle.com/javase/8/docs/api/java/util/Iterator.html[Iterator Java クラス]に基づきます。`Iterator` には、コレクションが含まれるほか、コレクションを反復処理し、絞り込むための方法が含まれます。
+
+Java クラスと同様に、イテレータは 1 回のみコンシュームされるように設計されています。たとえば、この値をロガーに渡すと、値がコンシュームされ、フロー内の以降の要素でこの値を読み取れなくなります。
+
+[[dw_type_number]]
+== Number (数値) (dw::Core 型)
+
+浮動小数点数値および整数値の両方をサポートする 1 つの数値型のみがあります。どの操作でも精度が失われることはありません。エンジンは、精度を損なわない最も効率の良い方法でデータを常に保存します。
+
+[[dw_type_object]]
+== Object (オブジェクト) (dw::Core 型)
+
+任意のオブジェクトを `key:value` ペアとして表します。
+
+.例
+
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  name: "Annie"
+}
+----
+
+=== 単一値オブジェクト
+
+オブジェクトに 1 つの `key:value` ペアのみが含まれる場合、中括弧 `{ }` で囲む必要はありません。
+
+.例
+
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+name: "Annie"
+----
+
+[[conditional_elements_object]]
+=== 条件付き要素
+
+オブジェクトでは、条件式に基づいて条件付きのキー-値ペアを定義できます。条件付き要素は、`(key:value) if` 条件の形式をとります。
+
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/xml encoding="UTF-8"
+---
+file: {
+  name: "transform",
+  (extension: "zip") if payload.fileSystem?
+}
+----
+
+この例では、ペイロードに fileSystem プロパティが存在する場合のみ、「extension」と呼ばれる追加の項目が出力されます (この項目は `true` だけでなく任意の値を含むことができます)。
+
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<file>
+  <name>transform</name>
+  <extension>zip</extension>
+</file>
+----
+
+存在しない場合:
+
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<file>
+  <name>transform</name>
+</file>
+----
+
+[[dynamic_keys]]
+=== 動的キー
+
+式を介してキーを指定するには、括弧で式をラップする必要があります。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+var dynamicKey = "language"
+---
+{
+  (dynamicKey): "Data Weave"
+}
+----
+
+.出力
+[source,json,linenums]
+----
+{
+  "language": "Data Weave"
+}
+----
+
+[[dynamic_elements]]
+=== 動的要素
+
+動的要素を使用すると、式の結果をオブジェクトの `key:value` ペアとして追加できます。この式は `object` または `array of objects` のどちらかである必要があります。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+var x = [
+  {b: "b"},
+  {c: "c", d: "d"}
+]
+var y = {e: "e"}
+---
+{
+  a: "a",
+  (x),
+  (y)
+}
+----
+
+ _括弧_  内の式 (`(x)` など。`x` はヘッダーに表示される変数) はオブジェクトの配列を返す必要があることに注意することが重要です。この配列内のすべてのオブジェクトがマージされます。これらのオブジェクトは、含まれているオブジェクトともマージされます。出力は次のようになります。
+
+.出力
+[source,json,linenums]
+----
+{
+  "a": "a",
+  "b": "b",
+  "c": "c",
+  "d": "d",
+  "e": "e"
+}
+----
+
+=== 条件付き XML 属性
+
+条件に基づいて特定の XML 属性のみを出力に含めなければならない場合があります。条件付き要素は、「(key:value) if」条件の形式をとります。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/xml
+---
+{
+  name @(
+    (company: "Acme") if false,
+    (transform: "Anything") if true
+  ): "DataWeave"
+}
+----
+
+.出力
+[source,xml,linenums]
+----
+<?xml version='1.0' encoding='US-ASCII'?>
+<name transform="Anything">DataWeave</name>
+----
+
+=== 動的 XML 属性
+
+キー-値ペアの変更セットを特定の場所に XML 属性として含めなければならない場合があります。
+
+.入力
+[source,json,linenums]
+----
+{
+  "company": "Mule",
+  "product": "DataWeave"
+}
+----
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/xml
+---
+transformation @((payload)): "Transform from anything to anything"
+----
+
+.出力
+[source,xml,linenums]
+----
+<?xml version='1.0' encoding='US-ASCII'?>
+<transformation company="Mule" product="DataWeave">Transform from anything to anything</transformation>
+----
+
+[[dw_type_regex]]
+== Regex (正規表現) (dw::Core 型)
+
+正規表現は `/` の間に定義されます。たとえば、`/\d+/` は 0 ～ 9 の複数の数字を表します。文字列に対してアクションを実行する特定の操作 (Matches、Replace など) や、オブジェクトや配列に対してアクションを実行する操作 (絞り込みなど) で、これを引数として使用できます。
+
+[[dw_type_string]]
+== String (文字列) (dw::Core 型)
+
+二重引用符または単一引用符を使用して文字列を定義できます。
+
+[source,dataweave,linenums]
+----
+{
+  doubleQuoted: "Hello",
+  singleQuoted: 'Hello',
+}
+----
+
+[[string_interpolation]]
+=== 文字列補間
+
+文字列補間を使用すると、変数または式を文字列に直接埋め込むことができます。式は括弧で囲む必要があります (`$( <expression> )`)。また、式は常に String (文字列) 型を返すか、String (文字列) に強制的に変換できるものを返す必要があります。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+var name = "Shoki"
+---
+{
+    Greeting: "Hi, my name is $name",
+    Sum: "1 + 1 = $(1 + 1)"
+}
+----
+
+.出力
+[source,json,linenums]
+----
+{
+  "Greeting": "Hi, my name is Shoki",
+  "Sum": "1 + 1 = 2"
+}
+----
+
+[[dw_type_tryresult]]
+== TryResult (dw::Runtime 型)
+
+デリゲートを評価し、結果またはエラーメッセージと共にオブジェクトを返します。`try` の例を参照してください。成功した `TryResult` には `result` 項目と `true` の `success` 値が含まれます。失敗した `TryResult` には `error` 項目と `false` の `success` 値が含まれます。
+
+.定義
+[source,dataweave,linenums]
+----
+{
+  success: Boolean,
+  result?: T,
+  error?: {
+    kind: String,
+    message: String,
+    stack?: Array<String>,
+    location?: String
+  }
+}
+----
+
+データ型の詳細に関するドキュメントは、モジュールリファレンスページで見つけることができます。
+
+* xref:dw-core-types.adoc[Core 型 (dw::Core)]
+* xref:dw-runtime-types.adoc[Runtime 型 (dw::Runtime)]
+* xref:dw-url-types.adoc[URL 型 (dw::core::URL)]
+* xref:dw-diff-types.adoc[Diff 型 (dw::core::Diff)]
+* xref:dw-timer-types.adoc[Timer 型 (dw::core::Timer)]
+
+
+== 関連情報
+
+* xref:dataweave-language-introduction.adoc[DataWeave スクリプト]
+
+* https://www.anypoint.mulesoft.com/exchange/?search=dataweave[Anypoint Exchange (DataWeave を使用するプロジェクトのリスト)]

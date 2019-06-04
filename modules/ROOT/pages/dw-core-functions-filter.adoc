@@ -1,0 +1,90 @@
+= filter
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[filter1]]
+== filter&#40;Array<T&#62;, &#40;item: T, index: Number&#41; &#45;&#62; Boolean&#41;: Array<T&#62;
+
+リスト (配列) から一致する項目のみを返す式を適用することで、リストを絞り込みます。
+
+
+式は `true` または `false` を返す必要があります。式が要素に対して `true` を返す場合、
+その要素はリストに残ります。要素に対して `false` を返す場合、
+その要素は結果から除外されます。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `items` | 絞り込むリスト (配列)。
+| `criteria` | `item` (項目) と `index` (インデックス) を受け入れ、要素を残す必要がある場合は `true` を返す関数。
+|===
+
+=== 例
+
+次の例では、`2` より大きい要素すべての配列を返します。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+[9,2,3,4,5] filter (myitem, myindex) -> (myitem > 2)
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+[9,3,4,5]
+----
+
+=== 例
+
+次の例では、`2` より大きいインデックスで検出された要素すべての配列を
+返します。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+[9,2,3,4,5] filter ((myitem, myindex) -> (myindex > 2))
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+[4,5]
+----
+
+=== 例
+
+次の例では、`1` より大きいインデックス (`&#36;&#36;`) で検出された、値が `5` 未満の要素すべての配列を返します。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+[9, 2, 3, 4, 5] filter (($$ > 1) and ($ < 5))
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+[3,4]
+----
+
+
+[[filter2]]
+== filter&#40;Null, &#40;item: Nothing, index: Nothing&#41; &#45;&#62; Boolean&#41;: Null
+
+`filter` を null 値に使用できるようにするヘルパー関数。
+

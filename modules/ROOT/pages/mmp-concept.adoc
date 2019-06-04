@@ -1,0 +1,764 @@
+= Mule Maven プラグイン
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Mule Maven プラグインでは、Mule アプリケーションのパッケージ、テスト、デプロイメントを Maven ライフサイクルと統合できます。 +
+このプラグインでは、Mule アプリケーションをスタンドアロンランタイム、クラスタ化されたインスタンス、CloudHub などのさまざまなデプロイメント対象にデプロイできます。
+
+Mule Maven プラグインは Community エディションと Enterprise エディションの両方をサポートしています。
+
+== 互換性
+
+* Mule 4.x
+* Anypoint Studio 7.x
+
+== Mule Maven プラグインを Mule プロジェクトに追加する
+
+Mule Maven プラグインを追加するには、その Maven 連動関係をプロジェクトに追加する必要があります。
+
+[source,xml,linenums]
+----
+<plugin>
+  <groupId>org.mule.tools.maven</groupId>
+  <artifactId>mule-maven-plugin</artifactId>
+  <version>3.2.3</version>
+  <extensions>true</extensions> //<1>
+</plugin>
+----
+
+<1> このプラグインの拡張機能を有効にすることが重要です。
+
+このリポジトリから:
+
+[source,xml,linenums]
+----
+<pluginRepositories>
+    <pluginRepository>
+        <id>mule-public</id>
+        <url>https://repository.mulesoft.org/nexus/content/repositories/releases</url>
+    </pluginRepository>
+</pluginRepositories>
+----
+
+これにより、プロジェクトで Mule Maven プラグインが有効になります。
+
+== Mule アプリケーションのパッケージ
+
+Mule Maven プラグインは、Mule アプリケーションをデプロイ可能な JAR ファイルにパッケージでき、このパッケージを後から実行中の Mule Runtime にデプロイできます。 +
+パッケージには、アプリケーションによって必要とされる JAR ファイルであるかそのプラグインによって必要とされる JAR ファイルであるかに関係なく、アプリケーションおよびそのすべての連動関係が含まれます。
+
+すべての Mule アプリケーションには 2 つのディスクリプタがあります。これらのディスクリプタにより、プラグインが Mule アプリケーションの連動関係を処理する方法が指示されます。
+
+* `mule-artifact.json` ファイル。 +
+このファイルは、アプリケーションがどのように構成されるかを記述します。 +
+
+* `pom.xml` ファイル。 +
+このファイルは、パッケージが正常に機能するために必要なすべての連動関係を記述します。
+
+==== Mule アプリケーションをパッケージする
+
+. Mule Maven プラグインを `pom.xml` ファイルに追加していることを確認します。
+. プロジェクトのフォルダのコマンドラインから、パッケージゴールを実行します。
++
+[source,console,linenums]
+----
+> mvn clean package
+----
+
+このプラグインはアプリケーションをプロジェクトのフォルダ内の対象ディレクトリにパッケージし、デプロイ可能な JAR ファイルを作成します。 +
+
+==== 生成された JAR を Anypoint Studio にインポートします。
+
+生成された JAR を Anypoint Studio をインポートするには、`-DattachMuleSources` オプションを使用してアプリケーションをパッケージする必要があります。
+
+[source,console,linenums]
+----
+> mvn clean package -DattachMuleSources
+----
+
+`-DattachMuleSources` 引数により、デザインタイムにアプリケーション構造の正確なコピーを使用して META-INF ディレクトリ内に mule-src フォルダを追加するようプラグインに指示されます。
+
+== Mule アプリケーション構造リファレンス
+
+デザインタイムに、Mule アプリケーションには次の 3 つの基本的なコンポーネントが 1 つ以上必要です。
+
+[%header%autowidth.spread,cols=",,"]
+|===
+| コンポーネント | 型 | 説明
+| `src`
+| Folder (フォルダ)
+| アプリケーションの本番ソースコードおよびテストのソースディレクトリ。 +
+このフォルダについては、下記のリファレンスを参照してください。
+
+| `pom.xml`
+| Descriptor (ディスクリプタ)
+| Mule アプリケーションの POM ファイル。 +
+このファイルは、アプリケーションのすべての必須の連動関係を記述します。
+
+
+| `mule-artifact.json`
+| Descriptor (ディスクリプタ)
+| Mule アプリケーションの mule-artifact ファイル。 +
+このファイルは、Mule アプリケーションがどのように構成されるかを記述します。
+
+|===
+
+これらの 3 つのコンポーネントは必須です。いずれか 1 つが欠落すると、プラグインはプロジェクトをデプロイ可能な JAR ファイルにパッケージしません。 +
+さらに、プラグインはパッケージするときに Mule アプリケーションのルートフォルダにある他のディレクトリまたはファイルを考慮しません。
+
+
+== ソースディレクトリリファレンス
+
+`src` ディレクトリには主に `main` と `test` の 2 つのフォルダがあります。 +
+プラグインはアプリケーションをパッケージするときに `src` 内の他のディレクトリを考慮しません。
+
+=== src/main
+
+src/main はアプリケーションのすべての本番ソースコードのルートフォルダです。
+
+[%header%autowidth.spread,cols=",,"]
+|===
+|Folder (フォルダ)  | フォルダ種別 | 説明
+
+| `src/main/mule`
+| ソース
+| Mule 設定ファイルのルートフォルダ。 +
+Java パッケージの形式で、ネストされたフォルダを含むことができます。
+
+このフォルダは必須です。
+
+| `src/main/resources`
+| resource (リソース)
+| XML、JSON、プロパティファイルなどのアプリケーションリソースが含まれます。 +
+ここに配置された Jar ファイルはアプリケーションクラスローダによって読み込まれますが、プレーンファイルリソースとして読み込まれます。
+|===
+
+プラグインは src/main/mule および src/main/resources 内のすべてのファイルをバイナリパッケージのルートディレクトリに送信します。 +
+src/main/mule 内のネストされたフォルダは、バイナリパッケージのルートディレクトリ内のディレクトリとして保持されます。
+
+=== src/test
+
+src/test はアプリケーションのすべてのテストソースコードのルートフォルダです。
+
+[%header%autowidth.spread,cols=",,"]
+|===
+|Folder (フォルダ) | フォルダ種別 | 説明
+
+| `src/test/java`
+| ソース
+| アプリケーションのカスタム Java コードを検証するために使用されるテストクラスのルートフォルダです。 +
+通常の Java アプリケーションの規則に従います。
+
+| `src/test/munit`
+| ソース
+| MUnit ソースコードが含まれます。 +
+パッケージの形式で、ネストされたフォルダを含むことができます。
+
+| `src/test/resources`
+| resource (リソース)
+| XML、JSON、プロパティファイルなどのリソースが含まれます。 +
+このフォルダには、`mule-config.xml` で参照されるメタデータを記述するファイルも含まれます。
+
+|===
+
+== Mule アプリケーションのデプロイメント
+
+Mule Maven プラグインでは、Mule サーバへの Mule アプリケーションのデプロイを自動化できます。 +
+
+デフォルトでは、このプラグインでは、5 つの異なるデプロイ戦略を使用してデプロイできます。
+
+* CloudHub デプロイメント。 +
+CloudHub への Mule アプリケーションのデプロイメントを自動化します。
+* Runtime Fabric デプロイメント。 +
+Runtime Fabric に Mule アプリケーションをデプロイします。
+* Runtime Manager REST API デプロイメント。 +
+Runtime Manager REST API を使用して Mule サーバまたはサーバクラスタに Mule アプリケーションをデプロイします。
+* Mule エージェントデプロイメント。 +
+Mule エージェントを使用して Mule アプリケーションをデプロイします。 +
+このデプロイメント戦略は、すべての Mule Runtime インスタンスが同じアドレス空間にある場合のみ機能します。
+* スタンドアロンランタイムデプロイメント。 +
+マシンで実行中のランタイムにデプロイします。
+
+Mule Maven プラグインを使用してアプリケーションをデプロイするときに、`pom.xml` ファイルで有効なデプロイメント設定を指定する必要があります。 +
+専用のデプロイメントリファレンスを使用してデプロイメント設定をセットアップできます。
+
+== CloudHub に Mule アプリケーションをデプロイする
+
+=== 前提条件
+
+* HTTP Listener フローソースのホストおよびポート番号が適切に設定されていること。 +
++
+HTTP Listener をフローのソースとして使用している場合、そのホストを *0.0.0.0* に、そのポートを *${http.port}* に設定する必要があります。
++
+CloudHub はその後、デプロイメント時にポートを動的に割り当てます。
++
+* すべての外部クラスおよびリソースが Mule アプリケーションの `mule-artifact.json` ファイルで適切に宣言されていること。
++
+Mule 4.x のクラスローディング分離メカニズムのため、アプリケーションをパッケージしてデプロイする前に、`mule-artifact.json` ファイルの「exportedPackages」項目と「exportedResources」項目ですべての外部クラスおよびリソースを明示的に宣言する必要があります。
++
+xref:how-to-export-resources.adoc[「リソースのエクスポート」]を参照して、Mule アプリケーションの外部リソースの操作についての詳細を確認してください。
+
+=== CloudHub へのデプロイ
+
+. Mule Maven プラグインを `pom.xml` ファイルに追加していることを確認します。
+. plugin 要素内で、下記のように CloudHub デプロイメントの設定を追加します。
++
+[source,xml,linenums]
+----
+<plugin>
+  ...
+    <configuration>
+        <cloudHubDeployment>
+            <uri>https://anypoint.mulesoft.com</uri>
+            <muleVersion>${mule.version}</muleVersion>
+            <username>${username}</username>
+            <password>${password}</password>
+            <applicationName>${cloudhub.application.name}</applicationName>
+            <environment>${environment}</environment>
+            <properties>
+                <key>value</key>
+            </properties>
+        </cloudHubDeployment>
+    </configuration>
+
+</plugin>
+----
++
+この例ではプレースホルダ値を使用しています。CloudHub 情報を使用して各値を設定します。
+. プロジェクトのフォルダのコマンドラインから、アプリケーションをパッケージしてデプロイゴールを実行します。
++
+[source,console,linenums]
+----
+> mvn clean package deploy -DmuleDeploy
+----
+
+=== CloudHub への再デプロイ
+
+アプリケーションを再デプロイするには、デプロイしたときと同じコマンドを実行します。 +
+CloudHub は、デプロイしたアプリケーションを書き込み直します。
+
+=== CloudHub デプロイメントリファレンス
+
+[%header%autowidth.spread,cols="a,a"]
+|===
+|パラメータ | 説明
+|cloudHubDeployment | 最上位要素。
+| uri | Anypoint Platform URI。 +
+設定しない場合、デフォルトでこの値は +https://anypoint.mulesoft.com+ に設定されます。
+| muleVersion | CloudHub インスタンスで実行する Mule Runtime バージョン。 +
+この値がアプリケーションの最小必要ランタイムバージョン以上であることを確認する必要があります。
+| username (ユーザ名) | CloudHub ユーザ名。
+| password (パスワード) | CloudHub パスワード。
+| applicationName | CloudHub のアプリケーションの名前。 +
+この名前は、デプロイされるアプリケーションのドメインの一部です。たとえば、アプリケーションに application-1 という名前を付けると、アプリケーションの公開ドメインは +application-1.cloudhub.io+ となります。
+| artifact (アーチファクト) | デプロイする JAR の絶対ファイル位置。 +
+設定しない場合、デフォルトでパッケージフェーズで生成される JAR の位置です。
+| 環境 | デプロイ先の CloudHub 環境。
+| properties | 最上位要素。 +
+デプロイする Mule アプリケーションのプロパティを設定する必要がある場合、最上位要素 `<properties>` を使用できます。
+
+<properties> +
+  <key>値</key> +
+</properties>
+
+
+例:
+
+<properties> +
+  <http.port>8081</http.port> +
+</properties>
+| workers (ワーカー) | ワーカーの数。 +
+デフォルトでは、1 に設定されます。
+| workerType | 各ワーカーのサイズ。 +
+
+可能な値:
+
+MICRO (0.1 vCore) +
+SMALL (0.2 vCore) +
+MEDIUM (1 vCore ) +
+LARGE (2 vCore) +
+XLARGE (4 vCore) +
+XXLARGE (8 vCore) +
+4XLARGE (16 vCore)
+
+デフォルト値は MICRO です。
+| region (地域) | ワーカークラウドの地域。
+
+可能な値:
+
+* us-east-1      -  米国東部 (北バージニア)
+* us-west-2      -  米国西部 (オレゴン)
+* eu-west-1      -  EU (アイルランド)
+* ap-southeast-2 -  アジア太平洋 (シドニー)
+* ap-southeast-1 -  アジア太平洋 (シンガポール)
+* us-west-1      -  米国西部 (北カリフォルニア)
+* eu-central-1   -  EU (フランクフルト)
+* ap-northeast-1 -  アジア太平洋 (東京)
+* eu-west-2      -  EU (ロンドン)
+* ca-central-1   -  カナダ (中央部)
+* sa-east-1      -  南米 (サンパウロ)
+* us-east-2      -  米国東部 (オハイオ)
+
+デフォルト値は us-east-1 です。
+// tag::businessGroupParameterDescription[]
+| businessGroup | デプロイメントのビジネスグループ。
+// end::businessGroupParameterDescription[]
+// tag::deploymentTimeoutParameterDescription[]
+| deploymentTimeout | デプロイメントプロセスの開始からアーチファクトがデプロイされたことの確認までの許容される経過時間 (ミリ秒)。
+
+デフォルト値は `1000000` です。
+// end::deploymentTimeoutParameterDescription[]
+// tag::serverParameterDescription[]
+| サーバ | Anypoint Platform ログイン情報を持つ Maven サーバ。これは、Maven `settings.xml` ファイルに保存されたログイン情報を使用する場合のみ必要です。これは Mule サーバ名ではありません。
+// end::serverParameterDescription[]
+// tag::skipParameterDescription[]
+|skip (スキップ) | ブール値。true に設定すると、プラグインデプロイメントゴールをスキップします。デフォルト値は false です。
+// end::skipParameterDescription[]
+|===
+
+== Runtime Fabric に Mule アプリケーションをデプロイする
+
+=== 前提条件
+
+* アプリケーションは Exchange でパブリッシュされる必要があります。 +
+これは、xref:studio::export-to-exchange-task.adoc[こちら]の手順に従って Studio から実行できます。 +
+または、xref:exchange::to-publish-assets-maven.adoc[こちら]の手順に従って Mule Maven プラグインを使用することもできます。
+
+=== Runtime Fabric へのデプロイ
+
+. Mule Maven プラグインを `pom.xml` ファイルに追加していることを確認します。
+. plugin 要素内で、下記のように Runtime Fabric デプロイメントの設定を追加します。
++
+[source,xml,linenums]
+----
+<plugin>
+  ...
+    <configuration>
+        <runtimeFabricDeployment>
+            <uri>https://anypoint.mulesoft.com</uri>
+            <muleVersion>${mule.version}</muleVersion>
+            <username>${username}</username>
+            <password>${password}</password>
+            <applicationName>${runtime.fabric.application.name}</applicationName>
+            <environment>${environment}</environment>
+            <provider>${provider}</provider>
+            <properties>
+                <key>value</key>
+            </properties>
+            <deploymentSettings>
+                <cpuReserved>500m</cpuReserved>
+                <memoryReserved>800Mi</memoryReserved>
+            </deploymentSettings>
+        </runtimeFabricDeployment>
+    </configuration>
+
+</plugin>
+----
++
+この例ではプレースホルダ値を使用しています。Runtime Fabric 情報を使用して各値を設定します。
+. プロジェクトのフォルダのコマンドラインから、アプリケーションをパッケージしてデプロイゴールを実行します。
++
+[source,bash,linenums]
+----
+> mvn clean package deploy -DmuleDeploy
+----
+
+=== Runtime Fabric への再デプロイ
+
+アプリケーションを再デプロイするには、デプロイしたときと同じコマンドを実行します。 +
+Runtime Fabric は、デプロイしたアプリケーションを書き込み直します。
+
+=== Runtime Fabric デプロイメントリファレンス
+
+[%header%autowidth.spread,cols="a,a"]
+|===
+|パラメータ | 説明
+|runtimeFabricDeployment | 最上位要素。
+| uri | Anypoint Platform URI。 +
+設定しない場合、デフォルトでこの値は +https://anypoint.mulesoft.com+ に設定されます。
+| muleVersion | Runtime Fabric インスタンスで実行する Mule Runtime バージョン。 +
+この値がアプリケーションの最小必要ランタイムバージョン以上であることを確認する必要があります。
+| username (ユーザ名) | Anypoint Platform ユーザ名。
+| password (パスワード) | Anypoint Platform パスワード。
+| applicationName | Exchange でデプロイされるアプリケーションの名前。 +
+この名前は、デプロイされるアプリケーションのドメインの一部です。
+| target (対象) | アプリケーションをデプロイする Runtime Fabric 対象名。
+| provider (プロバイダ) | プロバイダ種別。可能な値: MC、SERVER、CLUSTER、SERVER_GROUP。
+| 環境 | デプロイ先の Anypoint Platform 環境。
+| properties | 最上位要素。 +
+デプロイする Mule アプリケーションのプロパティを設定する必要がある場合、最上位要素 `<properties>` を使用できます。
+
+<properties> +
+  <key>値</key> +
+</properties>
+
+
+例:
+
+<properties> +
+  <http.port>8081</http.port> +
+</properties>
+| replicationFactor | アプリケーションのインスタンスの数。 +
+デフォルトでは、1 に設定されます。
+| publicUrl | デプロイされるアプリケーションの Url。
+| lastMileSecurity | このアプリケーションによって復号化される HTTPS 接続を転送するために Last-Mile セキュリティを有効にする。 +
+このためには SSL 証明書を Mule アプリケーションに含む必要があり、より多くの CPU リソースも必要です。 +
+デフォルトでは、false に設定されます。
+| clusteringEnabled | アプリケーションの各レプリカで Mule のクラスタ化を有効にする。少なくとも 2 つのレプリカが必要です。 +
+デフォルトでは、false に設定されます。 +
+| memoryReserved | アプリケーションの各レプリカに割り当てるメモリ量。存在しない場合、デフォルト値は 700MB です。 +
+
+例:
+
+<deploymentSettings> +
+    <memoryReserved>100Mi</memoryReserved> +
+</deploymentSettings> +
+
+これにより、100MB のメモリが各レプリカに設定されます。
+
+| memoryMax| アプリケーションの各レプリカに割り当てる最大メモリ量。memoryReserved 設定が存在する場合、この値がそれ以上であることを確認してください。 +
+
+例:
+
+<deploymentSettings> +
+    <memoryMax>200Mi</memoryMax> +
+</deploymentSettings> +
+
+これにより、最大 200MB のメモリが各レプリカに設定されます。
+
+
+| cpuReserved | アプリケーションの各レプリカに割り当てるコア量。存在しない場合、デフォルト値は 0.5 vCore になります。 +
+
+例:
+
+<deploymentSettings> +
+    <cpuReserved>500m</cpuReserved> +
+</deploymentSettings> +
+
+これにより、各レプリカで 0.5 vCore が設定されます。
+| cpuMax | アプリケーションの各レプリカに割り当てる最大コア量。cpuReserved 設定が存在する場合、この値がそれ以上であることを確認してください。
+
+例:
+
+<deploymentSettings> +
+    <cpuMax>1000m</cpuMax> +
+</deploymentSettings> +
+
+これにより、最大 1 vCore が各レプリカに設定されます。
+include::mule-runtime:ROOT:page$mmp-concept.adoc[tag=businessGroupParameterDescription]
+include::mule-runtime:ROOT:page$mmp-concept.adoc[tag=deploymentTimeoutParameterDescription]
+include::mule-runtime:ROOT:page$mmp-concept.adoc[tag=serverParameterDescription]
+include::mule-runtime:ROOT:page$mmp-concept.adoc[tag=skipParameterDescription]
+|===
+
+アプリケーションを Runtime Fabric にデプロイするためにxref:runtime-fabric::deploy-resource-allocation.adoc[リソース割り当てを決定]する方法を確認してください。
+
+== スタンドアロン Mule Runtime に Mule アプリケーションをデプロイする
+
+. Mule Maven プラグインを `pom.xml` ファイルに追加していることを確認します。
+. plugin 要素内で、下記のように CloudHub デプロイメントの設定を追加します。
++
+[source,xml,linenums]
+----
+<plugin>
+  ...
+  <configuration>
+    <standaloneDeployment>
+  	    <muleHome>${mule.home.test}</muleHome>
+        <muleVersion>${mule.version}</muleVersion>
+  	</standaloneDeployment>
+  </configuration>
+
+</plugin>
+----
++
+この例ではプレースホルダ値を使用しています。ローカル Mule Runtime 情報を使用して各値を設定します。
+. プロジェクトのフォルダのコマンドラインから、アプリケーションをパッケージしてデプロイゴールを実行します。
++
+[source,console,linenums]
+----
+> mvn clean package deploy -DmuleDeploy
+----
+
+=== スタンドアロンデプロイメントリファレンス
+
+[%header,cols="30,70"]
+|===
+|パラメータ | 説明
+|standaloneDeployment | 最上位要素。
+| muleVersion | ローカルマシンインスタンスで実行する Mule Runtime バージョン。 +
+この値がデプロイメント対象で実行しているランタイムバージョンに一致しない場合、プラグインで例外が発生します。
+
+これらの値が一致しない場合、Mule Maven プラグインは Mule Runtime をダウンロードしません。
+| muleHome | ローカルマシンにおける Mule Runtime インスタンスの場所。
+include::mule-runtime:ROOT:page$mmp-concept.adoc[tag=deploymentTimeoutParameterDescription]
+include::mule-runtime:ROOT:page$mmp-concept.adoc[tag=skipParameterDescription]
+
+|===
+
+== Runtime Manager REST API を使用して Mule アプリケーションをデプロイする
+
+=== 前提条件
+
+* Runtime Manager で作成されたサーバ、サーバグループ、またはクラスタが必要です。 +
+** サーバを作成するには、xref:runtime-manager::servers-create.adoc#creating-a-server[「サーバの作成」]を参照してください。 +
+** サーバグループを作成するには、xref:runtime-manager::server-group-create[「サーバグループの作成」]を参照してください。 +
+** クラスタを作成するには、xref:runtime-manager::cluster-create#creating-a-cluster[「クラスタの作成」]を参照してください。 +
+
+=== Runtime Manager REST API を使用したデプロイ
+
+. Mule Maven プラグインを `pom.xml` ファイルに追加していることを確認します。
+. plugin 要素内で、下記のように Runtime Manager デプロイメントの設定を追加します。
++
+[source,xml,linenums]
+----
+<plugin>
+  ...
+    <configuration>
+      <armDeployment>
+          <uri>https://anypoint.mulesoft.com</uri>
+          <target>${target}</target>
+          <targetType>${target.type}</targetType>
+          <username>${username}</username>
+          <password>${password}</password>
+          <environment>${environment}</environment>
+      </armDeployment>
+    </configuration>
+
+</plugin>
+----
++
+この例ではプレースホルダ値を使用しています。Runtime Manager 情報を使用して各値を設定します。
+. プロジェクトのフォルダのコマンドラインから、アプリケーションをパッケージしてデプロイゴールを実行します。
++
+[source,console,linenums]
+----
+> mvn clean package deploy -DmuleDeploy
+----
+
+=== Runtime Manager REST API デプロイメントリファレンス
+
+[%header%autowidth.spread,cols="a,a"]
+|===
+|パラメータ | 説明
+|armDeployment | 最上位要素。
+| muleVersion | アプリケーションをデプロイメント対象で実行するために必要なランタイムバージョン。 +
+この値がデプロイメント対象で実行しているランタイムバージョンに一致しない場合、プラグインで例外が発生します。
+
+これらの値が一致しない場合、Mule Maven プラグインは Mule Runtime をダウンロードしません。
+| uri | Mule Runtime インスタンスをインストールするサーバの URI。 +
+設定しない場合、デフォルトでこの値は +https://anypoint.mulesoft.com+ に設定されます。
+| target (対象) | Mule Runtime インスタンスをインストールするサーバのサーバ名。
+| targetType | デプロイ先の対象の種別。
+
+有効な値:
+
+* サーバ
+* serverGroup
+* クラスタ
+
+| username (ユーザ名) | Mule Runtime インスタンスをインストールするサーバのユーザ名。
+| password (パスワード) | Mule Runtime インスタンスをインストールするサーバのパスワード。
+| 環境 | Mule Runtime インスタンスをインストールするサーバの環境名。
+include::mule-runtime:ROOT:page$mmp-concept.adoc[tag=deploymentTimeoutParameterDescription]
+include::mule-runtime:ROOT:page$mmp-concept.adoc[tag=serverParameterDescription]
+include::mule-runtime:ROOT:page$mmp-concept.adoc[tag=skipParameterDescription]
+|===
+
+== Mule エージェントを使用して Mule アプリケーションをデプロイする
+
+. Mule Maven プラグインを `pom.xml` ファイルに追加していることを確認します。
+. plugin 要素内で、下記のように Mule エージェントデプロイメントの設定を追加します。
++
+[source,xml,linenums]
+----
+<plugin>
+  ...
+  <configuration>
+    <agentDeployment>
+      <uri>http://localhost:9999/</uri>
+    </agentDeployment>
+  </configuration>
+
+</plugin>
+----
++
+この例ではプレースホルダ値を使用しています。リモートサーバ情報を使用して URI 値を設定します。
+. プロジェクトのフォルダのコマンドラインから、アプリケーションをパッケージしてデプロイゴールを実行します。
++
+[source,console,linenums]
+----
+> mvn clean package deploy -DmuleDeploy
+----
+
+=== Mule エージェントデプロイメントリファレンス
+
+[%header,cols="30,70"]
+|===
+|パラメータ | 説明
+|agentDeployment | 最上位要素。
+| muleVersion | アプリケーションをデプロイメント対象で実行するために必要なランタイムバージョン。 +
+この値がデプロイメント対象で実行しているランタイムバージョンに一致しない場合、プラグインで例外が発生します。
+
+これらの値が一致しない場合、Mule Maven プラグインは Mule Runtime をダウンロードしません。
+| uri | Mule Runtime インスタンスをインストールするサーバの URI。
+include::mule-runtime:ROOT:page$mmp-concept.adoc[tag=deploymentTimeoutParameterDescription]
+include::mule-runtime:ROOT:page$mmp-concept.adoc[tag=skipParameterDescription]
+|===
+
+== ログイン情報の暗号化
+
+暗号化ログイン情報は、すべてのプラットフォームのデプロイメントで使用できます: CloudHub、Runtime Fabric、Runtime Manager。
+デプロイするときに暗号化ログイン情報を使用するには、Maven マスタ暗号化パスワードおよび `settings-security.xml` ファイルをセットアップする必要があります。
+
+. Maven 設定のマスタパスワードを作成します。
++
+----
+> mvn --encrypt-master-password <yourMasterPassword>
+----
++
+Maven はマスタパスワードを暗号化して返します。
++
+----
+{l9vZ2uM5SdgHy+H12z4pX7LEOZn3Kbnqmt3kIquLjnQ=}
+----
++
+. ~/.m2 リポジトリで `settings-security.xml` ファイルを作成し、暗号化マスタパスワードを追加します。
++
+[source,xml,linenums]
+----
+<settingsSecurity>
+  <master>{l9vZ2uM5SdgHy+H12z4pX7LEOZn3Kbnqmt3kIquLjnQ=}</master>
+</settingsSecurity>
+----
++
+. Anypoint Platform パスワードを暗号化します。
++
+----
+> mvn --encrypt-password <yourAnypointPlatformPassword>
+----
++
+Maven は Anypoint Platform パスワードを暗号化して返します。
++
+----
+{HTWFGH5BG9QmvJ1B=}
+----
+. 暗号化 Anypoint Platform パスワードを `settings.xml` ファイルの <server> セクションに追加します。
++
+[source,xml,linenums]
+----
+<settings>
+ ...
+  <servers>
+   ...
+    <server>
+      <id>my.anypoint.credentials</id>
+      <username>my.anypoint.username</username>
+      <password>{HTWFGH5BG9QmvJ1B=}</password>
+    </server>
+   ...
+  </servers>
+ ...
+</settings>
+----
+. 設定デプロイメントで、`settings.xml` ファイルで設定されたサーバ id を挿入するログイン情報を参照します。
+以下は、暗号化ログイン情報を使用した CloudHub デプロイメントの例です。
+
+[source,xml,linenums]
+----
+<plugin>
+  ...
+    <configuration>
+        <cloudHubDeployment>
+            <uri>https://anypoint.mulesoft.com</uri>
+            <muleVersion>${mule.version}</muleVersion>
+            <server>my.anypoint.credentials</server>
+            <applicationName>${cloudhub.application.name}</applicationName>
+            <environment>${environment}</environment>
+            <properties>
+                <key>value</key>
+            </properties>
+        </cloudHubDeployment>
+    </configuration>
+
+</plugin>
+----
+
+NOTE: ユーザ名とパスワードがデプロイメント設定で設定されていると、定義されたサーバ id よりも優先されるため、設定されていないことを確認してください。
+
+== プラグイン実行のスキップ
+
+デプロイメント設定内で `skip` フラグを true に設定することで、プラグイン実行をスキップできます。
+
+[source,xml,linenums]
+----
+<plugin>
+  ...
+  <configuration>
+    <standaloneDeployment>
+      <muleHome>${mule.home.test}</muleHome>
+      <skip>true</skip>
+    </standaloneDeployment>
+  </configuration>
+</plugin>
+----
+
+== デプロイメント検証のスキップ
+
+任意のプラットフォームデプロイメント (Cloudhub、Runtime Manager、Runtime Fabric) 内で `skipDeploymentVerification` フラグを true に設定することで、状況検証をスキップできます。
+
+[source,xml,linenums]
+----
+<plugin>
+  <groupId>org.mule.tools.maven</groupId>
+  <artifactId>mule-maven-plugin</artifactId>
+  <version>${mule.maven.plugin.version}</version>
+  <extensions>true</extensions>
+  <configuration>
+    <runtimeFabricDeployment>
+      ...
+      <skipDeploymentVerification>true</skipDeploymentVerification>
+      ...
+    </runtimeFabricDeployment>
+  </configuration>
+</plugin>
+----
+
+`skipDeploymentVerification` フラグが存在しない場合、デフォルト値は false です。 +
+この機能は、プラグインバージョン 3.2.5 以降で使用できます。
+
+== Anypoint Runtime Manager オンプレミス TLS エラー
+
+xref:1.5@private-cloud::index.adoc[Anypoint Platform Private Cloud Edition] インストールの Runtime Manager のインスタンスに接続しようとすると、プラグインはそのサーバのログイン情報を検証します。トラストストアにサーバログイン情報をインストールしていない場合、SSL エラーが発生します。この問題を回避するために、非セキュアモードでプラグインを実行できます。このモードでは、セキュリティ検証がスキップされます。*armInsecure* タグまたは *arm.insecure* システムプロパティを使用できます。
+
+[WARNING]
+非セキュア接続を有効にするのは危険です。実行内容を理解し、オンプレミスインストールがローカルネットワークに隔離されている場合を除き、使用しないでください。
+
+下の設定例を参照してください。
+
+[source,xml,linenums]
+----
+<plugin>
+  ...
+    <configuration>
+      <armDeployment>
+          <target>${target}</target>
+          <targetType>${target.type}</targetType>
+          <username>${username}</username>
+          <password>${password}</password>
+          <environment>${environment}</environment>
+          <armInsecure>true</armInsecure>
+      </armDeployment>
+    </configuration>
+</plugin>
+----
+
+== 関連情報
+
+* xref:mule-app-properties-to-configure.adoc[Mule アプリケーションのプロパティプレースホルダの設定]
+* xref:about-classloading-isolation.adoc[クラスローディング分離]
+* xref:how-to-export-resources.adoc[リソースのエクスポート]
+* xref:exchange::to-publish-assets-maven.adoc[Maven を使用した Exchange アセットのパブリッシュとデプロイ]
+* xref:runtime-fabric::deploy-resource-allocation.adoc[Anypoint Runtime Fabric でのリソース割り当て]
+* xref:runtime-manager::runtime-manager-api.adoc[Runtime Manager REST API]

@@ -1,0 +1,198 @@
+= バッチモジュールの移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+// sme: MG, author: sduke?
+
+// Explain generally how and why things changed between Mule 3 and Mule 4.
+バッチモジュールは Extract Transform Load (ETL) 機能を処理するために導入されました。
+
+このセクションの内容
+
+* <<batch_scope>>
+* <<record_var>>
+* <<non_java_datasets>>
+* <<xml_changes>>
+
+[[batch_scope]]
+== バッチ要素の移行
+
+Mule 3 では、バッチはフローと同じ最上位レベルの要素でした。Mule 4 の場合、`<batch:job>` 要素は、わかりやすく、動的な呼び出しや他の Mule コンポーネントとのやり取りがしやすいようにフローの内部に配置するスコープです。
+
+これは `<batch:input>` は使用されなくなることを意味します。`<batch:input>` の役割は、`<batch:job>` がトリガされる前に、フロー内にある一連のプロセッサによって果たされます。
+
+* `<batch:job>`: バッチはスコープですが名前が付いています。Mule アプリケーションでは、同じ名前の付いた 2 つの `<batch:job>` 定義を使用することはできません。これにより、1 つのフローで複数のジョブが定義される場合の追跡と管理が向上します。
+
+* `<batch:execute>`: この操作はなくなりました。代わりに、バッチジョブを含むフローを呼び出します。
+
+.Mule 3 の例
+[source,xml,linenums]
+----
+<batch:job name="batchJob">
+    <<batch:input>>
+        <poll frequency="10000">
+            <sfdc:query ..../>
+        </poll>
+    </<batch:input>>
+    <batch:process-records>
+        <batch:step name="batchStep1">
+          <mp />
+          <mp />
+      </batch:step>
+      <batch:step name="batchStep1">
+        <event processor/>
+        <event processor/>
+      </batch:step>
+    <batch:process-records>
+</batch:job>
+----
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<flow name="flowOne">
+  <scheduler>
+			<scheduling-strategy>
+				<fixed-frequency frequency="10000"/>
+			</scheduling-strategy>
+		</scheduler>
+  <batch:job jobName="batchJob">
+    <batch:process-records>
+      <batch:step name="batchStep1">
+        <event processor/>
+        <event processor/>
+      </batch:step>
+      <batch:step name="batchStep1">
+        <mp />
+        <mp />
+      </batch:step>
+    </batch:process-records>
+  </batch:job>
+</flow>
+----
+
+[[record_var]]
+== Record Vars から Vars への移行
+
+通常のフローとは異なり、バッチはメッセージレベルではなく、レコードレベルで処理を行います。
+
+Mule 3 では、Mule メッセージにフロー変数 (`flowVars`) を使用するのと同様に、レコードレベル変数 (`recordVars`) を使用して変数を特定のレコードに添付します。
+
+Mule 4 では `recordVars` が変数 (`vars`) に置き換わります。変数は Mule 4 の Mule イベントの一部です。`<batch:step>` 内から、`<batch:job>` の実行開始前に存在した変数を変更できます。これは他のレコードへの副作用がなく、特定の 1 つのレコードに対して行うことができます。
+
+次の Mule 3 の例では、For Each コンポーネントの式内で `recordVars` が使用されています。
+
+.Mule 3 の例
+[source,xml,linenums]
+----
+<batch:step name="commitStep">
+  <batch:commit size="10">
+    <foreach>
+      <expression-component>
+        record.payload = 'foo';
+        record.recordVars['marco'] = 'polo';
+      </expression-component>
+    </foreach>
+  </batch:commit>
+</batch:step>
+----
+
+次の Mule 4 の例では、For Each コンポーネントの式内で `vars` が使用されています。
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<batch:job jobName="batchJob">
+  <batch:process-records>
+    <batch:step name="batchStep">
+      <batch:aggregator doc:name="batchAggregator" size="10">
+        <foreach doc:name="For Each">
+          <script:execute engine="groovy">
+            <script:code>
+              vars['marco'] = 'polo'
+              vars['record'].payload = 'foo'
+            </script:code>
+          </script:execute>
+        </foreach>
+      </batch:aggregator>
+    </batch:step>
+  </batch:process-records>
+</batch:job>
+----
+
+[[non_java_datasets]]
+== 非 Java データセットのサポート
+
+Mule 3 では、バッチの入力フェーズは Java 構造であることが必要でした。そのため、XML 形式や JSON 形式などの入力データは、最初に Java に変換し、その変換では、DataWeave でストリーミングを使用してデータセットが大きい場合にメモリ不足にならないようにする必要がありました。
+
+たとえば、HTTP コールでアプリケーションにプッシュされる次のようなソースデータがあるとします。
+
+.例: JSON 入力データ
+----
+[
+    {
+        "name": "Luke Skywalker",
+        "darkSide": true
+    },
+    {
+        "name": "Ben Solo",
+        "darkSide": true
+    },
+    {
+        "name": "Obi-Wan Kenobi",
+        "darkSide": false
+    }
+]
+----
+
+Mule 3 では、この JSON を渡す前に Java に変更する必要がありました。次のようになります。
+
+.Mule 3 の例
+[source,xml,linenums]
+----
+<batch:job name="forceJob">
+   <<batch:input>>
+     <http:listener path="/forceWielders" config-ref="forceListener" />
+     <ee:transform>
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+                  output application/java
+                  ---
+                 payload
+                }]]></ee:set-payload>
+            </ee:message>
+     </ee:transform>
+   <<batch:input>>
+   .....
+</batch:job>
+----
+
+Mule 4 では、バッチでペイロードが JSON 配列であることを自動的に判断し、単独で分割を実行できます。次に例を示します。
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<flow name="useTheForceBatch">
+  <http:listener path="/forceWielders" config-ref="forceListener" />
+  <batch:job jobName="forceJob">
+    ....
+  </batch:job>
+</flow>
+----
+
+Mule 4 では、自動ストリーミングフレームワークが使用されているため、ストリーミングを設定する必要がなくなりました。したがって、Mule 4 に移行すると、変換ステップを回避できます。
+
+[[xml_changes]]
+== Mule 4 のバッチ要素および属性の XML 変更
+
+* キャメルケース表記の属性: Mule 4 DSL ガイドラインに従い、一貫性を向上させるために、すべての DSL 属性はキャメルケースに変更されました。たとえば、`max-failed-records` は `maxFailedRecords`、`accept-policy` は `acceptPolicy` のようになります。
+
+* MuleSoft では、`<batch:step>`` 要素から `filter-expression` パラメータを削除しました。この属性は Mule 3.6 で非推奨になったため、`accept-expression` パラメータにに置き換える必要があります。
+
+* `<batch:commit>` は `<batch:aggregator>` と呼ばれるようになりました。
+
+
+== 関連情報
+
+* xref:batch-processing-concept.adoc[バッチプロセッサ]

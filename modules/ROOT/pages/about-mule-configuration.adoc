@@ -1,0 +1,277 @@
+= Mule 設定ファイル
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: 設定, デプロイ, Mule
+
+すべての Mule アプリケーション、ドメイン、およびポリシーは、XML DSL を介して設定されます。 +
+この XML ファイルは、アーティファクトを構成するリソースを指定します。
+
+== 概要
+
+Mule 設定ファイルはツリー形式です。 +
+各要素により、Mule 内に次のような設定オブジェクトがセットアップされます。
+
+* xref:global-settings-configuration.adoc[Mule グローバル設定] +
+デフォルトのトランザクションタイムアウトなどのグローバル設定。Mule 設定全体に適用されます。
+* xref:configuring-properties.adoc[Properties (プロパティ)] +
+設定プロパティ、メッセージプロパティ、およびシステムプロパティ。
+* xref:about-flows.adoc[フロー] +
+メッセージフローを定義するコンポーネントの組み合わせ。
+* xref:about-components#_endpoints[ソース (エンドポイントまたはトリガ)] +
+フローのトリガ。ソースは Studio ではエンドポイント、Flow Designer ではトリガとも呼ばれます。
+* xref:connectors::index.adoc[コネクタおよびモジュール設定] +
+使用されるすべてのコネクタおよびモジュールコンポーネントの設定の宣言。
+* xref:about-components.adoc#_flow_control_routers[ルータ] +
+フロー実行の制御。
+* xref:about-operations.adoc[操作] +
+フロー内の特定のアクションの適用。
+
+
+== XML スキーマ
+
+https://www.w3.org/TR/xmlschema-1/#xsi_schemaLocation[スキーマ]は、XML 設定ファイルで参照されるこれらのリソースの設定可能な属性を定義します。この方法を使用して、Mule アーティファクトはその機能コンポーネントと設定の検証と定義を行います。
+
+XML スキーマは、Mule アーティファクトの機能コンポーネントを検証するために使用されます。これらはヘッダーで指定します。
+
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi=http://www.w3.org/2001/XMLSchema-instance
+        xmlns:jms="http://www.mulesoft.org/schema/mule/jms"
+        xmlns:file="http://www.mulesoft.org/schema/mule/file"
+        xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+        http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+----
+
+[NOTE]
+Mule ドメインでは `mule` の代わりに `mule-domain` タグを使用します。
+
+必要なスキーマファイルをすべて指定してください。手動で設定ファイルをセットアップする場合は時間がかかる可能性がありますが、スキーマファイルをインポートすることで、次の利点を得て時間を節約できます。
+
+* Anypoint Studio のオートコンプリートおよびコンテキスト固有のヘルプ
+* 設計時の設定検証
+* 型付けされたプロパティ
+
+Mule 4 のスキーマは、アーティファクトの連動関係に従って動的に自動生成されます。たとえば HTTP スキーマは、HTTP コネクタがアーティファクト連動関係の一部である場合にのみ使用できます。したがって、スキーマを指定するには、適切な連動関係を宣言する必要もあります。JMS およびファイルスキーマを必要とする上記の例では、アーティファクトの
+`pom.xml` ファイル内に次のような連動関係が必要になります。
+
+[source,xml,linenums]
+----
+<dependencies>
+  ...
+  <dependency>
+      <groupId>org.mule.connectors</groupId>
+      <artifactId>mule-jms-connector</artifactId>
+      <version>1.3.2</version>
+      <classifier>mule-plugin</classifier>
+  </dependency>
+  <dependency>
+      <groupId>org.mule.connectors</groupId>
+      <artifactId>mule-file-connector</artifactId>
+      <version>1.2.1</version>
+      <classifier>mule-plugin</classifier>
+  </dependency>
+  ...
+</dependencies>
+----
+
+[NOTE]
+Anypoint Studio は、コンポーネントが導入されたときに必要なスキーマと連動関係を追加します。
+
+
+== 名前空間
+
+各 Mule モジュールまたはコネクタには、コミュニティおよび Enterprise バージョン用の Mule コアを含む XML スキーマがあります。インポートしたスキーマにはその名前空間が含まれます。
+
+標準の Mule 要素を使用するには、Mule Kernel (CE) および Mule Runtime Engine (EE) の名前空間をインポートします。
+
+* +`http://www.mulesoft.org/schema/mule/core`+ +`http://www.mulesoft.org/schema/mule/core/current/mule.xsd`+
+* +`http://www.mulesoft.org/schema/mule/ee/core`+ +`http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd`+
+
+=== デフォルトの名前空間
+
+通常、Mule コアスキーマを設定ファイルのデフォルトの名前空間として設定します。そのため、プレフィックスのない XML 要素は Mule コアスキーマから取得されることを意味します。デフォルトの名前空間を設定するには、前の例で設定したコロンと名前空間プレフィックスは使用せずに (例: `xmlns:jms` ではなく `xmlns`)、`xmlns` を Mule スキーマの URL の直前に指定します。
+
+[source,xml,linenums]
+----
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+    xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+   ...config...
+</mule>
+----
+
+== 設定ファイルのマージ
+
+複数の設定ファイルがある場合、それらを 1 つの設定ファイルにインポートできるため、1 つの設定を指定するだけで済みます。
+これは、コネクタ設定やその他のグローバル要素を抽出するために役立ちます。例:
+
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns=http://www.mulesoft.org/schema/mule/core ....>
+
+    <import file="global-prod-configurations.xml" />
+    <import file="global-error-handler.xml" />
+...
+----
+
+これらのインポートは、プロパティと組み合わせて動的にすることもできます。
+
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns=http://www.mulesoft.org/schema/mule/core ....>
+
+    <global-property name="env" value="dev"/>
+    <import file="global-${env}-configurations.xml" />
+...
+----
+
+[NOTE]
+この例の `env` プロパティは、グローバルプロパティ、システムプロパティ、または環境プロパティで設定できます。
+
+== 複数の設定の宣言
+
+ファイルをアプリケーション設定の一部として宣言している限り、ファイルを
+別々にしておくこともできます。これは、各設定ファイル間の関連性が低い場合に役立ちます。設定は、
+アプリケーション記述子ファイル `mule-artifact.json` の `configs` セクション内で宣言されます。たとえば、ここでは 4 つの設定ファイルが宣言されています。
+
+[source,json,linenums]
+----
+{
+  "configs": [
+    "http-api.xml", "jms-messaging-api.xml", "monitoring-tools.xml", "core-functionality.xml"
+  ],
+  "redeploymentEnabled": true,
+  "name": "retail-api",
+  "minMuleVersion": "4.1.1",
+  "requiredProduct": "MULE_EE",
+  "classLoaderModelLoaderDescriptor": {
+    "id": "mule",
+    "attributes": {
+      "exportedResources": []
+    }
+  },
+  "bundleDescriptorLoader": {
+    "id": "mule",
+    "attributes": {}
+  }
+}
+----
+
+[NOTE]
+Anypoint Studio は自動的にアプリケーション記述子を処理します。
+
+== 完全なアプリケーションの例
+
+アプリケーションの単純な Mule 設定ファイルの例を次に示します。
+
+[source,xml,linenums]
+----
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:db="http://www.mulesoft.org/schema/mule/db"
+      xmlns:email="http://www.mulesoft.org/schema/mule/email"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+          http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+        http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
+
+    <http:listener-config name="http.listener.config" basePath="mule">
+        <http:listener-connection host="0.0.0.0" port="${http.port}" protocol="HTTP"/>
+    </http:listener-config>
+
+    <http:request-config name="http.request.config" basePath="mule">
+        <http:request-connection host="127.0.0.1" port="${http.port}"/>
+    </http:request-config>
+
+    <email:smtp-config name="email.config">
+        <email:smtp-connection host="${email.host}" port="${email.smtp.port}"/>
+    </email:smtp-config>
+
+    <flow name="integration-routing-contentFlow">
+        <http:listener config-ref="https.listener.config" path="routing/main"/>
+        <logger level="INFO" message="#[attributes.headers]"/>
+
+        <choice>
+            <when expression="#[attributes.headers.'content-type' contains 'application/json']">
+                <http:request config-ref="http.request.config" path="routing/http" method="POST"/>
+            </when>
+            <otherwise>
+                <set-payload value="Error: Unexpected unmapped choice element when trying to route the request."/>
+                <email:send config-ref="email.config" subject="Email routing">
+                    <email:to-addresses>
+                        <email:to-address value="routing@mulesoft.com"/>
+                    </email:to-addresses>
+                    <email:body contentType="text/plain">
+                        <email:content>#[payload]</email:content>
+                    </email:body>
+                </email:send>
+            </otherwise>
+        </choice>
+    </flow>
+
+</mule>
+----
+
+== 完全なポリシーの例
+
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xmlns:http="http://www.mulesoft.org/schema/mule/http"
+     xmlns:http-policy="http://www.mulesoft.org/schema/mule/http-policy"
+     xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+              http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+              http://www.mulesoft.org/schema/mule/http-policy http://www.mulesoft.org/schema/mule/http-policy/current/mule-http-policy.xsd">
+
+   <http-policy:proxy name="policy-example">
+       <http-policy:source>
+           <http-policy:execute-next/>
+           <logger level="INFO" message="#[payload]"/>
+       </http-policy:source>
+   </http-policy:proxy>
+</mule>
+----
+
+
+== 完全なドメインの例
+
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<domain:mule-domain
+        xmlns:http="http://www.mulesoft.org/schema/mule/http"
+        xmlns="http://www.mulesoft.org/schema/mule/core"
+        xmlns:domain="http://www.mulesoft.org/schema/mule/ee/domain"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xsi:schemaLocation="
+               http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+               http://www.mulesoft.org/schema/mule/ee/domain http://www.mulesoft.org/schema/mule/ee/domain/current/mule-domain-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+
+    <!-- configure here resource to be shared within the domain -->
+
+    <http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="e252ad6a-220d-4c1f-865b-d7aec30bfc30" basePath="/api" >
+          <http:listener-connection host="0.0.0.0" port="8081" />
+      </http:listener-config>
+
+</domain:mule-domain>
+----
+
+== 関連情報
+
+* xref:shared-resources.adoc[Mule ドメイン]
+* xref:api-manager::custom-policy-getting-started.adoc[Mule カスタムポリシー]
+* xref:configuring-properties.adoc[プロパティの設定]
+* xref:intro-packaging.adoc[アプリケーションのパッケージ化]

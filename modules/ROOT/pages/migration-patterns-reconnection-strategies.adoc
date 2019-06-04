@@ -1,0 +1,92 @@
+= 再接続戦略の移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+構文の観点から見れば、再接続は Mule 3 から Mule 4 ではそれほど変更されていません。ただし、動作には大きな違いがあります。
+
+Mule 3 では、再接続戦略は各コンポーネントの config 要素で指定されていました。これらの戦略には 2 つの目的があります。
+
+* 実行中のアプリケーションがエンドポイントとの接続を失った場合に再接続する。
+* アプリケーションがデプロイされているときにすべての接続を検証する。
+
+Mysql データベースに接続するアプリケーションがあるとします。デプロイメント時にその接続を確立できなければ、デプロイメントが失敗します。これは、デプロイされるすべてのアプリケーションが機能する状態であることを保証するための設定でした。
+
+.Mule 3 の例: 再接続設定 (MySQL データベース用)
+
+[source,xml,linenums]
+----
+<db:mysql-config ...>
+  <reconnect frequency="4000" count="4"/>`
+</db:mysql-config>
+
+<db:mysql-config ...>
+  <reconnect-forever frequency="4000"/>`
+</db:mysql-config>
+----
+
+ただし、接続が失敗した場合に、デプロイメントを失敗にしたくないユースケースがあります。たとえば、アプリケーションに、1 日 1 回だけ午前 3 時に外部 SFTP サーバに到達するフローがあるとします。このアプリケーションが午前 8 時にデプロイされていて、SFTP サーバがダウンした場合、デプロイメントを失敗にする理由がありません。実際に必要なときにサーバが稼働していることを確認する時間はたっぷりあります。
+
+Mule 3 でこれを実行するには、`blocking="false"` オプションを使用して、再接続を非同期で行い、デプロイメントが中止されないようにする必要がありました。
+
+.Mule 3 の例: 非同期再接続設定 (MySQL データベース用)
+
+[source,xml,linenums]
+----
+<db:mysql-config ...>
+  <reconnect frequency="4000" count="4" blocking="false"/>`
+</db:mysql-config>
+----
+
+Mule 4 では単純に、接続テストが失敗した場合にデプロイメントが失敗するかどうかを指定できます。
+
+.Mule 4 の例: 再接続設定 (SQL データベース用)
+[source,xml,linenums]
+----
+<!-- fail deployment is connection cannot be established -->
+<db:mssql-connection ...>
+  <reconnection failsDeployment="true">
+    <reconnect frequency="4000" count="4"/>
+  </reconnection>
+</db:mssql-connection>
+
+<!-- don't fail deployment is connection cannot be established -->
+<db:mssql-connection ...>
+  <reconnection >
+    <reconnect-forever frequency="4000" />
+  </reconnection>
+</db:mssql-connection>
+----
+
+デフォルトでは、接続を確立できないとログに警告が生成されるだけです。
+
+== 操作レベル再接続戦略
+
+Mule 3 では、同じ再接続戦略が config 要素で、デプロイメント時と実行時の両方に使用されました。たとえば、フローを実行しているデータベースとの接続が失われると、同じ再接続戦略が使用されます。
+
+Mule 4 では、この動作がデフォルトになりますが、操作またはメッセージソースレベルで別の戦略を指定することもできます。
+
+.Mule 4 の例: 再接続設定 (SQL データベース用)
+[source,xml,linenums]
+----
+<flow name="reconnectionDemo">
+  <http:listener path="test" config-ref="httpListener">
+    <reconnect count="1" frequency="5000"/>
+    <http:response>
+      <http:body>#[{'my': 'map'}]</http:body>
+      <http:headers>
+          #[{{'content-type' : 'text/plain'}}]
+      </http:headers>
+    </http:response>
+  </http:listener>
+
+  <http:request path="undeliable/endpoint" config-ref="httpRequester" method="GET">
+    <reconnect count="1" frequency="1000"/>
+  </http:request>
+
+</flow>
+----
+
+== 関連情報
+
+* xref:migration-connectors.adoc[コネクタの移行]

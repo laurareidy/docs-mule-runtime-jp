@@ -1,0 +1,18 @@
+= スコープについて
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+スコープは、フロー内で操作のグループをラップすることで操作に適用する挙動を詳細に定義するための Mule コンポーネントです。
+
+スコープを使用することで、操作を実行する頻度を定義したり、特定の操作グループを非同期に適用するように指定したりできます。
+
+// Some examples of scopes are the Poll and Async modules.
+
+スコープは、それ自身では何もせず、対象となる子コンポーネントが必要です。 +
+ほとんどのスコープは、相互にネストすることができるため、単一のコンポーネントに複数のスコープを適用できます。
+
+//COMBAK: Add See Also
+== 関連情報
+
+* xref:about-components.adoc[Mule アプリケーションコンポーネント]

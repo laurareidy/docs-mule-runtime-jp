@@ -1,0 +1,612 @@
+= データベースコネクタの移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+// Explain generally how and why things changed between Mule 3 and Mule 4.
+データベースコネクタを Mule 3 から Mule 4 に移行する場合の主な変更点は次のとおりです。
+
+* すべてのデータベース操作 (Select、Insert、Update、Delete など) が別の操作にリファクタリングされています。Mule 4 にはまた、新しい専用の一括操作もあります。
+* DataWeave の使用: データベース操作 (Insert、Update など) は DataWeave バージョン 2 の変換をサポートしています。データベースを挿入または更新するデータセットを構築できます。メッセージの副次的影響はなく、メッセージエンリッチャーも不要になりました。
+* 動的クエリと静的クエリを同様の方法で実行できます。
+* 各自の操作に応じて Mule ストリーミングフレームワークが自動的に設定されます。Select ステートメントを実行し、接続の漏えいを心配することなく、結果を非同期で処理できます。
+
+[[whats_covered_here]]
+== このトピックの内容
+
+* <<database_configuration>>
+ ** <<data_source_ref>>
+ ** <<connector_config_detail>>
+* <<database_dynamic_queries>>
+* <<database_streaming>>
+* <<database_operation_bulk>>
+* <<database_bulk_execute>>
+* <<tx_actions>>
+* <<output_target>>
+
+[[database_configuration]]
+== データベース接続の設定
+
+// TODO: EXPLAIN CONFIG CHANGES?
+Mule 3 と Mule 4 のデータベースコネクタは、Derby、MySQL、Oracle、汎用データベースの設定をサポートしています。Mule 4 では、Microsoft SQL Server とデータソース参照接続もサポートされています。
+
+これらの接続設定の XML が Mule 4 で変更されています。
+
+* Mule 3: データベース要素 (`<db:derby-config />` など) が最上位要素です。
+* Mule 4: `<db:config />` がすべてのデータベース接続設定の最上位要素で、特定のデータベース設定が個別の `<db:config />` 要素にネストされます。
+** Derby: `<db:data-source-connection />`
+** Microsoft SQL Server: `<db:mssql-connection />`
+** MySQL: `<db:my-sql-connection />`
+** Oracle: `<db:oracle-connection />`
+** 汎用: `<db:generic-connection />`
+** データソース参照接続: `<db:data-source-connection />`
+
+.Mule 3 の例: Derby 接続設定
+[source,xml,linenums]
+----
+<db:derby-config name="DerbyConfig" url="derbydatabase.com/MydatabaseTest"/>
+----
+
+上記の Mule 3 の例の `<db:derby-config />` が、下記の Mule 4 の例では `<db:config />` に変更され、データベースへの URL の属性が Mule 4 では `url` から `database` に変更されています。Mule 4 で、新たに `<db:derby-connection />` 子要素が追加されました。
+
+.Mule 4 の例: Derby 接続設定
+[source,xml,linenums]
+----
+<db:config name="DerbyConfig">
+  <db:derby-connection database="derbydatabase.com/MydatabaseTest" />
+</db:config>
+----
+
+さらに、Mule 4 では、新たな `<db:derby-connection />` 設定 (XML 属性) を使用できます。
+
+* `create="true|false"`: データベースが存在しない場合に作成するかどうか。
+* `subsubProtocol="directory"`: Derby が使用する SubsubProtocol の種別。選択可能なオプションは `directory`、`memory`、`classpath`、`jar` です。
+
+次のセクションでは、他のデータベースの接続設定について説明します。
+
+[[data_source_ref]]
+=== データソース参照
+
+以下のトピックで、その他のデータベース接続の Mule 4 の XML の例と、コネクタに固有の設定を示します。
+
+* <<example_data_source_db>>
+* <<example_generic_db>>
+* <<example_mssql_db>>
+* <<example_mysql_db>>
+* <<example_oracle_db>>
+* <<example_mssql_db>>
+* <<example_driver>>
+
+前セクションの Derby の Mule 3 の例に、Mule 3 と Mule 4 のデータベース接続設定 (My SQL、Oracle など) の主な相違点の大半が示されています。また、データベース接続の Mule 3 から Mule 4 への主な移行パターンもわかります。
+
+* Derby: <<database_configuration>>
+
+[[example_data_source_db]]
+==== Mule 4 の例: データソース参照
+
+データソース参照を使用するには、次の手順を実行する必要があります。
+
+1 - XML Spring Bean ファイルを作成して、`DataSource` を表す Spring Bean を作成します。
+
+.datasource-spring-beans.xml
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="
+               http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd">
+
+    <bean id="jdbcDataSource" class="org.enhydra.jdbc.standard.StandardDataSource" destroy-method="shutdown">
+        <property name="driverName" value="org.apache.derby.jdbc.EmbeddedDriver"/>
+        <property name="url" value="jdbc:derby:muleEmbeddedDB;create=true"/>
+    </bean>
+
+</beans>
+----
+
+WARNING: DataSource 実装を含む Maven 連動関係を設定する必要があります。
+この例では、`org.enhydra.jdbc.standard.StandardDataSource` に次の連動関係が必要です。 +
+ +
+`<dependency>` +
+    `<groupId>com.experlog</groupId>` +
+    `<artifactId>xapool</artifactId>` +
+    `<version>1.5.0</version>` +
+`</dependency>`
+
+2 - データソース接続を作成します。
+
+<1> *Mule Spring モジュール* [Spring モジュールへのリンク] を使用して `datasource-spring-beans.xml` ファイルをインポートします。
+	<2> DataSource 接続を使用して DB 設定を作成し、`dataSourceRef` として `datasource-spring-beans.xml` で作成された DataSource Bean の Spring Bean ID を追加します。
+
+
+[source,xml,linenums]
+----
+<spring:config name="spring-beans" files="datasource-spring-beans.xml"/> //<1>
+
+<db:config name="db-datasource">
+    <db:data-source-connection dataSourceRef="jdbcDataSource"> //<2>
+        <reconnection failsDeployment="true">
+            <reconnect frequency="4000" count="4"/>
+        </reconnection>
+        <db:column-types>
+            <db:column-type id="124"
+                            typeName="column_type"
+                            className="class_name"/>
+        </db:column-types>
+        <db:pooling-profile maxPoolSize="6" minPoolSize="1"
+                            acquireIncrement="2" preparedStatementCacheSize="6"
+                            maxWait="1" maxWaitUnit="MINUTES"/>
+    </db:data-source-connection>
+</db:config>
+----
+
+以下はデータソース参照に固有の設定です。
+
+* `dataSourceRef="my_ref_here"`: JDBC DataSource オブジェクトへの参照。このオブジェクトは通常、Spring を使用して作成されます。XA トランザクションを使用する場合は、XADataSource オブジェクトを指定する必要があります。
+
+[[example_generic_db]]
+==== Mule 4 の例: 汎用
+[source,xml,linenums]
+----
+<db:config name="generic_connection">
+  <db:generic-connection url="url_here" driverClassName="driver_class_name_here"
+    transactionIsolation="READ_COMMITTED" useXaTransactions="true"/>
+</db:config>
+----
+
+以下は、汎用データベースに固有の設定です。
+
+* `url="url_here"`: データベースへの接続に使用する JDBC URL。
+* `driverClassName="driver_class_name_here"`: データベースドライバクラスの完全修飾名。
+
+WARNING: `driverClassName` パラメータで参照されるクラスを含む Maven 連動関係は、Mule アプリケーションで設定する必要があります。 +
+また、Mule 4 の新しい ClassLoading メカニズムにより、この連動関係は DB コネクタにエクスポートする共有ライブラリとして宣言する必要があります。
+
+//TODO LINK TO HOW TO ADD A SHARED LIBRARY OR THE USER WON'T NEVER REALIZE HOW TO DO IT
+
+<<db_transactions>> も参照してください。
+
+[[example_mssql_db]]
+==== Mule 4 の例: Microsoft SQL Server
+[source,xml,linenums]
+----
+<db:config name="Microsoft_SQL_Server">
+  <db:mssql-connection host="my_host" user="myuser" password="mypassword" databaseName="mydatabase" >
+  </db:mssql-connection>
+</db:config>
+----
+
+<<db_transactions>> も参照してください。
+
+[[example_mysql_db]]
+==== Mule 4 の例: MySQL
+[source,xml,linenums]
+----
+<db:config name="MySQL">
+  <db:my-sql-connection host="myhost" user="myuser" password="mypassword" database="mydatabase" >
+  </db:my-sql-connection>
+</db:config>
+----
+
+<<db_transactions>> も参照してください。
+
+[[example_oracle_db]]
+==== Mule 4 の例: Oracle JDBC データベース
+[source,xml,linenums]
+----
+<db:config name="Oracle_Connection">
+  <db:oracle-connection host="myhost" user="myuser" password="mypassword" instance="myinstance" >
+  </db:oracle-connection>
+  <expiration-policy />
+</db:config>
+----
+
+<<db_transactions>> も参照してください。
+
+[[example_driver]]
+==== 例: Microsoft SQL Server ドライバの Maven 連動関係設定。
+Microsoft SQL Server、MySQL、Derby、Oracle の設定にはドライバが必要です。
+
+[source,xml,linenums]
+----
+<dependency>
+  <groupId>com.microsoft.sqlserver</groupId>
+  <artifactId>mssql-jdbc</artifactId>
+  <version>6.2.2.jre8</version>
+</dependency>
+----
+
+WARNING: Mule 4 の新しい ClassLoading メカニズムにより、この連動関係は DB コネクタにエクスポートする共有ライブラリとして宣言する必要があります。Studio または Flow Designer を使用して自動的に設定されます。
+
+//TODO LINK TO HOW TO ADD A SHARED LIBRARY OR THE USER WON'T NEVER REALIZE HOW TO DO IT
+
+[[connector_config_detail]]
+=== 例: コネクタの詳細設定
+
+Mule 4 では、次の設定の子要素をデータベース接続設定 (`<db:mysql-config />` など) で追加できます。
+
+* <<db_transactions>>
+** <<tx_actions>>
+** <<tx_isolation>>
+** <<xa_tx>>
+* <<connection_properties>>
+* <<column_types>>
+* <<pooling_profile>>
+* <<reconnection_strategies>>
+* <<expiration_policies>>
+
+[[db_transactions]]
+==== データベースのトランザクション
+
+[[tx_isolation]]
+===== トランザクション分離
+
+トランザクションには、データベースの接続時にドライバに設定するトランザクション分離レベルがあります。
+
+ * *NOT_CONFIGURED* (デフォルト)
+ * *READ_COMMITTED* (`transactionIsolation="READ_COMMITTED"`)
+ * *READ_UNCOMMITTED* (`transactionIsolation="READ_UNCOMMITTED"`)
+ * *REPEATABLE_READ* (`transactionIsolation="REPEATABLE_READ"`)
+ * *SERIALIZABLE* (`transactionIsolation="SERIALIZABLE"`)
+
+.Mule 3 の例: トランザクション分離
+[source,xml,linenums]
+----
+<db:mysql-config name="db_config" host="0.0.0.0" port="3306" transactionIsolation="READ_COMMITTED"/>
+----
+
+.Mule 4 の例: トランザクション分離
+[source,xml,linenums]
+----
+<db:config name="db_config" >
+  <db:my-sql-connection host="0.0.0.0" port="3306" transactionIsolation="READ_COMMITTED"/>
+</db:config>
+----
+
+[[xa_tx]]
+===== XA トランザクション
+
+*Mule 3* と *Mule 4* のどちらも、XA トランザクションで機能する接続を `useXaTransactions="true"` 接続設定で定義できます。
+
+.Mule 3 の例: XA トランザクション
+[source,xml,linenums]
+----
+<db:mysql-config name="db_config" host="0.0.0.0" port="3306" useXaTransactions="true"/>
+----
+
+.Mule 4 の例: XA トランザクション
+[source,xml,linenums]
+----
+<db:config name="db_config" >
+  <db:my-sql-connection host="0.0.0.0" port="3306" useXaTransactions="true"/>
+</db:config>
+----
+
+[[connection_properties]]
+==== 接続プロパティ
+*MySQL* と *Microsoft SQL Server* のデータベース設定で接続プロパティ設定を指定します。これらのプロパティは JDBC 接続に、追加のプロパティとして挿入されます。
+
+.Mule 3 の例: 接続プロパティ
+[source,xml,linenums]
+----
+<db:mysql-config name="db_config" host="0.0.0.0" port="3306" user="root" password="my-secret-pw">
+    <db:connection-properties>
+        <db:property key="userId" value="123123"/>
+        <db:property key="permissions" value="SYS"/>
+    </db:connection-properties>
+</db:mysql-config>
+----
+
+.Mule 4 の例: 接続プロパティ
+[source,xml,linenums]
+----
+<db:config name="db_config" >
+  <db:my-sql-connection host="0.0.0.0" port="3306" user="root" password="my-secret-pw">
+    <db:connection-properties >
+      <db:connection-property key="userId" value="123123" />
+      <db:connection-property key="permissions" value="SYS" />
+    </db:connection-properties>
+  </db:my-sql-connection>
+</db:config>
+----
+
+[[column_types]]
+==== 列の型
+* 列の型 (`<db:column-types/>`): 標準以外の列の型。
+
+[[pooling_profile]]
+==== プーリングプロファイル
+* プーリングプロファイル (`<db:pooling-profile/>`): 接続プーリング接続が可能な JDBC データソース。Mule 3 の接続プーリングとほぼ同じです。
+// FROM SPEC: Pooling configuration for JDBC Data Sources capable of pooling connections. Notice that this is not Mule’s standard Pooling profile but a custom one targeted to data sources.
+
+//TODO: SHOULD JUST LINK TO pattern adoc on this topic instead
+[[reconnection_strategies]]
+==== 再接続戦略
+
+Mule 3 と Mule 4 の再接続戦略設定はよく似ています。ただし、Mule 4 ではカスタム再接続戦略を使用できません。
+
+以下の例は、これらの設定の XML への変更点を示しています。
+
+* *None (なし)*: デフォルト。Mule 3 の [Do Not Use A Reconnection Strategy (再接続戦略を使用しない)] と同じです。
+* *Standard (標準)*: Mule 3 の [Standard Reconnection (標準再接続)] と同じです。どちらもオプションは、[Frequency (ms) (頻度 (ミリ秒))] と [Reconnection Attempts (再接続試行回数)] です。
+* *Forever (無期限)*: Mule 3 の [Reconnect Forever (繰り返し再接続)] と同じです。
++
+.Mule 3 の例: 再接続設定
+[source,xml,linenums]
+----
+<db:mysql-config ...>
+  <reconnect frequency="4000" count="4"/>`
+</db:mysql-config>
+
+<db:mysql-config ...>
+  <reconnect-forever frequency="4000"/>`
+</db:mysql-config>
+----
++
+.Mule 4 の例: 再接続設定
+[source,xml,linenums]
+----
+<db:mssql-connection ...>
+  <reconnection failsDeployment="true">
+    <reconnect frequency="4000" count="4"/>
+  </reconnection>
+</db:mssql-connection>
+
+<db:mssql-connection ...>
+  <reconnection >
+    <reconnect-forever frequency="4000" />
+  </reconnection>
+</db:mssql-connection>
+----
+
+[[database_operations_overview]]
+== データベースコネクタの操作
+
+* SQL クエリのテキストや入力パラメータのクエリ (<<database_operation_select>> を参照)
+* ストリーミング戦略設定 (<<database_streaming>> を参照)
+* <<tx_actions>>
+* クエリ設定
+* エラー (DB:BAD_SQL_SYNTAX、DB:QUERY_EXECUTION など) のエラーマッピング
+* Mule 4 の属性、ペイロード、変数の入力および出力メタデータ
+
+[[database_parameterized_queries]]
+=== パラメータ化クエリの移行
+
+*Mule 3* と *Mule 4* のどちらも、入力パラメータはキー - 値のペアとして指定します。
+このキーにセミコロン文字 (:) を付けて、名前でパラメーター値を参照します。つまり、*Mule 3* で記述された SQL のパラメータ化クエリを、*Mule 4* で使用するために変更する必要はありません。
+SQL インジェクション攻撃を阻止するためにこのアプローチが推奨され、Mule アプリケーションの全般的なパフォーマンスを向上させる最適化をコネクタが実行できます。
+
+==== 入力パラメータ
+
+* *Mule 3* では、各入力パラメータが `<db:select/>` 操作内で `<db:in-param/>` 要素として定義され、この要素にパラメータ名の `name` 属性と、そのパラメータ値を保持する `value` 属性がありました。
+
+* *Mule 4* では、各入力パラメータがマップの `<db:input-parameters>` として定義され、キーはパラメータ名で、値はパラメータ値です。このマップは DataWeave を使用してのみ作成できます。
+
+.Mule 3 の例: パラメータ化された SELECT クエリ
+[source,xml,linenums]
+----
+<db:select config-ref="databaseConfig">
+    <db:parameterized-query>
+       SELECT * FROM employees WHERE last_name = :last_name
+    </db:parameterized-query>
+    <db:in-param name="last_name" value="#[flowVars.lastName]"/>
+</db:select>
+----
+
+.Mule 4 の例: パラメータ化された SELECT クエリ
+[source,xml,linenums]
+----
+<db:select config-ref="databaseConfig">
+  <db:sql>
+    SELECT * FROM employees WHERE last_name = :last_name
+  </db:sql>
+  <db:input-parameters>
+    #[
+      {
+        last_name : vars.lastName
+      }
+    ]
+  </db:input-parameters>
+</db:select>
+----
+
+[[database_dynamic_queries]]
+=== 動的クエリの移行
+
+場合によっては、WHERE 句をパラメータ化するだけでなく、クエリ自体の各部をパラメータ化しなければならないことがあります。このユースケースの例として、条件に応じてオンライン/履歴テーブルにアクセスする必要のあるクエリや、プロジェクト列を変更する必要のある複雑なクエリなどが挙げられます。
+
+Mule 3 では、選択の概念がパラメータ化クエリと動的クエリに分割されており、この両方を同時に使用することができませんでした。動的クエリを使用するか、パラメータを使用する利点 (SQL インジェクションの防御、PreparedStatement の最適化など) をとるかのどちらかを選択する必要がありました。また、それぞれ構文が異なるため、同じことを行うのに 2 つのやり方を学ぶ必要がありました。
+
+他方 Mule 4 では、この新しいデータベースコネクタのクエリ内で式を用いて、この両方の方法を同時に使用できるようになりました。
+
+.Mule 3 の例: 動的 SELECT クエリ
+[source,xml,linenums]
+----
+<db:select config-ref="databaseConfig">
+  <db:dynamic-query>
+    SELECT * FROM #[flowVars.table] WHERE name = #[flowVars.name]
+  </db:dynamic-query>
+</db:select>
+----
+
+.Mule 4 の例: 動的 SELECT クエリ
+[source,xml,linenums]
+----
+<db:select config-ref="databaseConfig">
+  <db:sql>
+    #['SELECT * FROM $(vars.table) WHERE name = $(vars.name)']
+  </db:sql>
+</db:select>
+----
+
+注意点: Mule 3 の例のほうがパフォーマンスに劣り、SQL インジェクション攻撃に対して脆弱です。PreparedStatements を使用せず、クエリ全体が文字列として処理されるためです。
+
+[[database_streaming]]
+== 大量の結果のストリーミング
+
+ストリーミングでは、大規模なデータベーステーブルに対するクエリ結果を処理できます。特にインテグレーションのユースケースなどでは、何万件ものレコードが返されることがあります。この解決策として優れているのがストリーミングです。
+
+=== ストリーミングの有効化
+*Mule 3* では、ストリーミングがデフォルトで無効になっているため、使用する場合は有効にする必要があります。
+
+*Mule 4* では、ストリーミングが常にオンですが、ランタイムで反復可能なストリーミングを実行する戦略を設定できます。この点についての詳細は、xref:streaming-about.adoc[ストリーミングのドキュメントページ]を参照してください。
+
+ ヒント: 反復可能なストリーミングを無効にすると、並列処理を含め、DataWeave や他のコンポーネントでストリームを何度も処理できなくなります。
+
+[[database_operation_bulk]]
+=== 一括操作の移行
+
+==== 一括モードの有効化
+*Mule 3* では、*Insert、Update、Delete* 操作の `bulkMode="true"` 設定で一括機能を設定します。
+
+*Mule 4* では代わりに、データベースに対する一括操作専用の Bulk Insert (`<db:bulk-insert>`)、Bulk Update (`<db:bulk-update>`)、Bulk Delete (`<db:bulk-delete>`) を使用します。受信したペイロードに応じて、操作が動作を変更することがなくなりました。
+
+==== 一括データのコンシューム
+
+*Mule 3* の一括クエリでは、コネクタが `<for-each/>` コンポーネントと同じように機能していました。つまり、現在のペイロード値 (通常は項目のコレクション) を取り、コレクションの値ごとに `<db:in-param />` 式を実行していました。
+
+*Mule 4* では若干異なり、ペイロードをコンシュームしてコレクションの要素ごとに式を実行するのではなく、エントリのコレクションを挿入する必要があります。
+
+===== 例:
+
+.Mule 3 の例: パラメータ化クエリを使用した選択
+[source,xml,linenums]
+----
+<db:insert config-ref="db_config" bulkMode="true">
+    <db:parameterized-query>
+      INSERT INTO customers (id, name, lastName)
+      VALUES (:id, :name, :lastName)
+    </db:parameterized-query>
+    <db:in-param name="id" value="#[payload.id]"/>
+    <db:in-param name="name" value="#[payload.name]"/>
+    <db:in-param name="lastName" value="#[payload.lastName]"/>
+</db:insert>
+----
+
+.Mule 4 の例: 一括操作を使用した各値の取得
+[source,xml,linenums]
+----
+<db:bulk-insert config-ref="db_config" >
+  <db:sql>
+    INSERT INTO customers (id, name, lastName)
+    VALUES (:id, :name, :lastName)
+  </db:sql>
+  <db:bulk-input-parameters>
+  #[[{
+      id: 2,
+      name: 'George',
+      lastName: 'Costanza'
+    },
+    {
+      id: 3,
+      name: 'Cosmo',
+      lastName: 'Kramer'
+    }]]
+  </db:bulk-input-parameters>
+</db:bulk-insert>
+----
+
+[[database_bulk_execute]]
+=== 一括実行操作の移行
+
+Mule 3 コネクタの `<db:bulk-execute>` 操作が `<db:execute-script>` 操作に置換されました。
+
+ここで注意すべき重要な点は、Mule 3 バージョンでは `bulk` という用語を使うものの、上記の例のように、実際には一括操作ではないことです。同じ接続を使用して個別のステートメントが多数実行されますが、ステートメントがまとめて作成されるわけではありません。そのため、Mule 4 では、この操作の実態を的確に説明するために `execute-script` と呼ばれています。
+
+.Mule 4 の例: `execute-script` 操作の使用
+[source,xml,linenums]
+----
+<db:execute-script config-ref="dbConfig">
+    <db:sql>
+        update PLANET set NAME='Mercury' where POSITION=0;
+        update PLANET set NAME='Mercury' where POSITION=4
+    </db:sql>
+</db:execute-script>
+----
+
+ステートメントも外部ファイルに抽出できます。
+
+.Mule 4 の例: 外部ファイルを設定した `execute-script` 操作の使用
+[source,xml,linenums]
+----
+<db:execute-script config-ref="dbConfig" file="bulk-script.sql" />
+----
+
+
+[[tx_actions]]
+=== トランザクションのアクション
+
+データベース操作は、トランザクション内で実行されるときに、そのトランザクションとどのようにやり取りするかを決定できます。
+
+トランザクションの選択可能なアクションは次のとおりです。
+
+* *ALWAYS_JOIN*
+* *JOIN_IF_POSSIBLE*
+* *NOT_SUPPORTED*
+
+.Mule 3 の例: トランザクションのアクション
+[source,xml,linenums]
+----
+<db:select config-ref="db_config" transactionalAction="ALWAYS_JOIN">
+   <db:parameterized-query>
+     SELECT * FROM people
+   </db:parameterized-query>
+</db:select>
+----
+
+.Mule 4 の例: トランザクションのアクション
+[source,xml,linenums]
+----
+<db:select config-ref="db_config" transactionalAction="ALWAYS_JOIN">
+  <db:sql>
+    SELECT * FROM people
+  </db:sql>
+</db:select>
+----
+
+[[output_target]]
+=== 出力対象
+*Mule 3* では、DB コネクタが実行した出力を任意の対象変数に保存することができました。*Mule 4* でも同様に処理できますが、若干異なります。
+
+*Mule 3* で出力とされていたものは単なる実行結果であり、たとえば `target="#[flowVars.targetVar]"` と設定すると、クエリの実行が `targetVar` フロー変数に保存されていました。
+
+*Mule 4* でもほぼ同じで、対象のフロー変数の名前である `target` パラメータがありますが、これを式にすることはできません。*Mule 4* の新しいパラメータは `targetValue` で、これは操作結果に対して評価される式です。たとえば、ペイロード全体を保存する場合は `\#[payload]` に、SELECT クエリの 1 行目だけを保存する場合は `#[payload[0]]` になります。
+
+
+.Mule 3 の例: 出力対象
+[source,xml,linenums]
+----
+<db:select config-ref="db_config" target="#[flowVars.targetVar]">
+    <db:parameterized-query>
+      SELECT * FROM People
+    </db:parameterized-query>
+</db:select>
+----
+
+.Mule 4 の例: 出力対象
+[source,xml,linenums]
+----
+<db:select config-ref="db_config" target="targetVar" targetValue="#[payload]">
+  <db:sql>
+    SELECT * from People
+  </db:sql>
+</db:select>
+----
+
+データベースコネクタを使用するには、Studio パレットを使用してアプリケーションに追加するか、次の連動関係を `pom.xml` ファイルに追加します。
+
+[source,xml,linenums]
+----
+<dependency>
+    <groupId>org.mule.connectors</groupId>
+    <artifactId>mule-db-connector</artifactId>
+    <version>1.2.0</version> <!-- or newer -->
+    <classifier>mule-plugin</classifier>
+</dependency>
+----
+
+== 関連情報
+
+* xref:connectors::db/db-connector-index.adoc[データベースコネクタの概要]
+* xref:streaming-about.adoc[Mule 4.0 でのストリーミング]

@@ -1,0 +1,88 @@
+= FIPS 140-2 コンプライアンスサポート
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: fips, 認定, セキュリティ
+
+Mule 4 Runtime は、FIPS 140-2 認証済み環境で実行するように設定できます。これには、HTTP コネクタなどのすべての Runtime コネクタを含みます。Mule は、デフォルトでは FIPS セキュリティモードで実行されません。2 つの要件があります。
+
+* 認証済みの暗号化モジュールが Java 環境にインストールされている。
+* Mule Runtime の設定が FIPS セキュリティモードで実行されるように調整されている。
+
+== 前提条件
+
+このドキュメントは、読者が http://csrc.nist.gov/publications/fips/fips140-2/fips1402.pdf[FIPS 140-2] に精通していることを前提としています。FIPS 140-2 は、米国政府のセキュリティ標準で、準拠者は NIST によって認証された暗号化アルゴリズムおよび手法のみを使用することが求められます。このドキュメントは、読者が https://csrc.nist.gov/projects/cryptographic-module-validation-program/validated-modules[認証済みセキュリティプロバイダ]を選択、取得済みであることも前提としています。
+
+[[set_up_environment]]
+== FIPS 140-2 Java 環境のセットアップ
+
+Mule は、FIPS に準拠するセキュリティモジュールの提供を Java ランタイムに依存しています。そのため、最初の要件は、FIPS 140-2 Java 環境が適切にセットアップされていることです。FIPS に準拠するシステムを初めてセットアップしていて、認証済みセキュリティプロバイダをまだ設定していない場合は、まず https://csrc.nist.gov/projects/cryptographic-module-validation-program/validated-modules[認証済みセキュリティプロバイダを選択して取得]してから、選択したプロバイダに固有の手順に従って Java 環境をセットアップする必要があります。
+
+このプロセスの詳細は、選択したセキュリティプロバイダによって異なります。セキュリティプロバイダのドキュメントを参照して手順を実行してください。
+
+=== 例: Bouncy Castle セキュリティプロバイダを使用したセットアップ手順
+
+次の例は、Bouncy Castle セキュリティプロバイダをインストールして設定する方法を示しています。
+
+. https://www.bouncycastle.org/fips-java/[BouncyCastle の Web ページ]からプロバイダファイルをダウンロードします。
+
+. 必要な JAR ファイルを `$JAVA_HOME/lib/ext` フォルダにインストールします。
++
+image::fips-install-jars.png[FIPS-install-jars]
++
+. セキュリティプロバイダを、`$JAVA_HOME/lib/security` フォルダのセキュリティプロパティファイルに登録します。
++
+.. `java.security` ファイルを開き、プロバイダのクラス (`org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider` など) をプロバイダリストの最初の項目として追加します。
++
+.. SSL プロバイダの行を Bouncy Castle プロバイダを使用するように変更します (`security.provider.4=com.sun.net.ssl.internal.ssl.Provider BCFIPS`)。
++
+image::fips-register-jar.png[FIPS-register-jar]
++
+. 他のセキュリティプロバイダの番号を調整して、番号が連続するようにします。
++
+image::fips-register-jar-renumber.png[FIPS-register-jar-renumber]
++
+. 変更を保存します。
+
+== FIPS セキュリティモードでの Mule の実行
+
+<<set_up_environment>> の手順に従った後に、Mule インスタンスが FIPS 140-2 準拠環境で動作するようにセットアップするために、Mule アプリケーションサーバを起動するラッパーの設定を更新します。
+
+. `wrapper.conf` ファイルを開きます (`$MULE_HOME/conf` フォルダ内)。
+. Mule が FIPS セキュリティモードで動作するように設定する行のコメントを解除します (図を参照)。`<n>` を `wrapper.conf` ファイル内の連続する次の番号に置き換えます。
++
+image::fips-wrapper-conf-edit.png[FIPS-wrapper-conf-edit]
++
+. 変更を保存します。
+
+Mule がもう一度起動すると、起動時の表示に FIPS セキュリティモードが有効になっていることが示されます。
+
+image::fips-startup.png[FIPS-startup]
+
+FIPS セキュリティモードが有効になると、Mule では自動的にプロトコルネゴシエーションが制限され、承認された暗号化スイートのサブセットのみが使用されます。すべての HTTPS コネクタと TLS セキュリティレイヤを使用するその他のコネクタは、自動的にこの制限の影響を受けます。
+
+== SSL コネクタの微調整
+
+Mule conf フォルダには、SSL コネクタの設定を微調整するための 2 つのファイルがあります。これらのファイルでは、Mule が使用できる暗号化スイートと許可される SSL プロトコルを手動で設定できます。
+
+* `tls-default.conf` (Mule が FIPS セキュリティモードで実行するように設定されていない場合に微調整できます)
+* `tls-fips140-2.conf` (Mule が FIPS セキュリティモードで実行されている場合に微調整できます)
+
+該当するファイルを開き、リストの項目をコメントアウトまたはコメント解除して、使用できる暗号化スイートと SSL プロトコルを手動で設定します。これらのファイルを変更しない場合、Mule では、設定されたセキュリティマネージャが暗号化スイートとプロトコルを選択することが許可されます。
+
+== ヒントと制限事項
+
+* Mule Runtime の配布にバンドルされている Bouncy Castle セキュリティプロバイダは、FIPS 認証済みではありません。Mule が FIPS セキュリティモードを開始すると、Bouncy Castle プロバイダは登録されず、使用されません。
+* xref:cryptography.adoc[Mule 暗号化モジュール]と xref:secure-configuration-properties.adoc[Mule セキュアプロパティ]の設定オプションに含まれる一部の暗号化スキームと署名は FIPS に準拠していません。アプリケーションで FIPS 認証済みでないアルゴリズムを使用している場合は、実行時に次のようなエラーが表示されます。
+....
+	Could not find encryption algorithm '<algorithm-name>'. (暗号化アルゴリズム「<algorithm-name>」が見つかりません。)
+	You are running in FIPS mode, so please verify that
+	the algorithm is compliant with FIPS. (FIPS モードで実行中です。アルゴリズムが FIPS に準拠していることを確認してください。)
+....
+* 環境によってセキュリティ設定が異なり、暗号化スキームやアルゴリズムの選択も異なる可能性があることに注意してください。そのため、設定方法に応じて、一部の環境でこのエラーが表示され、他の環境では表示されないことがあります。
+
+== 関連情報
+
+https://csrc.nist.gov/projects/cryptographic-module-validation-program/validated-modules[Validated FIPS-2 Cryptographic Modules (検証済み FIPS-2 暗号化モジュール)]
+
+http://csrc.nist.gov/publications/fips/fips140-2/fips1402annexa.pdf[Approved Cryptographic Algorithms (承認済み暗号化アルゴリズム)]

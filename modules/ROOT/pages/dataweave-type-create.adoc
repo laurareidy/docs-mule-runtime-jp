@@ -1,0 +1,25 @@
+= DataWeave 型の作成方法
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, esb, 変換, トランスフォーマ, 形式, 集約, 名前変更, 分割, 変換の絞り込み, xml, json, csv, pojo, java オブジェクト, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング
+
+DataWeave スクリプトのヘッダーからカスタム DataWeave 型を作成できます。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+type  =
+---
+
+----
+
+.出力
+[source,json,linenums]
+----
+{
+
+}
+----

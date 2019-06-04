@@ -1,0 +1,129 @@
+= 関数を使用したリストの条件付き削減
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, 変換, トランスフォーマ, 形式, 集約, 名前変更, 分割, 変換の絞り込み, xml, json, csv, pojo, java オブジェクト, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング
+
+//TODO: EXAMPLE NOT WORKING, CHANGED when to if.
+
+この DataWeave の例では、入力をフラット化してシンプルにします。入力の各要素で、値がある場合にのみ「contentTypes」項目を含めます。次に、このコンテンツをよりわかりやすい形式に再編成します。
+
+
+この例では、次の関数を使用します。
+
+* 入力配列の各要素を調べる `map`。
+* 「tags」配列の複数の要素を 1 つの項目に集約する `reduce`。
+* (`[0]` で) 各文字列の最初の部分のみを選択して 2 番目の部分を破棄するために「tags」配列の値を解析する `splitBy`。
+* セパレータとしてカンマを使用して、これらの要素を 1 つの文字列に連結する `++`。
+* 「contentTypes」配列が 0 より大きい場合にのみ最後の項目を含める `if`。
+
+.DataWeave
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+fun
+reduceMapFor(data) data reduce(($$ splitBy ":")[0] ++ "," ++ ($ splitBy ":")[0])
+---
+payload.results map
+    {
+        email: $.profile.email,
+        name: $.profile.firstName,
+        tags: reduceMapFor($.data.interests.tags[0]),
+        (contenttypes: reduceMapFor($.data.interests.contenttypes[0])) if (sizeOf($.data.interests.contenttypes[0])) > 0
+    }
+----
+
+.入力 JSON
+[source,json,linenums]
+----
+{
+  "results": [
+    {
+      "profile": {
+        "firstName": "john",
+        "lastName": "doe",
+        "email": "johndoe@demo.com"
+      },
+      "data": {
+        "interests": [
+          {
+            "language": "English",
+            "tags": [
+              "digital-strategy:Digital Strategy",
+              "innovation:Innovation"
+            ],
+            "contenttypes": []
+          }
+        ]
+      }
+    },
+    {
+      "profile": {
+        "firstName": "jane",
+        "lastName": "doe",
+        "email": "janedoe@demo.com"
+      },
+      "data": {
+        "interests": [
+          {
+            "language": "English",
+            "tags": [
+              "tax-reform:Tax Reform",
+              "retail-health:Retail Health"
+            ],
+            "contenttypes": [
+              "News",
+              "Analysis",
+              "Case studies",
+              "Press releases"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "objectsCount": 2,
+  "totalCount": 2,
+  "statusCode": 200,
+  "errorCode": 0,
+  "statusReason": "OK"
+}
+----
+
+.出力 JSON
+[source,json,linenums]
+----
+[
+  {
+    "email": "johndoe@demo.com",
+    "name": "john",
+    "tags": "digital-strategy,innovation"
+  },
+  {
+    "email": "janedoe@demo.com",
+    "name": "jane",
+    "tags": "tax-reform,retail-health",
+    "contenttypes": "News,Analysis,Case studies,Press releases"
+  }
+]
+----
+
+== 関連する例
+
+* xref:dataweave-cookbook-exclude-field.adoc[出力からの項目の除外]
+
+* xref:dataweave-cookbook-output-a-field-when-present.adoc[存在する項目の出力]
+
+* xref:dataweave-cookbook-use-constant-directives.adoc[定数ディレクティブの使用]
+
+* xref:dataweave-cookbook-define-function-to-flatten-list.adoc[リスト内のデータをフラット化する関数の定義]
+
+* xref:dataweave-cookbook-pass-functions-as-arguments.adoc[関数を引数として渡す]
+
+
+== 関連情報
+
+* xref:dataweave-selectors.adoc[DataWeave セレクタ]
+
+* xref:dataweave-cookbook.adoc[DataWeave の解説書]

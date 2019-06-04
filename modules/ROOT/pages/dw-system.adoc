@@ -1,0 +1,19 @@
+= System (dw::System)
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+このモジュールには、基盤となるシステムを操作する関数が含まれています。
+
+
+このモジュールを使用するには、DataWeave コードにインポートする必要があります。その方法として、たとえば、行 `import * from dw::System` を DataWeave スクリプトの
+ヘッダーに追加します。
+
+== 関数
+|===
+| Name (名前)
+| xref:dw-system-functions-envvar.adoc[envVar]
+| xref:dw-system-functions-envvars.adoc[envVars]
+|===
+
+

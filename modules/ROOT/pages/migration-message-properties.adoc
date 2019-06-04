@@ -1,0 +1,26 @@
+= メッセージプロパティの移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+// Contacts/SMEs: Ana Felissati, Pablo La Greca
+
+Mule 3 には、さまざまな目的に使用できるプロパティスコープがいくつかあります。Mule 4 では、これらのスコープのほとんどが削除されました。
+
+== 呼び出しプロパティ
+
+呼び出しプロパティは、Mule 4 では `variables` と呼ばれるようになりました。動作は Mule 3 の場合とまったく同じです。
+
+== インバウンドプロパティ、アウトバウンドプロパティ、インバウンド添付ファイル、アウトバウンド添付ファイル
+
+これらのスコープは Mule 4 には存在しません。移行についての詳細は、xref:intro-mule-message.adoc[「Mule メッセージについて」]を参照してください。
+
+== 関連情報
+
+xref:intro-mule-message.adoc[Mule 4 の概要: Mule メッセージ]
+
+xref:about-mule-event.adoc[Mule イベント]
+
+xref:about-mule-message.adoc[Mule メッセージ構造]
+
+xref:about-mule-variables.adoc[Mule イベントの変数]

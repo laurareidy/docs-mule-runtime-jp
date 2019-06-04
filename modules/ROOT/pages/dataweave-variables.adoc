@@ -1,0 +1,308 @@
+= DataWeave 変数
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, esb, 変換, トランスフォーマ, 形式, 集約, 名前変更, 分割, 変換の絞り込み, xml, json, csv, pojo, java オブジェクト, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング
+
+DataWeave 2.0 は、変数が関数のように動作する関数型プログラミング言語です。変数には値が割り当てられます。値は定数 (`var msg = "hello"` など) またはラムダ式 (`() -> "hello"` など) のいずれかです。 
+
+[NOTE] 
+--
+xref:3.9@mule-runtime::dataweave-language-introduction#_variables[DataWeave 1.0 の変数]については、Mule 3.9 のドキュメントを参照してください。
+--
+
+DataWeave 2.0 の変数割り当てのいくつかの例を以下に示します。
+
+.例: DataWeave スクリプトでの変数割り当て
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+var msg = "Hello"
+
+var msg2 = (x = "ignore") -> "hello"
+
+var toUpper = (aString) -> upper(aString)
+
+var combined = (function, msg="universe") -> function(msg ++ " WORLD")
+---
+[
+   msg: msg,
+   msg2: msg2(),
+   toUpper: toUpper(msg),
+   combined: combined(toUpper, "hello"),
+   combined2: combined(((x) -> lower(x) ++ " Today"), msg)
+]
+----
+
+上のスクリプトでは次の出力が生成されます。
+
+.例: 出力
+[source,json,linenums]
+----
+[
+  {
+    "msg": "Hello"
+  },
+  {
+    "msg2": "hello"
+  },
+  {
+    "toUpper": "HELLO"
+  },
+  {
+    "combined": "HELLO WORLD"
+  },
+  {
+    "combined2": "hello world Today"
+  }
+]
+----
+
+この例の内容を次に示します。
+
+
+* `msg` var は定数に割り当てられています。
+* `msg2` は、定数にマップする式に割り当てられているため、`msg2()` は `()` のない `msg` と同様に動作します。
+* `toUpper` 変数は入力パラメータを DataWeave `upper` 関数にマップします。そのため、これは、別の言語の従来の関数のように `toUpper(aString)` として使用されます。
+* `combined` 変数は関数を入力パラメータとして受け入れて、その関数名を 2 番目の `msg` 引数に適用します。デフォルト値 `universe` が指定されているため、2 番目の `msg` 引数は省略可能です。
+
+式 `combined(toUpper, " world")` の結果では、ヘッダーの前半で定義された `toUpper` 関数が `msg` パラメータ値 `world` に割り当てられます。指定された 2 番目の引数 `world` が `msg="universe"` デフォルト値を上書きするため、結果は `HELLO WORLD` になります。2 番目の引数を省略している式 `combined(toUpper)` は、デフォルトの `msg` 値を使用して `"combined": "UNIVERSE WORLD"` を返します。
+
+`combined2: combined(((x) -> lower(x) ++ " Today")), msg)` は、別のコンテキストで再利用できるラムダ式を定義します。例では、`combined2` キーは、関数のコール時に式を「インプレース (その場)」で定義します。
+
+このような「インプレース」式の種別は、JavaScript などの言語ではクロージャと呼ばれます。
+
+DataWeave にはシンタックスシュガーが含まれており、関数として変数に割り当てられるラムダ式に容易にアクセスできます。これを行うには、`var` ディレクティブを `fun` ディレクティブに置き換えて、ラムダ式の矢印 `->` を等号 (`=`) に置き換えます。また、ラムダ式の引数を関数名の横に移動して、構文を、他の手続き型プログラミング言語の関数宣言のようにします。これにより、変数を関数のように使用できます。前述の例に相当するものは、次のように記述できます。
+
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+var msg = "Hello"
+
+var toUpper = (aString) -> upper(aString)
+var toLower = (aString) -> lower(aString)
+
+fun msg2(optParm = "ignore") = "hello"
+
+fun toTitle(text: String) = toLower(text[0]) ++ toUpper(text[1 to -1])
+
+fun combined(function, msg="universe") = function(msg ++ " world")
+---
+[
+   msg: msg,
+   msg2: msg2(),
+   toUpper: toTitle(msg),
+   combined: combined(toUpper, msg),
+   combined2: combined((x) -> lower(x) ++ " today", msg)
+]
+----
+
+この例は同じ結果を生成します。
+
+
+[source,json,linenums]
+----
+[
+  {
+    "msg": "Hello"
+  },
+  {
+    "msg2": "hello"
+  },
+  {
+    "toUpper": "hELLO"
+  },
+  {
+    "combined": "HELLO WORLD"
+  },
+  {
+    "combined2": "hello world today"
+  }
+]
+----
+
+DataWeave における重要な相違点は、関数が変数であることと、各関数が、元の `var` 構文を単に構文的に名前変更したものであることです。これにより、関数名またはラムダ式を引数として他の関数に渡すことができます。`fun` 構文を使用すると、DataWeave の強力な関数型プログラミングの側面にアクセスできるほか、より簡単な式を、使い慣れた関数コールとして記述することもできます。
+
+また、DataWeave 変数 (および関数) では、すべての省略可能な引数が引数リストの最後にある限り、デフォルト値を指定することで任意の数の省略可能な引数を指定できます。
+
+== 変数のスコープ
+
+DataWeave スクリプトでは、グローバル変数とローカル変数の両方を初期化して使用できます。
+
+* グローバル変数は、DataWeave スクリプトのヘッダーで初期化され、DataWeave スクリプトの本文の任意の場所から名前で参照できます。
++
+DataWeave スクリプトのヘッダーは、変数を初期化する `var` ディレクティブを受け入れます (例: `var language='Español'`)。複数のグローバル変数をヘッダーの別々の行で宣言できます。
++
+* ローカル変数は、DataWeave スクリプトの本文で初期化され、その変数を初期化した式のスコープ内からのみ、名前で参照できます。
++
+ローカル変数を初期化する構文は、`using (<variable-name> = <expression>)` のようになります。
++
+キーワード `using` を使用し、`fun` 構文ではなく `var` 構文を使用する必要があります。
++
+
+DataWeave 変数を再割り当てすることはできません。また、Mule メッセージの一部である変数 (対象変数など) とも異なります。DataWeave 変数は、それを初期化したスクリプトのスコープを超えて存続しません。
+
+複数のローカル変数定義をカンマ区切りリストとして using 関数内で組み合わせることができます。例: `using (firstName='Annie', lastName='Point')`
+
+[[example_global_variable]]
+== 例: グローバル DataWeave 変数
+
+この例では、ヘッダーで `language` 変数を初期化し、定数値 `Español` を出力の `language` 要素に挿入します。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/xml
+var language='Español'
+---
+{
+  document: {
+    language: language,
+    text: "Hola mundo"
+  }
+}
+----
+
+.出力
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<document>
+  <language>Español</language>
+  <text>Hola Mundo</text>
+</document>
+----
+
+[[example_local_variable]]
+== 例: ローカル DataWeave 変数
+
+ローカル変数を初期化するには、リテラル式、変数参照式、または関数式のいずれかを使用できます。これらの式では、そのスコープ内の他のローカル変数や、入力変数またはグローバル変数を参照できます。
+
+ローカル変数は、それを初期化した式のスコープ内からのみ名前で参照できます。宣言は任意のリテラル式の先頭に追加できます。リテラルにより変数のスコープが区切られるため、そのスコープの外部にある変数を参照することはできません。
+
+次の例は、リテラル式で使用するローカル変数の初期化を示しています。構文は同じです。
+
+.例: 簡単な値へのスコープ設定
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+using (x = 2) 3 + x
+----
+
+結果は `5` になります。
+
+.例: 配列リテラルへのスコープ設定
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+using (x = 2) [1, x, 3]
+----
+
+結果は `[ 1, 2, 3]` になります。
+
+.例: オブジェクトリテラルへのスコープ設定
+ここでは、`user` がオブジェクト `person` 内にあるため、その参照が有効になります。
+
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/xml
+---
+{
+  person: using (user='Greg', gender='male') {
+    name: user,
+    gender: gender
+  }
+}
+----
+
+.出力
+[source,xml,linenums]
+----
+<?xml version='1.0' encoding='UTF-8'?>
+<person>
+  <name>Greg</name>
+  <gender>male</gender>
+</person>
+----
+
+.例: スコープの外部の無効な参照
+この例では、`gender` を初期化した `person` のスコープの外部から `gender` が参照されているため、エラーが生成されます。
+
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/xml
+---
+entry: using (firstName = "Annie", lastName = "Point") {
+  person: using (user = firstName, gender = "male") {
+    name: user,
+    gender: gender
+  },
+  sn: lastName,
+  gen: gender
+}
+----
+
+この無効な例では、`Unable to resolve reference of gender.` のエラーが返されます。
+
+.例: グローバル変数および関数へのスコープ設定
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+var myGlobalVar = 2
+---
+{
+  examples: {
+    // x is a global variable that is referenced by a literal expression.
+    'ex_a': using (x = myGlobalVar) 3 + x,
+    // y is an expression that coerces a Boolean into a string,  then referenced by the upper function.
+    'ex_b': using (y = true as String) upper(y ++ ' as a string'),
+    // z is a function expression that is referenced by a literal object.
+    'ex_c': using (z = ["a", "b", "c"] map upper($)) {mapping : z}
+  }
+}
+----
+
+.出力
+[source,json,linenums]
+----
+{
+  "examples": {
+    "ex_a": 5,
+    "ex_b": "TRUE AS A STRING",
+    "ex_c": {
+      "mapping": [
+        "A",
+        "B",
+        "C"
+      ]
+    }
+  }
+}
+----
+
+== ラムダ式として割り当てられた変数
+
+変数にラムダ式を割り当てると、変数は関数のように動作します。関数と同様に、変数割り当てのラムダ式には、右側の式で使用できるパラメータを含めることができます (例: `(string) -> upper(string)`。これは、任意の文字列を大文字に変換します)。
+
+他の変数を引数として別の変数のラムダ式に渡すこともできます。次の例は、`toUpper` 変数のラムダ式を名前によって `addSuffix` 変数のラムダ式に渡す方法を示しています。
+
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+var toUpper = (aString) -> upper(aString)
+
+var addSuffix = (msg, aFunction, suffix) -> aFunction(msg ++ suffix)
+---
+addSuffix("hello", toUpper, " world") //result is "HELLO WORLD"
+----

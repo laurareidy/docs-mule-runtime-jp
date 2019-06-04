@@ -1,0 +1,118 @@
+= Mule 4 の概要: Mule メッセージ
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Mule 4 には簡素化された Mule メッセージモデルがあり、各 Mule イベントにメッセージと関連する変数が示されます。Mule メッセージはペイロードとその属性 (ファイルサイズなどのメタデータ) で構成されます。変数 (`vars`) には、操作結果、補助値などの任意のユーザ情報が保持されます。メッセージモデルが簡素化されたことで、どのコネクタでも一貫した方法でデータを簡単に操作できるようになり、情報が上書きされることがありません。
+
+== インバウンドプロパティが属性に
+
+Mule 3 ではインバウンドプロパティに、メッセージソースから取得されたペイロードに関する追加情報が保存されていました (HTTP リスナ経由で受け取るクエリパラメータなど)。Mule 4 では、インバウンドプロパティが​*属性*​になりました。属性には次の利点があります。
+
+* 強く型付けされるため、どのデータを使用できるかがすぐにわかる。
+* 変数に簡単に保存して、フローのどの時点でもアクセスできる。以下は、Mule 4 の典型的な Mule メッセージの HTTP リスナの一例です。
+
+image::mule-message.png[Mule 4 の Mule メッセージの構造]
+
+Mule 3 のインバウンドプロパティの場合と同様に、属性も式を使用して簡単にアクセスできます。
+[source,text,linenums]
+----
+#[attributes.requestPath]
+#[attributes.queryParams.searchCriteria]
+----
+
+ソースや操作から新しいメッセージが生成されると、*メッセージの両方の部分 (ペイロードと属性) が新しい値に置換され*、以前の属性は失われます。操作の呼び出しで属性からの情報を保持する必要がある場合は、以前の属性を変数に保存するか、または xref:target-variables.adoc[呼び出された操作に `target` パラメータを設定] できます。
+
+以下は、フローの実行時にメッセージがどのように更新されるかを示す一例です。
+
+[source,xml,linenums]
+----
+<flow name="messageExample">
+  <http:listener config-ref="HTTP_Listener_config" path="/invoices"/> // <1>
+  <logger level="INFO" message="#['New invoice from customer' ++ attributes.queryParams.customer_id]"> // <2>
+  <set-variable name="requestAttributes" value="#[attributes]"> // <3>
+  <jms:publish-consume config-ref="JMS_Config" destination="invoiceProcessor">
+    <jms:message>
+      <jms:body>#[output application/xml --- {
+        data: payload,
+        customer: attributes.queryParams.customer_id // <4>
+      }]</jms:body>
+    </jms:message>
+  </jms:publish-consume> // <5>
+  <jms:publish config-ref="JMS_Config" destination="eventTracker">
+    <jms:message>
+      <jms:body>#[output application/json --- {
+        customer: requestAttributes.queryParams.customer_id, // <6>
+        invoiceTrackingNumber: attributes.properties.userProperties.invoiceTrackingNumber
+      }]</jms:body>
+    </jms:message>
+  </jms:publish>// <7>
+  <logger level="INFO" message="#['Invoice accepted ' ++ attributes.properties.userProperties.invoiceTrackingNumber]"> // <8>
+</flow>
+----
+
+<1> 要求が受信され、`http:listener` が要求ペイロードと HTTP 属性からなるメッセージを生成します。
+<2> `logger` は void の操作で、何ら出力を生成しないため、実行後もメッセージは同じままです。
+<3> この例では、次の操作で現在のメッセージが置換されるため、現在の HTTP 属性を変数に保存して、その後のフローで利用できるようにします。
+<4> その後も HTTP 属性を使用して `jms:publish-consume` 操作の入力を設定できます。
+<5> `jms:publish-consume` が呼び出された場合、この操作の出力は、別のペイロードと JMS 属性からなるメッセージです。
+<6> HTTP 属性が変数に保存されているため、現在の JMS 属性 (`attributes` として) と以前に保存した HTTP 情報の両方を使用できます。
+<7> `jms:publish` 操作も void です。何ら出力が生成されないため、メッセージはそのままです。
+<8> この時点で、`jms:publish-consume` 呼び出しの JMS 属性がそのまま存在します。
+
+== アウトバウンドプロパティ
+
+Mule 3 では、ヘッダーなどの追加データを送信する必要のある Mule のコネクタやトランスポートに、アウトバウンドプロパティを明示的に指定する必要があります。たとえば、HTTP リスナの場合、送信状況コード応答やヘッダーの指定が必要になることがあります。Mule 4 では、各々に DataWeave 式を使用してこれらの情報を個別に設定でき、メインのフローに副次的影響が及ぶことがありません。
+
+[source,xml,linenums]
+----
+<http:request path="issues" config-ref="http" method="GET">
+    <http:headers>#[{'path':'input/issues-list.json'}]</http:headers>
+    <http:query-params>#[{'provider':'memory-provider'}]</http:query-params>
+</http:request>
+----
+
+上記の例では、HTTP 要求を実行すると個々の DataWeave スクリプトによってヘッダーやクエリパラメータが生成されますが、メッセージのプロパティを設定する必要はなく、メッセージへの副次的影響もありません。
+
+応答を生成するメッセージソース (HTTP リスナなど) にも同じ概念を適用できます。
+
+[source,xml,linenums]
+----
+<http:listener config-ref="api-httpListenerConfig" path="/api/*" doc:name="Listener">
+    <http:response statusCode="#[vars.httpStatus default 200]">
+        <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+    </http:response>
+    <http:error-response statusCode="#[vars.httpStatus default 500]">
+        <http:body>#[payload]</http:body>
+        <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+    </http:error-response>
+</http:listener>
+----
+
+上記の例では、`vars.httpStatus default 200` のような `http:headers` 設定は、実際の値が `null` になる場合に変数のデフォルト値を設定します。  
+
+== セッションプロパティ
+セッションプロパティが不要になり、Mule 4 で排除されています。
+データは Mule イベント変数に保存します。
+
+セッションプロパティが不要になった理由は、Mule 4 には Mule 3 のトランスポートや関連するトランスポートバリアが存在しないためです。Mule 3 のトランスポートバリアは、Mule 3 のフローを進行する Mule メッセージデータの処理方法を決定します。Mule 4 では、トランスポートが対応する Mule コネクタ (FTP コネクタなど) に切り替えられ、これらのコネクタがネットワーキングトランスポートプロトコルを異なる方法で処理します。
+
+== 添付ファイル
+受信および送信の添付ファイルが排除されました。現在は関与するコネクタが添付の概念を独自の方法で処理します。
+
+* HTTP コネクタは DataWeave のマルチパート形式のサポートを利用します。
+* メールコネクタと Web サービスコンシューマコネクタは、DataWeave を使用して添付ファイルを明示的に追加できます。
+
+
+== メッセージのコレクション
+
+Mule メッセージの新しい構造の利点の 1 つが、コレクションの処理です。Mule 3 で複数のペイロードを返すコンポーネントは、`MuleMessageCollection` という特殊な構造を使用していました。Mule 4 では、コンポーネントで複数のメッセージを処理する必要がある場合、単にメッセージのペイロードを Mule メッセージのリストに設定できます。そして、DataWeave、For Each などのコンポーネントを使用して、これらのメッセージを反復処理できます。
+
+たとえば、`<file:list>` 操作はメッセージのリストを取得します。メッセージごとに各ファイルの属性があるため、ファイルサイズやディレクトリかどうかなどに基づいて簡単に判断することができます。
+
+== 関連情報
+
+* xref:migration-connectors-http.adoc[HTTP コネクタの使用の移行]
+* xref:dataweave-formats.adoc[DataWeave でサポートされる形式]
+* xref:dataweave-variables.adoc[DataWeave 変数]
+* xref:migration-core-enricher.adoc[対象変数への Enricher の移行]

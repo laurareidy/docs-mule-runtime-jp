@@ -1,0 +1,146 @@
+= distinctBy
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[distinctby1]]
+== distinctBy&#40;Array<T&#62;, &#40;item: T, index: Number&#41; &#45;&#62; Any&#41;: Array<T&#62;
+
+重複がある場合でもリスト (配列) から一意の値を返します。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `items` | リスト (`Array` (配列) 型)。
+| `criteria` | 返すために使用する `item` (項目) および/または `index` (インデックス)。
+|===
+
+=== 例
+
+次の例では、入力配列から `"Kurt Cagle"` の重複を削除します。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+var record =  {
+  "title": "XQuery Kick Start",
+  "author": [
+    "James McGovern",
+    "Per Bothner",
+    "Kurt Cagle",
+    "James Linn",
+    "Kurt Cagle",
+    "Kurt Cagle",
+    "Kurt Cagle",
+    "Vaidyanathan Nagarajan"
+  ],
+  "year":"2000"
+}
+---
+{
+    "book" : {
+      "title" : record.title,
+      "year" : record.year,
+      "authors" : record.author distinctBy $
+    }
+}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "book": {
+    "title": "XQuery Kick Start",
+    "year": "2000",
+    "authors": [
+      "James McGovern",
+      "Per Bothner",
+      "Kurt Cagle",
+      "James Linn",
+      "Vaidyanathan Nagarajan"
+    ]
+  }
+}
+----
+
+
+[[distinctby2]]
+== distinctBy&#40;Null, &#40;item: Nothing, index: Nothing&#41; &#45;&#62; Any&#41;: Null
+
+*distinctBy* を null 値に使用できるようにするヘルパー関数。
+
+
+[[distinctby3]]
+== distinctBy&#40;{ &#40;K&#41;?: V }, &#40;value: V, key: K&#41; &#45;&#62; Any&#41;: Object
+
+オブジェクトから重複するキー-値ペアを削除します。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `object` | キー-値ペアを削除する元のオブジェクト。
+| `criteria` | 削除するキー-値ペアを識別するために使用する `key` (キー) および/または `value` (値)。
+|===
+
+=== 例
+
+次の例では、`<book/>` から重複 (`<author>James McGovern</author>`) 
+を削除します。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/xml
+---
+{
+   book : {
+     title : payload.book.title,
+     authors: payload.book.&author distinctBy $
+   }
+}
+----
+
+==== 入力
+
+[source,XML,linenums]
+----
+<book>
+  <title> "XQuery Kick Start"</title>
+  <author>James Linn</author>
+  <author>Per Bothner</author>
+  <author>James McGovern</author>
+  <author>James McGovern</author>
+  <author>James McGovern</author>
+</book>
+----
+
+==== 出力
+
+[source,XML,linenums]
+----
+<book>
+  <title> "XQuery Kick Start"</title>
+  <authors>
+      <author>James Linn</author>
+      <author>Per Bothner</author>
+      <author>James McGovern</author>
+  </authors>
+</book>
+----
+
+

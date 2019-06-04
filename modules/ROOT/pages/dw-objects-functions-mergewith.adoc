@@ -1,0 +1,62 @@
+= mergeWith
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[mergewith1]]
+== mergeWith&#40;T, V&#41;: ?
+
+ソースオブジェクトからのすべてのキー - 値ペアを対象オブジェクトに追加します。
+
+
+ソースオブジェクトと対象オブジェクトに同じキーがあれば、この関数は、そのソースオブジェクトを対象に追加し、その対象オブジェクトを出力から削除します。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `source` | `target` に追加するオブジェクト。
+| `target` | `source` が追加されるオブジェクト。
+|===
+
+=== 例
+
+次の例では、ソースオブジェクトを対象に追加します。`"a" : true,` は出力から削除され、`"a" : false` が対象に追加されています。
+
+==== ソース
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+import mergeWith from dw::core::Objects
+output application/json
+---
+{ "mergeWith" : { "a" : true, "b" : 1} mergeWith { "a" : false, "c" : "Test"} }
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+"mergeWith": {
+    "b": 1,
+    "a": false,
+    "c": "Test"
+}
+----
+
+
+[[mergewith2]]
+== mergeWith&#40;Null, T&#41;: T
+
+`mergeWith` を null 対応にするためのヘルパーメソッド。
+
+
+[[mergewith3]]
+== mergeWith&#40;T, Null&#41;: T
+
+`mergeWith` を null 対応にするためのヘルパーメソッド。
+

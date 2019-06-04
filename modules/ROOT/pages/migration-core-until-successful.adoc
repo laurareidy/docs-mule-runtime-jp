@@ -1,0 +1,202 @@
+= Until Successful の移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Mule 4 の Until Successful コンポーネントでは、一部のプロセスの処理方法が Mule 3 の場合と異なります。これらの変更に関連する一部の要素と属性は、Mule 4 には存在しません。Mule 4 では、異なる属性やコンポーネントを使用して同じ機能を実行できるか、Mule 4 でその機能を設定する必要がなくなったかのいずれかです。
+
+Until Successful コンポーネントの手動移行では、以下の変更を行います。
+
+* `<processor-chain/>` 要素をすべて削除する。
+* `secondsBetweenRetries` 属性を `millisBetweenRetries` に置き換える。
+* `failureExpression` を削除し、代わりに Mule 4 の検証プロセッサを使用する。
+* `deadLetterQueue-ref` 属性を Mule 4 のエラーハンドラに置き換える。
+* `<threading-profile/>` 要素をすべて削除する。
+* `ackExpression` 属性を削除し、代わりに Set Payload コンポーネントを使用する。
+* `synchronous` 属性をすべて削除する。
+
+以下の各セクションで、これらの変更について説明します。
+
+== Mule 4 で使用されなくなったプロセッサチェーン
+
+Mule 3 では、Until Successful スコープの内側で複数のプロセッサを実行するには、プロセッサチェーン (`<processor-chain/>`) の内側にプロセッサをラップする必要がありました。Mule 4 の Until Successful では複数のプロセッサがサポートされ、プロセッサチェーンは必要ありません。
+
+.Mule 3:
+[source,xml,linenums]
+----
+<flow name="untilFlow">
+  <until-successful>
+    <processor-chain>
+      <logger message="#[1]"/>
+      <logger message="#[2]"/>
+    </processor-chain>
+  </until-successful>
+</flow>
+----
+
+Mule 4 の例には、`<processor-chain/>` 要素がありません。
+
+.Mule 4:
+[source,xml,linenums]
+----
+<flow name="untilFlow">
+  <until-successful>
+    <logger message="#[1]"/>
+    <logger message="#[2]"/>
+  </until-successful>
+</flow>
+----
+
+== Mule 4 で変更された再試行属性
+
+Mule 3 の `secondsBetweenRetries` 属性は Mule 4 から削除されました。Mule 4 では `millisBetweenRetries` 属性を使用できます。
+
+.Mule 3:
+[source,xml,linenums]
+----
+<flow name="untilFlow">
+  <until-successful secondsBetweenRetries="10">
+    <logger message="#[1]"/>
+  </until-successful>
+</flow>
+----
+
+Mule 4 の例では、`secondsBetweenRetries="10"` が `millisBetweenRetries="10000"` に置き換わっています。
+
+.Mule 4:
+[source,xml,linenums]
+----
+<flow name="untilFlow">
+  <until-successful millisBetweenRetries="10000">
+    <logger message="#[1]"/>
+    <logger message="#[2]"/>
+  </until-successful>
+</flow>
+----
+
+== 変更が必要な失敗式
+
+`failureExpression` 属性は削除されました。検証式を設定する検証プロセッサに置き換えることができます。
+
+.Mule 3:
+[source,xml,linenums]
+----
+<flow name="untilFlow">
+  <until-successful failureExpression="#[regex:(?i).*error]">
+    <logger message="#[1]"/>
+  </until-successful>
+</flow>
+----
+
+Mule 3 の例にある `failureExpression` 設定は、Mule 4 では `<validation:is-false/>` 設定に置き換わります。
+
+.Mule 4:
+[source,xml,linenums]
+----
+<flow name="untilFlow">
+  <until-successful>
+    <logger message="#[1]"/>
+    <validation:is-false expression="#[regex:(?i).*error]"/>
+  </until-successful>
+</flow>
+----
+
+== Mule 4 のエラーハンドラを使用したデッドレターキューの参照
+
+Mule 3 の `deadLetterQueue-ref` 属性では、すべての再試行が失敗したら、配信不能メッセージをエンドポイントまたはプロセッサに送信できます。Mule 4 では、代わりにエラーハンドラを使用して、すべての `RETRY_EXHAUSTED` 例外をキャッチし、メッセージをそのエンドポイントまたはプロセッサに送信できます。
+
+.Mule 3:
+[source,xml,linenums]
+----
+<vm:endpoint name="dlqChannel" path="dlq" />
+
+<flow name="untilFlow">
+  <until-successful deadLetterQueue-ref="dlqChannel">
+    <logger message="#[1]"/>
+  </until-successful>
+</flow>
+----
+
+Mule 4 の例では、エラーハンドラ `<error-handler/>` 内の On Error Propagate (エラー時に伝搬) `<on-error-propagate/>` 要素を使用して `dlqChannel` を参照します。
+
+Mule 4:
+[source,xml,linenums]
+----
+<vm:endpoint name="dlqChannel" path="dlq" />
+
+<flow name="untilFlow">
+  <until-successful>
+    <logger message="#[1]"/>
+  </until-successful>
+  <error-handler>
+    <on-error-propagate type="RETRY_EXHAUSTED">
+      <outbound-endpoint ref="dlqChannel"/>
+    </on-error-propagate>
+  </error-handler>
+</flow>
+----
+
+== Mule 4 で不要になり削除されたスレッドプロファイル
+
+Mule 3 では、`<threading-profile/>` 子要素を使用して、実行スレッドを調整できます。Mule 4 では、実行エンジンでいくつかの変更が行われました。
+Mule 4 では非ブロックアーキテクチャとの関連付けにより、スレッドを手動で調整する必要がなくなりました。
+
+.Mule 3:
+[source,xml,linenums]
+----
+<flow name="untilFlow">
+  <until-successful>
+    <threading-profile maxThreadsActive="45" maxThreadsIdle="5" threadTTL="52"  threadWaitTimeout="60"/>
+    <logger message="#[1]"/>
+  </until-successful>
+</flow>
+----
+
+Mule 4 の例では、`<threading-profile/>` 要素を削除します。
+
+.Mule 4:
+[source,xml,linenums]
+----
+<flow name="untilFlow">
+  <until-successful>
+    <logger message="#[1]"/>
+  </until-successful>
+</flow>
+----
+
+== 削除された ackExpression 属性と Set Payload の使用
+
+Mule 3 の `ackExpression` 属性は、応答ペイロードの同期生成を設定します。この属性は Mule 4 には存在しません。アプリケーションでこの動作を実行するには、Until Successful の後に Set Payload コンポーネントを設定できます。
+
+.Mule 3:
+[source,xml,linenums]
+----
+<flow name="untilFlow">
+  <until-successful ackExpression="#[message:correlationId]">
+    <logger message="#[1]"/>
+  </until-successful>
+</flow>
+----
+
+Mule 4 の例では、Set Payload `<set-payload/>` コンポーネントを使用して `#[message:correlationId]` 値を設定します。
+
+.Mule 4:
+[source,xml,linenums]
+----
+<flow name="untilFlow">
+  <until-successful>
+    <logger message="#[1]"/>
+  </until-successful>
+  <set-payload value="#[message:correlationId]"/>
+</flow>
+----
+
+== 不要になり削除された同期属性
+
+`synchronous` 属性は不要になったため削除されました。Mule 4 では、実行エンジンでいくつかの変更が行われました。非ブロックアーキテクチャでは不要になりました。
+
+== 関連情報
+
+* xref:intro-engine.adoc[Mule 4 の概要: 実行エンジンのスレッドと同時実行]
+* xref:execution-engine.adoc[実行エンジン]
+* xref:until-successful-scope.adoc[Until Successful スコープ]

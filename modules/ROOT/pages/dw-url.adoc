@@ -1,0 +1,24 @@
+= URL (dw::core::URL)
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+このモジュールには、文字列を操作するヘルパー関数が含まれます。
+
+このモジュールを使用するには、DataWeave コードにインポートする必要があります。その方法として、たとえば、行 `import * from dw::core::URL` を DataWeave スクリプトの
+ヘッダーに追加します。
+
+== 関数
+|===
+| Name (名前)
+| xref:dw-url-functions-compose.adoc[compose]
+| xref:dw-url-functions-decodeuri.adoc[decodeURI]
+| xref:dw-url-functions-decodeuricomponent.adoc[decodeURIComponent]
+| xref:dw-url-functions-encodeuri.adoc[encodeURI]
+| xref:dw-url-functions-encodeuricomponent.adoc[encodeURIComponent]
+| xref:dw-url-functions-parseuri.adoc[parseURI]
+|===
+
+== 型
+* xref:dw-url-types.adoc[URL の型]
+

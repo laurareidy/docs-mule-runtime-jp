@@ -1,0 +1,79 @@
+= 存在する項目の出力
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, 変換, トランスフォーマ, 形式, 集約, 名前変更, 分割, 変換の絞り込み, xml, json, csv, pojo, java オブジェクト, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング
+
+この DataWeave の例では、入力の JSON 配列に存在する項目を出力します。配列の最初のオブジェクトには `"insurance"` が含まれていますが、2 番目のオブジェクトには含まれていません。XML 出力には、この構造が反映されています。
+
+この例では、次の関数を使用します。
+
+* 入力配列内の各要素を調べる `map`。
+* どのような場合に `insurance` 項目を出力するのかを決定する `if($.insurance?)`。
+
+.DataWeave
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/xml
+---
+users: { (payload map
+        user: {
+          name: $.name,
+          (insurance: $.insurance) if($.insurance?)
+        } )
+}
+----
+
+.入力 JSON
+[source,json,linenums]
+----
+[
+  {
+    "name" : "Julian",
+    "gender" : "Male",
+    "age" : 41,
+    "insurance": "Osde"
+  },
+  {
+    "name" : "Mariano",
+    "gender" : "Male",
+    "age" : 33
+  }
+]
+----
+
+.出力 XML
+[source,xml,linenums]
+----
+<?xml version='1.0' encoding='US-ASCII'?>
+<users>
+  <user>
+    <name>Julian</name>
+    <insurance>Osde</insurance>
+  </user>
+  <user>
+    <name>Mariano</name>
+  </user>
+</users>
+----
+
+== 関連する例
+
+* xref:dataweave-cookbook-map.adoc[DataWeave を使用したデータのマップ]
+
+* xref:dataweave-cookbook-exclude-field.adoc[出力からの項目の除外]
+
+* xref:dataweave-cookbook-insert-attribute.adoc[XMLタグへの属性の挿入]
+
+* xref:dataweave-cookbook-conditional-list-reduction-via-function.adoc[関数を使用したリストの条件付き削減]
+
+* xref:dataweave-cookbook-format-according-to-type.adoc[型に応じた形式の変更]
+
+== 関連情報
+
+* xref:dataweave-types.adoc[DataWeave の型]
+
+* xref:dataweave-selectors.adoc[DataWeave セレクタ]
+
+* xref:dataweave-cookbook.adoc[DataWeave の解説書]

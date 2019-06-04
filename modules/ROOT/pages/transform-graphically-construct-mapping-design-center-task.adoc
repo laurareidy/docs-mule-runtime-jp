@@ -1,0 +1,55 @@
+= グラフィカルなマッピングの構築 (Design Center)
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords:
+
+Transform コンポーネントのグラフィカル UI を使用して、以下の作業を行うことができます。各作業では、それぞれのアクションを記述した DataWeave ソースコードが生成されます。
+
+== 項目のマッピング
+
+入力構造の要素を出力構造上の別の要素までドラッグすると、2 つの要素を連結するラインが作成されます。
+
+image::to-transform-data-c2fc6.png[]
+
+
+////
+== Map a Structure
+
+Drag a high-level structure that contains lists of elements or inner fields onto a compatible one in the output. This creates a shaded region covering all the mapped structure. Fields that have identical names in these structures are automatically mapped.
+////
+
+image::to-transform-data-afe5b.png[]
+
+== マッピングの削除
+
+. 対応する入力要素を選択します。
++
+ゴミ箱のアイコン image:graphically-construct-mapping-design-center-task-2457b.png[] が接続上に表示されます。
++
+. ゴミ箱のアイコンをクリックします。
+
+
+== 固定値または関数の設定
+
+
+. 出力ツリーで (子を持たない) 項目をダブルクリックします。関数アイコン image:graphically-construct-mapping-design-center-task-8a822.png[] が隣に表示されます。
+
+. デフォルト値の `null` が入ったボックスが表示されます。`null` を好きなように変更します。例:
++
+
+* " "で囲んだ固定テキスト値
+* 入力項目への参照
+* DataWeave 関数を含むステートメント
+
+これは、各項目が別の項目を直接参照したり、他の項目への参照が関与する関数の結果が項目に表示されたりするスプレッドシートと似ています。
+
+[NOTE]
+関数を削除するには、隣に表示されているゴミ箱のアイコンをクリックします。
+
+
+== 関連情報
+
+xref:dw-functions.adoc[DataWeave 関数リファレンス]
+
+xref:dataweave.adoc[DataWeave 言語]

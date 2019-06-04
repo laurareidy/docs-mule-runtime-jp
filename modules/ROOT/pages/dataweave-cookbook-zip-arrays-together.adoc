@@ -1,0 +1,130 @@
+= 複数の配列要素のグループ化
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, 変換, トランスフォーマ, 形式, 集約, 名前変更, 分割, 変換の絞り込み, json, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング, as
+
+この DataWeave の例では、イケアスタイルの家具の部品表を再構成します。入力には、並列処理される 2 つの個別の配列があり、ねじの寸法と数量が含まれます。これらは変換により、「screws」配列がタプル (寸法が含まれるタプルと対応する数量が含まれるタプル) で構成されるように並び替えられます。同じことが木製ボードにも適用されます。入力には、x の寸法と y の寸法が含まれる 2 つの配列があります。変換により、各ボードの一連のタプルに再編成されます。
+
+
+次の DataWeave 関数を使用します。
+
+* メイン配列の要素を調べる `map`。
+* インデックスで複数の 2 要素配列にグループ化されるように、長い配列のペアを再編成する `zip`。
+
+.DataWeave
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+payload map (item, index) ->
+{
+    name: item.name,
+    id: item.itemID,
+    screws: zip(item.screws.size, item.screws.quantity),
+    measurements: zip(item.measurements.x,item.measurements.y )
+}
+----
+
+
+
+
+.入力
+[source,json,linenums]
+----
+[
+   {
+    "name":"wooden-chair",
+    "itemID": "23665",
+    "screws":{
+      "size":[4,6,10],
+      "quantity":[15,8,28]
+    },
+    "measurements":
+    {"x":[25,46, 46, 16,150,5, 100, 100, 8],
+    "y":[15,4, 4, 80,3, 4, 4, 15]
+    }
+  },
+   {
+    "name":"cofee-table",
+    "itemID": "14398",
+    "screws":{
+      "size":[3,8,10],
+      "quantity":[8,12,20]
+    },
+    "measurements":
+    {"x":[55, 48, 48, 48, 48, 30, 30, 30, 30],
+    "y":[55, 40, 40, 40, 50, 4, 4, 4, 4]
+    }
+  }
+]
+----
+
+.出力
+[source,json,linenums]
+----
+[
+  {
+    "name": "wooden-chair",
+    "id": "23665",
+    "screws": [
+      [4, 15],
+      [6, 8],
+      [10, 28]
+    ],
+    "measurements": [
+      [25,  15],
+      [46, 4],
+      [46,  4],
+      [16,  80],
+      [150,  3],
+      [5,  4],
+      [100,  4],
+      [100,  15]
+    ]
+  },
+  {
+    "name": "cofee-table",
+    "id": "14398",
+    "screws": [
+      [3, 8],
+      [8, 12],
+      [10, 20]
+    ],
+    "measurements": [
+      [55, 55],
+      [48, 40 ],
+      [48, 40],
+      [48, 40],
+      [48,50],
+      [30, 4],
+      [30, 4],
+      [30, 4],
+      [30, 4]
+    ]
+  }
+]
+----
+
+
+
+
+
+== 関連する例
+
+* xref:dataweave-cookbook-regroup-fields.adoc[項目の再グループ化]
+
+* xref:dataweave-cookbook-perform-basic-transformation.adoc[XML から JSON への変換]
+
+* xref:dataweave-cookbook-define-a-custom-addition-function.adoc[カスタム追加関数の定義]
+
+* xref:dataweave-cookbook-pick-top-elements.adoc[上位要素の取得]
+
+== 関連情報
+
+* xref:dataweave-types.adoc[DataWeave の型]
+
+* xref:dataweave-selectors.adoc[DataWeave セレクタ]
+
+* xref:dataweave-cookbook.adoc[DataWeave の解説書]
