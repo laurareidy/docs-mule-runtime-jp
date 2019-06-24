@@ -68,9 +68,9 @@ SLA 要件
 
 高可用性は、クラスタリングの使用やノードの負荷分散によって実現できます。定義された SLA に応じて、Mule には 4 つの HA オプションがあります。
 
-* <<Cold Standby>>
-* <<Warm Standby>>
-* <<Hot Standby - Active-Passive>>
+* <<コールドスタンバイ>>
+* <<ウォームスタンバイ>>
+* <<ホットスタンバイ - アクティブ-パッシブ>>
 * <<Active-Active>>
 
 注意: 多くの場合、これらのオプションは障害回復戦略に関連します。
@@ -122,9 +122,9 @@ SLA 要件
 
 == 高可用性デプロイモデル
 
-* <<Active-Active Clustering Deployment Model>>
-* <<Active-Active Clustering Fault Tolerance Deployment Model>>
-* <<Zero Downtime Deployment Model>>
+* <<アクティブ-アクティブクラスタリングデプロイモデル>>
+* <<アクティブ-アクティブクラスタリングフォールトトレランスデプロイモデル>>
+* <<ゼロダウンタイムデプロイモデル>>
 
 === アクティブ-アクティブクラスタリングデプロイモデル
 
