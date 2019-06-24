@@ -155,9 +155,9 @@ keytool は、デフォルトでは DSA アルゴリズムを使用して証明�
 
 Mule アプリケーションで TLS を有効にするには、次の 3 つの方法のいずれかを使用して Mule XML 設定ファイルで `tls:context` 要素を設定します。
 
-* <<Edit XML to Configure TLS,XMLファイルを直接編集します。>>
-* <<Use Anypoint Studio to Configure TLS,Anypoint Studio 7 を使用します。>>
-* <<Use Design Center to Configure TLS,Design Center フローデザイナを使用します。>>
+* <<XML の編集による TLS の設定,XMLファイルを直接編集します。>>
+* <<Anypoint Studio を使用して TLS を設定する,Anypoint Studio 7 を使用します。>>
+* <<Design Center を使用して TLS を設定す,Design Center フローデザイナを使用します。>>
 
 どの方法を使用する場合でも、<<Edit XML to Configure TLS>> を参照して、`tls:context` の属性がどのように機能するのかを理解しておくことをお勧めします。
 
