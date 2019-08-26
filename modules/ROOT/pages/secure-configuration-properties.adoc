@@ -55,10 +55,10 @@ Mule Secure Configuration Property Extension モジュール は https://anypoin
 | Name (名前)
 | グローバルセキュア設定プロパティの一意の名前。
 
-| キー
+| Key (キー)
 | この項目で定義したシステムプロパティに従ってプロパティ値を復号化するために使用する単語またはフレーズ。たとえば、`${production.myproperty}` と指定すると、Mule Runtime は実行時にキーを要求します。
 
-| ファイル
+| File (ファイル)
 | キーが復号化するファイルの場所。<<supported_files>>を参照してください。
 |===
 
