@@ -1,0 +1,14 @@
+= ログおよびデバッグ
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+MuleSoft は、Mule アプリケーション用のさまざまなログオプションとデバッグオプションを提供します。
+
+アプリケーションログとランタイムログは、アプリケーションと Mule サーバの監視とトラブルシューティングに役立ちます。詳細は、xref:logging-in-mule.adoc[「ログの設定」]を参照してください。
+
+Logger コンポーネントでは、エラーメッセージ、状況通知、ペイロードなどの重要な情報をログに記録するというやり方で、Mule アプリケーションを監視し、デバッグすることもできます。Logger はフローの任意の場所に追加でき、各自が指定した文字列、記述した DataWeave 式の出力、文字列と式の組み合わせをログに記録するように設定できます。詳細は、コアコンポーネントのドキュメントの xref:logger-component-reference.adoc[「Logger コンポーネント」]を参照してください。
+
+Mule スタック追跡の表示を制御するには、コマンドライン引数を使用するか、Anypoint Studio でプロパティを設定することができます。詳細は、xref:configuring-mule-stacktraces.adoc[「Mule スタック追跡の設定」]を参照してください。
+
+Anypoint Studio で Mule アプリケーションのトラブルシューティングを行うには、Studio ビジュアルデバッガを使用できます。これを使用すると、ブレークポイントを設定して実行を停止し、イベントを確認できます。Studio 外で Mule アプリケーションを作成する場合は、MUnit を使用してアプリケーションをテストするか、リモートデバッグをアクティブ化することができます。詳細は、xref:debugging-outside-studio.adoc[「Studio 外でのデバッグ」]を参照してください。

@@ -1,0 +1,379 @@
+= MEL から DataWeave への移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+// Contacts/SMEs: Esteban Wasinger, Ana Felisatti
+
+Mule 4 では Mule Expression Language (MEL) が DataWeave 式言語に要素に置き換わりました。
+このセクションでは、Mule アプリケーションの MEL 式を DataWeave (2.0 以降) に移行するためのガイダンスを提供します。
+
+== DataWeave の概要
+DataWeave は、単に値の参照と条件の評価を行う式言語として、または関数や再帰を含む複雑なデータ変換を作成するスクリプティング言語として使用できる Mule 固有の言語です。
+
+MEL とは違い、JSON、XML、CSV など、さまざまなデータ型が標準でサポートされます。つまり、式を評価する前にデータを変更する必要がなくなりました。
+また、関数のマッピングやデータの絞り込みなど、高度なユースケースもサポートされています。
+
+DataWeave のメインデータセレクタは `.` 演算子であることに留意してください。
+ほとんどキーワードは MEL と共有されるので、ほとんどのシナリオの構文は同じになります。たとえば、`#[message.payload.name]` は両言語とも同じです。
+
+MEL と DataWeave の主な違いは、DataWeave 式には副作用がないことです。DataWeave を使用してデータを抽出または生成できますが、データを変更することはできません。
+それらのユースケースの対処法については、xref:intro-java-integration.adoc[Java インテグレーション]の例を参照してください。
+
+////
+//This section will only make sense once the compatibility plugin is out
+== Compatibility Mode
+
+MEL is still supported in compatibility mode when expressions feature a `mel:` prefix.
+In fact, for compatibility use cases such as accessing inbound and outbound properties,
+attachments or exception payloads MEL is recommended.
+
+////
+
+== MEL の使用法
+
+以下のセクションでは、MEL の一部の使用法を Mule 4 に適応させる方法を説明します。
+
+=== コンテキスト変数へのアクセス
+xref:3.9@mule-runtime::mel-cheat-sheet.adoc#server-mule-application-and-message-variables[コンテキスト変数]はすべて DataWeave でも同じですが、新しい `attributes` 変数と次の変更があります。
+
+[%header,cols="2,3a"]
+|===
+| MEL | DataWeave
+
+|`flowVars`
+|`vars` に名前が変更されました。
+
+|`sessionVars`
+|削除されました。xref:intro-mule-message.adoc#session-properties[「セッションプロパティ」]を参照してください。
+
+|`exception`
+|置き換えられました。フロー内の例外は、`error` 変数でアクセスできる xref:error-handling.adoc[Mule エラー]で表されるようになりました。
+
+|`message.inboundProperties`
+|削除されました。xref:intro-mule-message.adoc#inbound-properties-are-now-attributes[「インバウンドプロパティが属性に」]を参照してください。
+
+|`message.outboundProperties`
+|削除されました。xref:intro-mule-message.adoc#outbound-properties[「アウトバウンドプロパティ」]を参照してください。
+
+|`message.inboundAttachments` および `message.outboundAttachments`
+|削除されました。xref:intro-mule-message.adoc#attachments[「添付ファイル」]を参照してください。
+
+//This section will only make sense once the aggregators module is out
+//|`message.correlationId`
+//|Renamed: `correlationId`
+
+//|`message.correlationSequence`
+//|Renamed: `itemSequenceInfo.position`
+
+//|`message.correlationGroupSize`
+//|Renamed: `itemSequenceInfo.sequenceSize`
+
+|`message.id`、`message.rootId`、`message.replyTo`
+|排除されました。
+
+|`message.dataType`
+|`dataType` に名前が変更されました。
+
+|`server.dateTime`
+|削除されました。DataWeave の xref:dw-core-functions-now.adoc[`now`] 関数を使用します。
+
+|===
+
+[[extract_data]]
+=== データの抽出
+
+xref:dataweave-selectors.adoc[DataWeave セレクタ]を使用して、MEL と同様にデータをクエリできます。また、JSON などの型に対応するために、さらに変換を行う必要がありません。
+
+以下の例では、次の JSON ペイロードの ID をログに記録します。
+
+.JSON ペイロード
+[source,json,linenums]
+----
+{
+  "name" : "Rachel Duncan",
+  "id": "779H41"
+}
+----
+
+.Mule 3 の例
+[source,xml,linenums]
+----
+<json:json-to-object-transformer returnClass="java.util.Map" />
+<logger message="Updating health check record for subject '#[payload.id]'" level="INFO" />
+----
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<logger message="Updating health check record for subject '#[payload.id]'" />
+----
+
+=== 値の割り当て
+
+前述のとおり、DataWeave では、MEL の `expression-component` で許可されていたようなデータの変更はサポートされていません。そのようなユースケースを実行するには、スクリプティングモジュールを使用する必要があります。
+
+Java マップとして記述されている<<extract_data,前述>>のペイロードを考えてみます。例では、`name` 属性を変更します。
+
+.Mule 3 の例
+[source,xml,linenums]
+----
+<expression-component>
+  <![CDATA[
+    payload.name = 'R. Duncan'
+  ]]>
+</expression-component>
+----
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<script:execute engine="groovy">
+  <script:code>
+    payload.put('name', 'R. Duncan')
+    return payload
+  </script:code>
+</script:execute>
+----
+
+スクリプティングモジュールを使用するには、Studio のパレットを使用してアプリケーションに追加するか、`pom.xml` ファイルで次の連動関係を追加します。
+
+[source,xml,linenums]
+----
+<dependency>
+  <groupId>org.mule.modules</groupId>
+  <artifactId>mule-scripting-module</artifactId>
+  <version>1.1.0</version> <!-- or newer -->
+  <classifier>mule-plugin</classifier>
+</dependency>
+----
+
+=== Java メソッドの呼び出し
+
+DataWeave を使用して静的メソッドを呼び出すことができます。通常のメソッドの場合は Java モジュールを使用できます。このモジュールは操作と関数の両方を公開して Java メソッドを呼び出します。
+
+==== 静的メソッド
+
+以下の例では、Java の Locale `getDefault` 静的メソッドを Mule 3 と Mule 4 で使用しています。
+
+.Mule 3 の例
+[source,xml,linenums]
+----
+<validation:is-time time="#[payload]" pattern="h:mm a" locale="#[java.util.Locale.getDefault().getLanguage()]"/>
+----
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<validation:is-time time="#[payload]" pattern="h:mm a" locale="#[java!java::util::Locale::getDefault().getLanguage()]"/>
+----
+
+DataWeave では、Java 静的メソッドが検索対象であることを示す `java!` プレフィックスと、完全修飾された (`.` ではなく、`::` 区切りの) クラス名が必要です。
+
+==== インスタンスメソッド
+
+以下の例は、Mule 3 と Mule 4 での Java の String `equalsIgnoreCase` メソッドの使用法を示しています。
+
+.Mule 3 の例
+[source,xml,linenums]
+----
+<choice>
+  <when expression="#[payload.equalsIgnoreCase('error')]">
+    <logger message="An error message has been received." level="ERROR"/>
+  </when>
+  <otherwise>
+    <logger message="Message received: #[payload]" level="INFO"/>
+  </otherwise>
+</choice>
+----
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<choice doc:name="Choice">
+  <when expression="#[Java::invoke('java.lang.String', 'equalsIgnoreCase(String)', payload, {arg0: 'error'})]">
+		<logger message="An error message has been received." level="ERROR"/>
+	</when>
+	<otherwise >
+		<logger message="Message received: #[payload]" level="INFO"/>
+	</otherwise>
+</choice>
+----
+
+Java モジュールを使用するには、Studio のパレットを使用してアプリケーションに追加するか、`pom.xml` ファイルで次の連動関係を追加します。
+
+[source,xml,linenums]
+----
+<dependency>
+  <groupId>org.mule.modules</groupId>
+  <artifactId>mule-java-module</artifactId>
+  <version>1.0.0</version> <!-- or newer -->
+  <classifier>mule-plugin</classifier>
+</dependency>
+----
+
+=== 対象の定義
+
+`enricher` は削除されて、すべての操作でサポートされる対象変数に置き換わりました。以下の例は、Mule 3 と Mule 4 で操作の結果を変数に送信する方法を示しています。
+
+.Mule 3 の例
+[source,xml,linenums]
+----
+<enricher target="#[flowVars.response]">
+    <http:request config-ref="HTTP_Request_Configuration" path="/get" method="GET"/>
+</enricher>
+----
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<http:request config-ref="HTTP_Request_Configuration" path="/get" method="GET" target="response"/>
+----
+
+詳細は、xref:target-variables.adoc[「対象変数を使用したデータのエンリッチ」]を参照してください。
+
+=== XPath 関数
+
+DataWeave では、xref:dataweave-selectors.adoc[セレクタ]を使用して XML コンテンツをクエリできますが、XML モジュールを使用することもできます。このモジュールは操作と関数の両方を公開して XPath クエリを実行します。
+
+以下の例は、Mule 3 と 4 で、変数から取得された特定の単語を含む行を取得する方法を示しています。
+
+.Mule 3 の例
+[source,xml,linenums]
+----
+<set‐variable variableName="word" value="handkerchief"/>
+<expression‐transformer>
+   xpath3('//LINE[contains(.,$word)]',payload,'NODESET')
+</expression‐transformer>
+----
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<set‐variable variableName="word" value="handkerchief"/>
+<set-payload value="#[XmlModule::xpath('//LINE[contains(., \$word)]', payload, {'word': vars.word})]" />
+----
+
+XML モジュールを使用するには、Studio のパレットを使用してアプリケーションに追加するか、`pom.xml` ファイルで次の連動関係を追加します。
+
+[source,xml,linenums]
+----
+<dependency>
+  <groupId>org.mule.modules</groupId>
+  <artifactId>mule-xml-module</artifactId>
+  <version>1.1.0</version> <!-- or newer -->
+  <classifier>mule-plugin</classifier>
+</dependency>
+----
+
+=== ワイルドカード関数と正規表現関数
+
+DataWeave のマッチング関数 `match` と `matches` を代わりに使用できます (コア DataWeave 関数を参照してください)。次の例は、DataWeave で正規表現を使用して、`wildcard` MEL 関数の使用を置き換える方法を示しています。
+
+.Mule 3 の例
+[source,xml,linenums]
+----
+<choice>
+  <when expression="#[wildcard('Hello *')]">
+    <set-payload value="Hello, how can I help?"/>
+  </when>
+  <otherwise>
+    <set-payload value="Courtesy requires a greeting."/>
+  </otherwise>
+</choice>
+----
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<choice doc:name="Choice">
+  <when expression="#[payload matches /Hello\s[A-z]+/]">
+    <set-payload value="Hello, how can I help?"/>
+  </when>
+  <otherwise >
+    <set-payload value="Courtesy requires a greeting."/>
+  </otherwise>
+</choice>
+----
+
+== 関連情報
+
+xref:dataweave.adoc[DataWeave 言語]
+
+https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4/[Why DataWeave is the Main Expression Language in Mule 4 Beta (Mule 4 ベータ版で DataWeave が主要な式言語である理由)]
+
+xref:3.9@mule-runtime::mule-expression-language-mel.adoc[Mule Expression Language (MEL)] (3.9)
+
+
+////
+Topics to cover:
+
+* MEL expressions to DataWeave 2.x (2.1?)
+* Preliminary plan is to take examples from Mule 3 docs and show how to migrate them to 4.0. See https://docs.mulesoft.com/mule-user-guide/v/3.9/mule-expression-language-mel
+* 3 primary use cases (from Dan Feist):
+ ** Extract of a value from a message (for logging, or simple transformation etc).
++
+Examples:
++
+ *** `#[payload]` same in DW.
+ *** `#[message.payload]` to DW: `#[payload]`
+ //*** *TODO*: `#[message.inboundProperties.'propertyName']` to DW: `#[attributes.'propertyName']`
+ *** `#[<logger message="#[payload]" />]` same DW.
+// *** *TODO*: `#[payload.methodCall(parameters)]` to DW:
+// *** *TODO*: `#[xpath3('//root/element1')]` to DW:
+ ** Evaluate of a condition (for use in validation, routing etc)
+ *** `#[payload.age > 21]` same as DW.
+// *** *TODO*: `#[message.inboundProperties.'locale' == 'en_us']`
+ ** Define a target:
+ *** Dan says “was primarily only used in enricher which is now not supported in 4.0”. Looks like this will be covered in xref:migration-patterns.adoc[Migration Patterns].
+ *** `#[flowVars.output]` is now handled through Target Variables. See previous link.
++
+We now use the target variable instead in 4.0
+
+.MEL Expression
+----
+<choice>
+   <when expression="#[payload.getPurchaseType() == 'book']">
+        <jms:outbound-endpoint queue="bookPurchases" />
+    </when>
+   <when expression="#[payload.getPurchaseType() == 'mp3']">
+        <jms:outbound-endpoint queue="songPurchases" />
+    </when>
+ </choice>
+----
++
++
+.DataWeave Expression
+//*TODO: DW example needs to align better with MEL example*
+----
+<choice doc:name="Choice">
+  <when expression="#[vars.language == 'french']">
+    <set-payload value="Bonjour!" doc:name="Reply in French"/>
+  </when>
+  <when expression="#[var.language == 'spanish']">
+    <set-payload value="Hola!" doc:name="Reply in Spanish"/>
+  </when>
+  <otherwise >
+    <set-variable variableName="language" value="English" doc:name="Set Language to English"/>
+    <set-payload value="Hello!" doc:name="Reply in English"/>
+  </otherwise>
+</choice>
+----
++
+  **** Cannot assign values in DW as in MEL: need to use the Scripting module for that.
+// *TODO: Need example.*
+
+
+FROM ANA'S BLOG:
+
+== Date Time
+* MEL: `#[payload.name ++ '.' ++ dataType.mimeType.subType]`
+* DataWeave: `#[payload ++ { date : now() }]`
+////
+
+////
+  Note:
+  Mariano G. says most people using MEL to access the payload. For simple expressions, migration tool will do it, but we will have to help migrate complex mappings. No date on migrator, but is first priority after GA. Somewhere in the Mule.
+
+  We'll try to map some of the most frequently used MEL expressions to DW expressions for initial release of guide and add to that list as needed in subsequent versions of guide.
+////

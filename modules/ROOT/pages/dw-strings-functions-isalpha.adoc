@@ -1,0 +1,67 @@
+= isAlpha
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[isalpha1]]
+== isAlpha&#40;String&#41;: Boolean
+
+`text` に Unicode 数字のみが含まれるかどうかを確認します。小数点は Unicode 数字ではないため、`false` が返されます。
+
+
+このメソッドでは先頭の記号 (プラスまたはマイナス) は許可されません。
+
+_DataWeave 2.2.0 で導入されました。Mule 4.2 以降でサポートされます。_
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `text` | 入力文字列。
+|===
+
+=== 例
+
+次の例では、さまざまな入力とサイズでの `isNumeric` の動作を示します。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+import isAlpha from dw::core::Strings
+output application/json
+---
+{
+  "a": isAlpha(null),
+  "b": isAlpha(""),
+  "c": isAlpha("  "),
+  "d": isAlpha("abc"),
+  "e": isAlpha("ab2c"),
+  "f": isAlpha("ab-c")
+}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "a": false,
+  "b": false,
+  "c": false,
+  "d": true,
+  "e": false,
+  "f": false
+}
+----
+
+
+[[isalpha2]]
+== isAlpha&#40;Null&#41;: Boolean
+
+`isAlpha` を `null` 値に使用できるようにするヘルパー関数。
+

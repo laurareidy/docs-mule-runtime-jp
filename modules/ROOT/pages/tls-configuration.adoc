@@ -1,0 +1,360 @@
+= キーストアとトラストストアを使用した TLS の設定
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: tls, https, ssl, セキュアメッセージ, 暗号化, キーストア, トラストストア
+
+TLS は、Mule アプリケーションの通信セキュリティを確保する暗号化プロトコルです。TLS には、認証キーを交換し、データを暗号化し、メッセージの整合性を保証するための多くの方法があります。このトピックでは、Mule が TLS をどのようにサポートするか、そして Mule アプリケーションで TLS をどのように設定するかについて説明します。
+
+Mule Runtime 4 (Mule 4) は、Transport Layer Security (TLS) 1.1/1.2 をサポートします。
+
+== tls:context 要素
+
+`tls:context` 要素は、TLS をサポートするすべてのコネクタで使用します。たとえば、TLS は HTTP (サーバとクライアント)、FTPS (クライアント)、メール (クライアント)、またはソケット (クライアント) などのコネクタで設定できます。
+
+[NOTE]
+====
+コネクタで TLS がサポートされる場合、Studio には次のいずれかが表示されます。
+
+- そのコネクタの [Global Element Properties (グローバル要素のプロパティ)] の *[TLS/SSL]* タブ。
+- そのコネクタの [Global Element Properties (グローバル要素のプロパティ)] の *[General (一般)]* タブの *[TLS Configuration (TLS 設定)]* 項目。 
+====
+
+== TLS 対応のサーバとクライアント
+
+TLS 対応のサーバには、非公開キーと公開証明書が含まれます。
+
+* 非公開キーはサーバの外部には送信されません。
+* 公開証明書は TLS 経由で公開されます。
+
+TLS 対応クライアントは、自身が保管する信頼済みの証明書を使用して公開証明書を検証することで、サーバが信頼できるかどうかを確認します。
+
+Mule 4 で TLS 通信セキュリティを使用するには、証明書と非公開キーをキーストアファイルにインポートします。トラストストアファイルは、慣例として信頼済みのサーバ公開証明書のみが格納されるキーストアでもあります。
+
+標準 JRE 配布には、デフォルトの Java トラストストアはありますが、デフォルトの Java キーストアはありません。自身のキーストアを TLS コンテキストに追加してください。すでにクライアントアプリケーション用に企業の証明書があれば、新たに作成する必要はありません。これらの証明書の多くは JRE トラストストアでも使用できるため、その場合は TLS コンテキストでのセットアップは不要です。
+
+証明書は、よく知られた証明書機関 (CA) が生成するか、またはユーザが外部承認なしでローカルに証明書 (自己署名証明書) を生成することができます。トラストストアには、サーバから提供された証明書をクライアントが検証するために使用する信頼済みの CA があります。
+
+== キーストアとトラストストア
+
+Mule 設定の `tls:trust-store` 要素と `tls:key-store` 要素は、特定の証明書とキーを参照しますが、`tls:trust-store` の値を指定しないと、Mule はデフォルトの Java トラストストアを参照します。Java を更新するとデフォルトのトラストストアも更新されますので、よく知られた CA 証明書を最新に保つために、定期的な更新をお勧めします。
+
+トラストストアとキーストアは、クライアントとサーバのどちらで使用するかによって内容が異なります。
+
+* サーバ用: トラストストアには信頼済みのクライアントの証明書、キーストアにはサーバの非公開キーと公開キーが格納されています。
+
+* クライアント用: トラストストアには信頼済みのサーバの証明書、キーストアにはクライアントの非公開キーと公開キーが格納されています。
+
+キーストアとトラストストアの両方を追加すると、相互認証とも呼ばれる両方向の TLS 認証を実装できます。
+
+キーストアには 1 つまたは 2 つのパスワードがあります。
+
+* `password` はキーストアファイル全体にアクセスします。
+* `keyPassword` は、キーストアにあるサーバの非公開キーにアクセスします。
+
+== クライアントの設定
+
+`tls:context` が空白である (`tls:key-store` も `tls:trust-store` も定義されていない) 場合は、JVM のデフォルト値 (通常は、すべての主要証明機関の証明書が格納されたトラストストア) が使用されます。
+
+クライアントが接続しようとしているサーバからの証明書を必要とする場合は、`tls:trust-store` 要素を追加します。`path` には、信頼済みのサーバの証明書が格納されているトラストストアファイルの場所を設定します。
+
+サーバがクライアントからの証明書を検証する場合は、`tls:key-store` 要素に、クライアントの非公開/公開キーが格納されたキーストアファイルの場所が設定された `path` を組み合わせる必要があります。
+
+== サーバの設定
+
+`tls:context` には、HTTPS などのセキュアな接続を使用して要求をリッスンする `tls:key-store` 要素を指定する必要があります。`path` には、サーバの非公開/公開キーが格納されているキーストアストアファイルの場所を設定します。
+
+サーバがクライアントからの証明書を検証する必要がある場合は、`tls:trust-store` 要素を追加し、信頼済みのクライアントの証明書が格納されたトラストストアファイルの場所を `path` に設定します。
+
+Mule は、多くのキーストア種別をサポートします。例:
+
+* JCEKS
+* PKCS12
+* JKS
+
+キーストア種別は JRE に指定します。
+
+Mule アプリケーション用に TLS を完全に設定するための手順は次の通りです。
+
+. Oracle の Java keytool を使用して<<Generate a Keystore,キーストアとトラストストアを生成します>>。
+. <<Configure TLS in Mule 4,Mule でクライアントまたはサーバ用の TLS をグローバルに設定します>>。
+. <<Specify Protocols and Cipher Suites,Mule 設定ファイルでプロトコルと暗号化スイートを指定します (省略可能)>>。
+
+
+== キーストアを生成する
+
+この手順では、キーストアの生成と、他の関連作業を行います。
+
+. サーバの証明書を公開するキーストアを生成します。例:
++
+`keytool -genkey -alias serverkey -keyalg RSA -keystore mykeystore.jks`
++
+keytool の要求メッセージに応答します。応答例:
++
+* Enter keystore password (キーストアのパスワードを入力してください): *mule123*
+* Re-enter new password (新しいパスワードを再入力してください): *mule123*
++
+. 入力画面に対して他の値を入力します。任意の値を入力してください。応答例:
++
+* What is your first and last name?  [Unknown] (名前と名字を入力してください [不明]):  *max*
+* What is name of your organizational unit? [Unknown] (組織の部署名を入力してください [不明]):  *MuleSoft*
+* What is the name of your organization? [Unknown] (組織名を入力してください [不明]):  *MuleSoft Inc*
+* What is the name of your City or Locality?  [Unknown] (都市名または地名を入力してください [不明]):  *San Francisco*
+* What is the name of your State or Province?  [Unknown] (州を入力してください [不明]):  *CA*
+* What is two-letter country code for this unit?  [Unknown] (2 桁の国コードを入力してください [不明]):  *01*
++
+. 次の入力画面に対して *yes (はい)* と入力します。
++
+Is CN=kahn, OU=MuleSoft, O=MuleSoft Inc, L=San Francisco, ST=CA, C=01 correct? (CN=kahn、OU=MuleSoft、O=MuleSoft Inc、L=San Francisco、ST=CA、C=01 でよろしいですか?)  [no] ([いいえ]):  *yes (はい)*
++
+. 次の入力画面に応答します。RETURN キーを押すと同じパスワードが使用されます。
++
+Enter key password for <serverkey>  (RETURN if same as keystore password) (<serverkey> のパスワードを入力してください (キーストアパスワードと同じであれば RETURN を押してください)):
++
+. 公開キーを認証する自己署名証明書をエクスポートするためのコマンドを入力します。
++
+----
+keytool -export -alias serverkey -keystore httplistener.jks -file server_cert.cer
+----
++
+. 証明書に関連付けるキーストア用にセットアップしてあるパスワードを入力画面に対して入力します。
++
+Enter keystore password (キーストアのパスワードを入力してください): *mule123*
+. もしくは、自己署名証明書のみをエクスポートするのではなく、証明機関からの証明書と自己署名証明書の両方を単一のコマンドで生成します。
++
+----
+keytool -genkeypair \
+    -keystore httplistener.jks \
+   -dname "CN=Unknown, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=Unknown" \
+   -keypass mule123 \
+   -storepass mule123 \
+   -keyalg DSA \
+   -sigalg SHA1withDSA \
+   -keysize 1024 \
+   -alias mulekey \
+   -ext SAN=DNS:localhost,IP:127.0.0.1 \
+   -validity 9999
+----
++
+生成されたキーストアには、非公開キーと公開証明書が格納されます。この証明書は自己署名であるため、クライアントと公開証明書を共有するまでは、クライアントには信頼されません。
++
+keytool は、デフォルトでは DSA アルゴリズムを使用して証明書を生成します。RSA アルゴリズムを使用するように指定することもできます。
+. クライアントと共有するサーバの証明書をキーストアからエクスポートします。たとえば、公開キーを認証する自己署名証明書をエクスポートするコマンドを入力します。
++
+`keytool -export -alias serverkey -keystore mykeystore.jks -file server_cert.cer`
++
+. キーストア用にセットアップしてあるパスワードを入力画面に対して入力します。
++
+標準 JDK 配布には、デフォルトではキーストアが含まれていませんので、自分で生成しなければなりません。
++
+証明機関 (CA) で署名された証明書も合わせて入手したい場合は、証明書を標準 CSR 形式でエクスポートしてください。証明書ファイルに付ける名前を指定します。CSRファイルを CA に送信し、指示に従って署名を取得します。CA の署名を取得したら、署名済みの証明書ファイルをインポートできます。
++
+インポート時に割り当てた別名を既存のキーにはリンクさせるとプロセスが失敗しますので注意してください。
+
+== トラストストアを生成する
+
+標準 JRE 配布には、いくつかの主要証明機関 (CA) の証明書が格納されたデフォルトのトラストストアがあり、デフォルトで tls:trust-store 要素で使用されますが、より強力なセキュリティが必要な場合や、自己署名証明書を使用する場合には、新たにトラストストアを作成できます。
+
+トラストストアは Oracle Java keytool で作成します。
+
+クライアントは、信頼の連鎖 (chain of trust) が確立されることでサーバを信頼します。信頼の連鎖は、クライアントとサーバの間で直接 (クライアントのトラストストアにサーバの証明書が格納されることで) 確立されるか、またはクライアントのトラストストアに証明書が格納されている署名 CA 経由で確立されます。信頼の連鎖が確立されていないと、接続が失敗します。自己署名証明書を使用する場合は、トラストストアを定義する必要があります。
+
+== Mule 4 での TLS の設定
+
+Mule アプリケーションで TLS を有効にするには、次の 3 つの方法のいずれかを使用して Mule XML 設定ファイルで `tls:context` 要素を設定します。
+
+* <<Edit XML to Configure TLS,XML ファイルを直接編集します。>>
+* <<Use Anypoint Studio to Configure TLS,Anypoint Studio 7 を使用します。>>
+* <<Use Design Center to Configure TLS,Design Center フローデザイナを使用します。>>
+
+どの方法を使用する場合でも、「<<XML の編集による TLS の設定>>」の情報を参照して、`tls:context` の属性がどのように機能するのかを理解しておくことをお勧めします。
+
+=== XML の編集による TLS の設定
+
+`tls:context` 要素は、Mule アプリケーションで TLS 通信を定義します。特別な要件がない限り、TLS はグローバルに設定して、HTTPS のリスンや送信といった特定の用途に適用してください。
+
+==== TLS 要素のグローバル設定
+
+`tls:context` 要素は、クライアント側とサーバ側の両方から使用できる TLS の設定を定義します。この要素は、他のモジュールの設定オブジェクトから参照したり、いずれかのオブジェクトのネストされた要素として定義したりすることができます。
+
+ネストされた要素を最低 1 つは含めます (key-store と trust-store)。
+
+[source,xml,linenums]
+----
+<tls:context name="customContext">
+    <tls:trust-store path="trustStore" password="mulepassword"/>
+    <tls:key-store path="clientKeystore" keyPassword="mulepassword"
+password="mulepassword"/>
+ </tls:context>
+----
+
+==== `tls-context` 要素の省略可能な属性
+
+プロトコルと暗号化スイートを指定して有効にすることができます (省略可能)。
+
+* `enabledProtocols`: グローバル TLS 設定のプロトコル
+* `enabledCipherSuites`: グローバル TLS 設定の暗号化スイート
+
+「<<Optional: Specify Protocols and Cipher Suites,省略可能: プロトコルと暗号化スイートの指定>>」で説明するように、これらの値は、グローバル TLS 設定で何も指定されていないか、またはこれらの値がグローバル TLS 設定で有効化されている場合に使用されます。
+
+==== `trust-store` 要素の属性
+
+`path` を指定する場合は、`password` 属性が必要です。そうでない場合は省略可能です。
+
+* `path`: トラストストアが格納されているファイルへのパス
+* `type`: トラストストアの種別。デフォルトは JKS
+* `password`: トラストストアのパスワード (`path` を指定した場合は必須)
+* `algorithm`: トラストストアが使用するアルゴリズム。デフォルトは `SunX509`
+* `insecure`: トラストストアを検証するかどうかを決定するブール値。`true` に設定すると検証は行われません。デフォルト値は `false` です。
+
+[IMPORTANT]
+`insecure` を `true` に設定すると、接続が攻撃に対して脆弱になります。この設定は、プロトタイプ開発やテストにおいてのみ使用してください。本番環境では絶対に使用しないでください。
+
+==== `key-store` 要素の属性
+
+`path` 以外の属性は省略可能です。
+
+* `path`: キーストアが格納されているファイルへのパス (必須)
+* `type`: キーストアの種別 (デフォルトは JKS)
+* `password`: キーストアのパスワード
+* `keyPassword`: キーマネージャのパスワード。キーストア内の非公開キーのパスワードです
+* `algorithm`: キーストアで使用するアルゴリズム。デフォルト値は `SunX509` です。
+
+=== Design Center を使用して TLS を設定する
+
+Design Center を使用してアプリケーション用に TLS を設定できます。たとえば、HTTP リスナ用に TLS を設定する手順は次の通りです。
+
+. Design Center にログインします。
+. プロジェクトを開きます。
+. HTTP リスナを開きます。
+. [Configuration (設定)] タブで **[Edit (編集)] **をクリックします。
+. [TLS] タブで、上記の TLS 設定項目を設定します。
+. 「<<Optional: Specify Protocols and Cipher Suites,省略可能: プロトコルと暗号化スイートの指定>>」の説明に従って、**[Enabled Protocols (有効化されたプロトコル)]** 項目と **[Enabled Cipher Suites (有効化された暗号化スイート)]** 項目を設定します (省略可能)。
+
+設定内容を保存してテストします。
+
+=== Anypoint Studio を使用して TLS を設定する
+
+Anypoint Studio (Studio) を使用してアプリケーション用に TLS を設定できます。たとえば、HTTP リスナ用に TLS を設定する手順は次の通りです。
+
+. Studio Center を開きます。
+. プロジェクトを開きます。
+. HTTP リスナを開きます。
+. [General (一般)] タブで、既存の設定を選択するか、または新しい設定を作成します。
+. [HTTP Listener config (HTTP リスナの設定)] ダイアログで、[TLS] タブを選択します。
+. [TLS] タブの [TLS Configuration type (TLS 設定種別)] で **[Edit Inline (インライン編集)] **を選択して、値を入力します。
+. 「<<Optional: Specify Protocols and Cipher Suites,省略可能: プロトコルと暗号化スイートの指定>>」の説明に従って、[Advanced (詳細)] セクションの **[Enabled Protocols (有効化されたプロトコル)]** 項目と **[Enabled Cipher Suites (有効化された暗号化スイート)]** 項目を設定します (省略可能)。
+
+設定内容を保存してテストします。
+
+
+== 省略可能: プロトコルと暗号化スイートの指定
+
+2 つのシステムの間で TLS 通信が行われると、使用するプロトコルと暗号化スイートがネゴシエーションによって決定します。必要に応じて、管理者が使用するプロトコルと暗号化スイートを指定して、アプリケーション開発者がそれらを `tls:context` で指定することができます。
+
+[NOTE]
+使用するプロトコルと暗号化スイートは、Mule Runtime と各アプリケーションで有効化しておく必要があります。プロトコルと暗号化スイートが両方の場所で有効化されていないと、Java 環境のデフォルトのプロトコルと暗号化スイートが使用されます。
+
+Mule Runtime でプロトコルと暗号化スイートを設定する手順は次の通りです。
+
+. Mule 管理者は、`$MULE_HOME` の下にある `/conf` ディレクトリを編集します。`$MULE_HOME` は、Mule がインストールされているディレクトリを参照します。例: `/opt/mule-4.0`。暗号化スイートとプロトコルを指定するための適切なファイルを選択します。
++
+** `tls-default.conf` は、Mule が Federal Information Processing Standards (FIPS) セキュリティモードで動作するように設定されていない場合に使用します。
++
+** `tls-fips140-2.conf` Mule が FIPS セキュリティモードで動作するように設定されている場合に使用します。
++
+関連するファイルを開き、リストの項目をコメントまたはコメント解除することで、使用する暗号化スイートとTLS プロトコルを手動で設定します。これらのファイルを編集しないと、設定されているセキュリティマネージャが Mule アプリケーション用の暗号化スイートとプロトコルを選択します。
+
+. これらの設定ファイルで管理者が設定したプロトコルと暗号化スイートのリストは、アプリケーション開発者がそれぞれの `tls:context` 要素で指定する内容によってローカルに制約できます。アプリケーション開発者は、`tls:context` 要素の設定値またはデフォルト値のサブセットを TLS で使用するように指定します。プロトコルと暗号化スイートは、`tls:context` 要素の `enabledProtocols` と `enabledCipherSuites` で指定します。
+
+`tls:context` 要素では、Mule グローバル TLS 設定ファイルで指定されているプロトコルまたは暗号化スイート、またはデフォルトのみを参照できます。`tls:context` で、Mule アプリケーション用の `enabledProtocols` と `enabledCipherSuite` を `default` に設定します。これらの値を設定すると、TLS は次のプロトコルと暗号化スイートを使用します。
+
+* グローバル TLS 設定が存在する場合は、指定されているプロトコルと暗号化スイート
+* グローバル TLS 設定が存在しない場合は、Java環境のデフォルト
+
+暗号化スイート名は長くなることがあり、XML コードが読みづらくなります。読みやすくするためには、これらの名前を Mule プロジェクトの外部プロパティファイルに格納します。そして、プロパティを参照します。例:
+
+[source,xml,linenums]
+----
+<tls:context name="serverTlsContext" enabledCipherSuites="${myCipherSuites}" >
+----
+
+== TLS の設定例
+
+TLS は、クライアントまたはサーバ用の Mule XML 設定ファイルでセットアップできます。
+
+=== 例: クライアント用の TLS の設定
+
+次の例では、トラストストアをセットアップすることで FTPS クライアントのセキュリティを確保しています。
+
+[source,xml,linenums]
+----
+<ftps:config name="ftps">
+    <ftps:connection username="anonymous" password="password" host="localhost" port="21" workingDir="/dev">
+        <tls:context >
+            <tls:trust-store path="trustStore" password="mulepassword" />
+        </tls:context>
+    </ftps:connection>
+</ftps:config>
+----
+
+=== 例: サーバ用の TLS の設定
+
+次の例では、キーストアをセットアップすることで HTTP リスナのセキュリティを確保しています。
+
+[source,xml,linenums]
+----
+<http:listener-config name="nestedConfig">
+    <http:listener-connection protocol="HTTPS" host="localhost" port="8081">
+        <tls:context>
+            <tls:key-store path="tls/ssltest-keystore.jks" keyPassword="changeit" password="changeit"/>
+        </tls:context>
+    </http:listener-connection>
+</http:listener-config>
+----
+
+=== 例: 両方向認証用の TLS の設定
+
+次の例では、HTTP リスナ用に両方向認証 (相互認証) をセットアップしています。
+
+[source,xml,linenums]
+----
+<http:listener-config name="nestedConfig">
+    <http:listener-connection protocol="HTTPS" host="localhost" port="8081">
+        <tls:context>
+            <tls:trust-store path="tls/ssltest-cacerts.jks" password="changeit"/>
+            <tls:key-store path="tls/ssltest-keystore.jks" keyPassword="changeit" password="changeit"/>
+        </tls:context>
+    </http:listener-connection>
+</http:listener-config>
+----
+
+=== 例: TLS 検証の無効化
+
+次の例では、`insecure` プロパティを使用して、プロトタイプ作成と開発で検証を無効化しています。
+
+[IMPORTANT]
+`insecure` は、本番環境では使用しないでください。
+
+[source,xml,linenums]
+----
+<tls:context>
+    <tls:trust-store path="tls/ssltest-cacerts.jks" password="changeit" insecure="true"/>
+</tls:context>
+----
+
+=== 例: 暗号化スイートとプロトコルの制約の追加
+
+次の例では、Mule 管理者がグローバル TLS 設定で何も指定していないか、または暗号化スイートとプロトコルをここで指定できるように有効化してあるという前提で、アプリケーションでプロトコルと暗号化スイートを有効化しています。
+
+[source,xml,linenums]
+----
+<tls:context name="tlsClientContext" enabledProtocols="TLSv1.2" enabledCipherSuites="TLS_DHE_DSS_WITH_AES_128_CBC_SHA256">
+    <tls:trust-store path="tls/trustStore" password="mulepassword"/>
+</tls:context>
+----
+
+== 関連情報
+
+* http://docs.oracle.com/javase/8/docs/technotes/tools/#security[Oracle のセキュリティ]
+* https://docs.oracle.com/javase/8/docs/technotes/tools/unix/keytool.html[Oracle Java keytool]

@@ -1,0 +1,80 @@
+= Core (dw::Core)
+
+このモジュールには、データ変換用の DataWeave コア関数が含まれます。
+DataWeave スクリプトに自動的にインポートされます。DataWeave _1.0_  関数についてのドキュメントは、&#8203;https://docs.mulesoft.com/mule-runtime/3.9/dataweave-operators[「DataWeave の演算子」]を参照してください。
+
+== 関数
+
+[%header, cols="1,3"]
+|===
+| Name (名前)  | 説明
+| xref:dw-core-functions-plusplus.adoc[++] | 2 つの値を連結します。
+| xref:dw-core-functions-minusminus.adoc[--] | 指定された値を入力値から削除します。
+| xref:dw-core-functions-abs.adoc[abs] | 数値の絶対値を返します。
+| xref:dw-core-functions-avg.adoc[avg] | 配列に含まれる数値の平均を返します。
+| xref:dw-core-functions-ceil.adoc[ceil] | 数値を最も近い整数に切り上げます。
+| xref:dw-core-functions-contains.adoc[contains] | 入力に特定の値が含まれる場合は `true`、それ以外の場合は `false` を返します。
+| xref:dw-core-functions-daysbetween.adoc[daysBetween] | 2 つの日付間の日数を返します。
+| xref:dw-core-functions-distinctby.adoc[distinctBy] | 配列を反復処理し、一意の要素を配列に返します。
+| xref:dw-core-functions-endswith.adoc[endsWith] | 文字列が指定されたサブ文字列で終了する場合は `true`、それ以外の場合は `false` を返します。
+| xref:dw-core-functions-filter.adoc[filter] | 配列を反復処理し、一致する値を返す式を適用します。
+| xref:dw-core-functions-filterobject.adoc[filterObject] | オブジェクト内のキー-値ペアのリストを反復処理し、一致するオブジェクトのみを返す式を適用することで、残りを出力から除外します。
+| xref:dw-core-functions-find.adoc[find] | 指定された値と一致する、入力のインデックスを返します。
+| xref:dw-core-functions-flatmap.adoc[flatMap] | 配列内の各項目を反復処理し、結果をフラット化します。
+| xref:dw-core-functions-flatten.adoc[flatten] | 配列の配列を 1 つの単純な配列にフラット化します。
+| xref:dw-core-functions-floor.adoc[floor] | 数値を最も近い整数に切り捨てます。
+| xref:dw-core-functions-groupby.adoc[groupBy] | 指定された条件 (式や一致セレクタなど) に基づいて配列の項目をグループ化するオブジェクトを返します。
+| xref:dw-core-functions-isblank.adoc[isBlank] | 特定の文字列が空か、完全に空白で構成されている場合は `true`、それ以外の場合は `false` を返します。
+| xref:dw-core-functions-isdecimal.adoc[isDecimal] | 特定の数値に小数部が含まれる場合は `true`、それ以外の場合は `false` を返します。
+| xref:dw-core-functions-isempty.adoc[isEmpty] | 特定の入力値が空の場合は `true`、それ以外の場合は `false` を返します。
+| xref:dw-core-functions-iseven.adoc[isEven] | 数値または算術演算の数値結果が偶数の場合は `true` を返し、それ以外の場合は `false` を返します。
+| xref:dw-core-functions-isinteger.adoc[isInteger] | 特定の数値が整数 (小数部なし) の場合は `true`、それ以外の場合は `false` を返します。
+| xref:dw-core-functions-isleapyear.adoc[isLeapYear] | うるう年の日付を受け取った場合は `true`、それ以外の場合は `false` を返します。
+| xref:dw-core-functions-isodd.adoc[isOdd] | 数値または算術演算の数値結果が奇数の場合は `true` を返し、それ以外の場合は `false` を返します。
+| xref:dw-core-functions-joinby.adoc[joinBy] | 配列を 1 つの文字列値にマージし、指定された文字列をリストの各項目間の区切り文字として使用します。
+| xref:dw-core-functions-log.adoc[log] | 入力の値を変更することなく、`log` は入力をシステムログとして返します。
+| xref:dw-core-functions-lower.adoc[lower] | 指定された文字列を小文字で返します。
+| xref:dw-core-functions-map.adoc[map] | 配列の項目を反復処理し、結果を新しい配列に出力します。
+| xref:dw-core-functions-mapobject.adoc[mapObject] | オブジェクトのキー、値、またはインデックスで動作するマッパーを使用して、オブジェクトを反復処理します。
+| xref:dw-core-functions-match.adoc[match] | Java 正規表現 (regex) を使用して文字列を照合して各キャプチャグループに分割します。結果を配列で返します。
+| xref:dw-core-functions-matches.adoc[matches] | 式が入力文字列全体に一致するかどうかを確認します。
+| xref:dw-core-functions-max.adoc[max] | 配列内の最大数値を返します。
+| xref:dw-core-functions-maxby.adoc[maxBy] | 配列を反復処理し、配列から比較可能な要素の最大値を返します。
+| xref:dw-core-functions-min.adoc[min] | 配列内の最小数値を返します。
+| xref:dw-core-functions-minby.adoc[minBy] | 配列を反復処理し、配列から比較可能な要素の最小値を返します。
+| xref:dw-core-functions-mod.adoc[mod] | 剰余 (`dividend` (被除数) を `divisor` (除数) で割った余り) を返します。
+| xref:dw-core-functions-native.adoc[native] | 関数の実装が DataWeave ではなく Scala で記述されていることを示す内部メソッド。
+| xref:dw-core-functions-now.adoc[now] | 現在の日付と時刻で `DateTime` (日時) 値を返します。
+| xref:dw-core-functions-orderby.adoc[orderBy] | 入力の要素を、その入力の選択された要素で動作する条件を使用して並び替えます。
+| xref:dw-core-functions-pluck.adoc[pluck] | 1 つのオブジェクトを配列にマップする場合に便利です。`pluck` はオブジェクトを反復処理してそのオブジェクトからキー、値、またはインデックスの配列を返します。
+| xref:dw-core-functions-pow.adoc[pow] | `base` (基数) の数値を、指定された `power` (指数) で累乗します。
+| xref:dw-core-functions-random.adoc[random] | `0.0` 以上 `1.0` 未満の疑似乱数を返します。
+| xref:dw-core-functions-randomint.adoc[randomInt] | `0` 以上指定数値未満の整数の疑似乱数を返します。
+| xref:dw-core-functions-read.adoc[read] | 文字列またはバイナリを読み取り、解析後のコンテンツを返します。
+| xref:dw-core-functions-readurl.adoc[readUrl] | `read` 関数と似ています。ただし、`readURL` は、クラスパスベースの URL を含め URL を入力として受け入れます。
+| xref:dw-core-functions-reduce.adoc[reduce] | 配列の要素に縮小式を適用します。
+| xref:dw-core-functions-replace.adoc[replace] | 文字列置換を実行します。
+| xref:dw-core-functions-round.adoc[round] | 数値を最も近い整数に丸めます。
+| xref:dw-core-functions-scan.adoc[scan] | 入力文字列内で検出されたすべての一致を含む配列を返します。
+| xref:dw-core-functions-sizeof.adoc[sizeOf] | 配列内の要素数を返します。配列が空の場合は `0` を返します。
+| xref:dw-core-functions-splitby.adoc[splitBy] | 文字列の一部に一致する値に基づいて、文字列を文字列配列に分割します。一致部分は、返される配列から除外されます。
+| xref:dw-core-functions-sqrt.adoc[sqrt] | 数値の平方根を返します。
+| xref:dw-core-functions-startswith.adoc[startsWith] | 入力文字列が照合するプレフィックスで始まるかどうかによって `true` または `false` を返します。
+| xref:dw-core-functions-sum.adoc[sum] | 配列内の数値の合計を返します。
+| xref:dw-core-functions-to.adoc[to] | 指定された境界の範囲を返します。
+| xref:dw-core-functions-trim.adoc[trim] | 文字列の先頭と末尾に空白スペースがあれば、それを削除します。
+| xref:dw-core-functions-typeof.adoc[typeOf] | 値の型を返します。
+| xref:dw-core-functions-unzip.adoc[unzip] | `zip` の逆の操作を実行します。これは、配列の配列を入力として使用します。
+| xref:dw-core-functions-upper.adoc[upper] | 指定された文字列を大文字で返します。
+| xref:dw-core-functions-uuid.adoc[uuid] | 取得元として乱数を使用して、v4 UUID を返します。
+| xref:dw-core-functions-with.adoc[with] | `replace` と共に使用すると、`with` は置換文字列を渡します。
+| xref:dw-core-functions-write.adoc[write] | 値を、サポートされる形式で文字列またはバイナリとして記述します。
+| xref:dw-core-functions-zip.adoc[zip] | 2 つの配列からの要素を配列の配列にマージします。
+|===
+
+== 型
+* xref:dw-core-types.adoc[Core の型]
+
+
+== アノテーション
+* xref:dw-core-annotations.adoc[コアアノテーション]

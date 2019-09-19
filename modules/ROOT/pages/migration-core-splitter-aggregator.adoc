@@ -1,0 +1,220 @@
+= スプリッタとアグリゲータの移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+// Contacts/SMEs: LRM
+
+スプリッタは Mule 4 ではサポートされなくなりました。要素のコレクションを順次処理する場合は、xref:for-each-scope-concept.adoc[For Each コンポーネント]を使用します。
+
+xref:connectors::aggregator/aggregators-module.adoc[アグリゲータ]はかなり動作が異なりますが、別個のモジュールとして Mule 4 に残されています。
+
+== スプリッタ
+
+Mule 3 のスプリッタと Mule 4 の For Each コンポーネントの主な違いは、`foreach` 要素はスコープであるということです。つまり反復される要素を処理するために使用されるコンポーネントは `foreach` 内に定義する必要があります。
+
+.Mule 3 の例
+[source,xml,linenums]
+----
+<flow name="flow">
+    ...
+    <collection-splitter/>
+    <component-1/>
+    <component-2/>
+    ...
+    <component-n>
+</flow>
+----
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<flow name="flow">
+    ...
+    <foreach>
+        <component-1/>
+        <component-2/>
+        ...
+        <component-n>
+    </foreach>
+</flow>
+----
+
+また、`foreach` 要素は、処理されたすべての値の結果を含むコレクションを返しません。代わりに、入力として受け取った同じコレクションを返します。したがって、上記の例の動作は同じではありません。
+
+Mule 3 のアグリゲータがあるかどうかは関係ありません。処理された値の結果を保存するには、Mule 4 のアグリゲータを使用する必要があります。
+
+=== 単純な移行
+
+移行のデフォルトの形式は次のとおりです。
+
+.Mule 3 の例
+[source,xml,linenums]
+----
+<flow name="flow">
+    ...
+    <collection-splitter/>
+    <component-1/>
+    <component-2/>
+    ...
+    <component-n>
+    <collection-aggregator/>
+</flow>
+----
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<flow name="flow">
+    ...
+    <set-variable variableName="collection-splitter0-group-size" value="#[sizeOf(payload)]"/>
+    <foreach>
+        <component-1/>
+        <component-2/>
+        ...
+        <component-n>
+        <aggregators:group-based-aggregator name="collection-splitter0-aggregator"
+                                            groupSize="#[vars.collection-splitter0-group-size]"
+                                            evictionTime="0">
+            <aggregators:aggregation-complete>
+                <set-variable variableName="aggregation0" value="#[payload]"/>
+            </aggregators:aggregation-complete>
+        </aggregators:group-based-aggregator>
+    </foreach>
+    <set-payload value="#[vars.aggregation0]"/>
+</flow>
+----
+
+この例では、
+
+* コレクションのサイズを保存する変数 `collection-splitter0-group-size` を作成します。そうする必要があるのは、`foreach` スコープの内側では、ペイロードは処理されるコレクションからの要素に対応するからです。
+* `collection-splitter` と `collection-aggregator` の間にあるコンポーネントはすべて `foreach` スコープの内側にラップされます。
+* すべての結果を保存するために、`foreach` スコープの最後に `group-based-aggregator` が追加されます。予期される集約のサイズは、`collection-splitter0-group-size` 変数に保存される値に対応します。集約の完了後に結果を保存するために、`set-variable` が `aggregation-complete` の内側に追加されます。
+* `foreach` 要素の後のペイロードは、受け取った入力と同じになるので、`set-payload` を使用して、ペイロードを `aggregation-complete` ルートの内側に定義された変数の保存値として設定します。
+
+[[complex_migration]]
+=== 複雑な移行
+
+スプリッタとアグリゲータを使用する Mule 3 設定では、場合によってはさらにパラメータが追加されることがあります。そのため、Mule 4 で Mule 3 の動作を実行する場合は移行がやや複雑になります。
+
+Mule 3 のアグリゲータでは、`timeout` と `failOnTimeout` という 2 つの属性を設定することができました。`timeout` 属性 (0 より大きい値を持つ) がある場合、移行は以下の例のようになります。
+
+[IMPORTANT]
+タイムアウトになった集約がある場合にロジックを追加する方法があり、`failOnTimeout` が `true` に設定されている場合でも、Mule 3 と同じ動作にはなりません。Mule 4 のアグリゲータでは、タイムアウトになった集約がある場合にエラーが発生したり、通知がディスパッチされたりすることはありません。
+
+
+.Mule 3 の例
+[source,xml,linenums]
+----
+<flow name="flow">
+    ...
+    <collection-splitter/>
+    <component-1/>
+    <component-2/>
+    ...
+    <component-n>
+    <collection-aggregator timeout="1000" failOnTimeout="false"/>
+</flow>
+----
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<vm:config name="splitter-aggregator-vm-config">
+    <vm:queues>
+        <vm:queue queueName="collection-splitter0-vm-queue"/>
+    </vm:queues>
+</vm:config>
+...
+<flow name="flow">
+    ...
+    <set-variable variableName="collection-splitter0-group-size" value="#[sizeOf(payload)]"/>
+    <set-variable variableName="collection-splitter0-aggregator-complete-aggregation" value="#[false]"/>
+    <foreach>
+        <component-1/>
+        <component-2/>
+        ...
+        <component-n>
+        <aggregators:group-based-aggregator name="collection-splitter0-aggregator"
+                                            groupSize="#[vars.collection-splitter0-group-size]"
+                                            timeout="1000"
+                                            timeoutUni="MILLISECONDS"
+                                            evictionTime="0">
+            <aggregators:aggregation-complete>
+                <set-variable variableName="collection-splitter0-aggregator-complete-aggregation" value="#[true]"/>
+            </aggregators:aggregation-complete>
+        </aggregators:group-based-aggregator>
+    </foreach>
+    <vm:consume queueName="collection-splitter0-vm-queue" config-ref="splitter-aggregator-vm-config"/>
+    <choice>
+        <when expression="#[vars.collection-splitter0-aggregator-complete-aggregation == false]">
+            <!--place to add logic for when an aggregation timed out and the failOnTimeout flag was true-->
+        </when>
+    </choice>
+</flow>
+
+<flow name="collection-splitter0-aggregator-listener-flow">
+    <aggregators:aggregator-listener aggregatorName="collection-splitter0-aggregator" includeTimedOutGroups="true"/>
+    <vm:publish config-ref="splitter-aggregator-vm-config" queueName="collection-splitter0-vm-queue"/>
+</flow>
+----
+
+この例では、
+
+* コレクションのサイズを保存する変数 `collection-splitter0-group-size` を作成します。そうする必要があるのは、`foreach` スコープの内側では、ペイロードは処理されるコレクションからの要素に対応するからです。
+* 集約が終了したのは、タイムアウトになったからなのか、または処理が完了したからなのかを示すインジケータを保存する必要がある場合は、別の変数 `collection-splitter0-aggregator-complete-aggregation` を作成します。
+* `collection-splitter` と `collection-aggregator` の間にあるコンポーネントはすべて `foreach` スコープの内側にラップされます。
+* すべての結果を保存するために、`foreach` スコープの最後に `group-based-aggregator` が追加されます。
+予期される集約のサイズは、`collection-splitter0-group-size` 変数に保存される値に対応します。
+集約のタイムアウトは、Mule 3 のアグリゲータに含まれているタイムアウトに設定します。集約が完了したことを設定するために、`set-variable` が `aggregation-complete` の内側に追加されます。(そのルートは、完了した集約によってのみ実行されます)。
++
+もう 1 つフローを作成し、`aggregator:aggregator-listener` を取得元として追加します。すべての集約 (完了してもしなくても) によってそのリスナがトリガされます。次に、集約は `vm:publish` 操作によってメインフローに送信されます。
++
+* `vm:consume` 操作が `foreach` 要素の後に追加され、集約を待機します。値を読み取ったら、フローは実行を続行します。
+* `collection-splitter0-aggregator-complete-aggregation` は集約が完了した場合にのみ true に設定されるので、ロジックを追加してその変数の値を (`choice` と `when` で) チェックすることができます。これで、Mule 3 エラーハンドラーに以前追加された、タイムアウトエラーが発生した場合のロジックをシミュレートできます。
+
+=== その他の属性
+
+すべてのスプリッタでは `enableCorrelation` 属性の設定が可能でした。
+
+`enableCorrelation="NEVER"` 設定を移行する方法はありません。相関 ID は常に `foreach` 要素によってコレクションから処理されたイベントに設定されます。
+
+式のスプリッタ (`<splitter/>`) では、`evaluator` と `custom-evaluator` という 2 つの属性の設定が可能でした。式のエバリュエータは設定できなくなりました。DataWeave のみを使用できます。
+
+=== 使用可能なスプリッタの移行
+
+Mule 3 には以下のスプリッタがありました。その中には、移行するためにはロジックを追加する必要があるものと、まったく移行できないものがあります。
+
+* `collection-splitter`: メインの例で定義されたとおり。
+* `custom-splitter`: Mule 4 ではカスタムクラスの使用が許されていないので、このスプリッタは移行できません。
+* `splitter` (式のスプリッタ): 使用される式は、`foreach` 要素の `collection` 属性として設定します。
+** Mule 3: `<splitter expression="#[payload.someKey]"/>`
+** Mule 4: `<foreach collection="#[payload.someKey]">`
+* `map-splitter` : DataWeave 式 `#[dw::core::Objects::entrySet(payload)]` は `foreach` 要素の `collection` 属性として使用します。
+** Mule 3: `<map-splitter/>`
+** Mule 4: `<foreach collection="#[dw::core::Objects::entrySet(payload)]">`
+* `message-chunk-splitter`: 同じような動作は Mule 4 に存在しません。これは移行できません。
+
+=== アグリゲータ
+
+Mule 3 のアグリゲータで許可されていたほとんどのパラメータは、Mule 4 では許可されていません。
+
+* `timeout`: 新しいアグリゲータで timeout パラメータを設定できますが、相違点がいくつかあります。まず、時間単位を指定するために `timeoutUnit` も作成します。また、集約タイムアウトの動作は、Mule 4 のアグリゲータでは大きく異なります。詳細は、xref:connectors::aggregator/aggregators-module-reference.adoc[「アグリゲータモジュールリファレンス」]を参照してください。
+* `failOnTimeout`: 使用できなくなりました。ただし、<<complex_migration>>で説明したとおり、同じような動作を実行することはできます。
+* `processed-groups-object-store-ref`: 処理されたグループは、別個のオブジェクトストアに保存されなくなりました。このパラメータは許可されなくなりました。
+* `event-groups-object-store-ref`: Mule 4 のアグリゲータでは、`objectStore` 属性を使用してこのオブジェクトストアを設定できます。
+* `persistentStores`: 許可されなくなりました。永続的なオブジェクトストアが必要な場合、`objectStore` 属性は永続的なオブジェクトストアの名前にします。
+* `storePrefix`: 許可されなくなりました。
+
+
+=== 使用可能なアグリゲータの移行
+
+* `collection-aggregator`: メインの例で定義されたとおりに移行します。
+* `custom-aggregator`: 移行できません。Mule 4 には、インターフェースのカスタム実装を追加する方法がありません。
+* `message-chunk-aggregator`: 同じような動作は Mule 4 に存在しません。これは移行できません。
+
+== 関連情報
+
+xref:connectors::aggregator/aggregators-module.adoc[アグリゲータモジュール]
+
+xref:for-each-scope-concept.adoc[For Each スコープ]

@@ -1,0 +1,42 @@
+= isOdd
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[isodd1]]
+== isOdd&#40;Number&#41;: Boolean
+
+数値または算術演算の数値結果が奇数の場合は `true` を返し、それ以外の場合は `false` を返します。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `number` | 評価する数値。
+|===
+
+=== 例
+
+次の例では、数値が奇数かどうかを示します。
+
+==== 取得元
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+output  application/json
+---
+{ "isOdd" : [ isOdd(0), isOdd(1), isOdd(2+2) ] }
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "isOdd": [ false, true, false ] }
+----
+

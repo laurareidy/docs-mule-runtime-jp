@@ -1,0 +1,67 @@
+= 一般的な操作
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+このページでは、使用される暗号化戦略とは独立した暗号化モジュールの操作の詳細について説明します。
+
+[[calculateChecksum]]
+== Calculate Checksum
+`<crypto:calculate-checksum>`
+
++++
+ストリームのチェックサムを計算します。
++++
+
+==== パラメータ
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|===
+| Name (名前) | 型 | 説明 | デフォルト値 | 必須
+| Algorithm (アルゴリズム) a| Enumeration (列挙)。次のいずれかになります。
+
+** `CRC32`
+** `MD2`
+** `MD5`
+** `SHA_1`
+** `SHA_256`
+** `SHA_512` |  +++チェックサムアルゴリズム+++ |  `SHA_256` | {nbsp}
+| Content (コンテンツ) a| Binary (バイナリ) |  +++チェックサムを計算するためのコンテンツ+++ |  `#[payload]` | {nbsp}
+| Target Variable (対象変数) a| String (文字列) |  +++操作の出力が格納される変数の名前+++ |  | {nbsp}
+| Target Value (対象値) a| String (文字列) |  +++操作の出力に対して評価される式。その式の結果は対象変数に保存されます。+++ |  `#[payload]` | {nbsp}
+|===
+
+==== 出力型
+
+String (文字列)
+
+==== スロー
+* `CRYPTO:CHECKSUM` {nbsp}
+
+
+[[validateChecksum]]
+== Validate Checksum
+`<crypto:validate-checksum>`
+
++++
+想定されるチェックサムに対してストリームのチェックサムを検証します。
++++
+
+==== パラメータ
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|===
+| Name (名前) | 型 | 説明 | デフォルト値 | 必須
+| Algorithm (アルゴリズム) a| Enumeration (列挙)。次のいずれかになります。
+
+** `CRC32`
+** `MD2`
+** `MD5`
+** `SHA_1`
+** `SHA_256`
+** `SHA_512` |  +++チェックサムアルゴリズム+++ |  `SHA_256` | {nbsp}
+| 値 a| Binary (バイナリ) |  +++チェックサムを計算するためのコンテンツ+++ |  `#[payload]` | {nbsp}
+| Expected (想定) a| String (文字列) |  +++16 進数の文字列として想定されるチェックサム+++ |  | *x*{nbsp}
+|===
+
+==== スロー
+* `CRYPTO:MISSING_KEY` {nbsp}
+* `CRYPTO:VALIDATION` {nbsp}

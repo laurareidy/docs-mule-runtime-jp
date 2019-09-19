@@ -1,0 +1,134 @@
+= コアコンポーネント
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+コネクタとモジュールでの操作と同様に、コアコンポーネントは
+Mule アプリケーションのフローの重要なビルディングブロックです。コアコンポーネントは、Mule イベントが
+アプリケーションでリンクされた一連のステップを通過するときに処理する
+ロジックを提供します。たとえば、Scheduler、For Each、Logger などのコンポーネントがあります。
+
+* Studio では、Mule パレットから *[Core (コア)]* をクリックして Mule コンポーネントにアクセスできます。
++
+image::components-core-studio.png[Studio でのコアコンポーネント]
++
+コンポーネントは [Batch (バッチ)]、[Error Handling (エラー処理)]、
+[Flow Control (フローコントロール)] などの種類に細分化されています。
++
+* Design Center では、Mule アプリケーションを作成するときに、
+*[Select a Component (コンポーネントを選択)]* ダイアログの *[Modules (モジュール)]* 内に Mule コンポーネントのリストが表示されます。
++
+image::components-core-fd.png[Design Center でのコアコンポーネント]
++
+Design Center では、次に説明されているコアコンポーネントの多くが提供されます。Design Center UI は
+Studio UI のようにコンポーネントは種類別に細分化されていませんが、
+各種類を概念化するために役立ちます。
+
+== バッチ
+
+Mule メッセージをバッチで処理するには、すべてまとめて処理する代わりに、
+バッチコンポーネントを使用できます。このコンポーネントには次が含まれます。
+
+* Batch Aggregator
+* Batch Job
+* Batch Step
+
+xref:batch-processing-concept.adoc[「バッチ処理」]を参照してください。
+
+== コンポーネント
+
+次のコアコンポーネントはさまざまなタスクを実行します。
+
+* xref:business-events-custom.adoc[Custom Business Events]: ビジネストランザクションを
+処理するフローおよびメッセージプロセッサに関する情報を収集。xref:business-events.adoc[「ビジネスイベント」]も参照してください。
+* xref:dynamic-evaluate-component-reference.adoc[Dynamic Evaluate]: Transform Message コンポーネントを
+使用してスクリプトを強制的にハードコードする代わりに、動的に選択。
+* xref:flowref-about.adoc[Flow Reference]: Mule アプリケーション内で、
+Mule イベントを別のフローまたはサブフローに転送。
+* xref:logger-component-reference.adoc[Logger]: エラーメッセージや状況通知など、
+Mule アプリケーションに関する重要な情報をログに記録。
+* xref:parse-template-reference.adoc[Parse Template]: テンプレートを処理して結果を取得。
+* xref:transform-component-about.adoc[Transform Message]: 入力データを新しい出力構造
+または形式に変換。
+
+== エンドポイント
+
+エンドポイント (Studio ではソース、Design Center ではトリガとも呼ばれる) には、
+Mule フローで処理を開始 (またはトリガ) するコンポーネントが含まれます。xref:scheduler-concept.adoc[Scheduler] はエンドポイントです。設定可能な間隔で開始する
+フローをトリガします。
+
+一部のコネクタでは、エンドポイントとして機能するリスナが提供されます。リスナは、
+外部要求を受け取ったときにフローをトリガできます。たとえば、特定の URL に
+設定された HTTP リスナは、誰かまたはプロセスがその URL にアクセスしたときに
+フローをトリガできます。
+
+== エラー処理
+
+エラー処理コンポーネントは、Mule アプリケーションで発生した Mule エラーの転送と処理を行います。
+
+* Error Handler
+* On Error Continue
+* On Error Propagate
+
+xref:error-handling.adoc[「エラーハンドラ」]を参照してください。
+
+== フローコントロール (ルータ)
+
+フローコントロールコンポーネント (ルータ) は、入力 Mule イベントを取得し、
+コンポーネントの 1 つ以上の個別のシーケンスに転送します。フローコントロールには次のコンポーネントがあります。
+
+* Choice
+* First Successful
+* Round Robin
+* Scatter-Gather
+
+たとえば、xref:choice-router-concept.adoc[Choice ルータ]は
+DataWeave ロジックを適用して複数のルートから 1 つを選択します。各ルートは
+イベントプロセッサの個別のシーケンスです。
+
+xref:scatter-gather-concept.adoc[Scatter-Gather ルータ]は入力イベントを
+すべてのルートに送信し、各ルートは単独でイベントを処理します。
+すべてのルートでイベントが処理されたら、すべてのルートの結果が
+1 つの出力イベントにまとめられます。
+
+== スコープ
+
+スコープは、イベントプロセッサのシーケンス (他のコアコンポーネント、
+モジュールとコネクタ両方からの操作など) をグループ化し、その分離された
+イベントプロセッサのシーケンスにプログラミング動作を適用するコンポーネントの種類です。
+
+スコープには次のコンポーネントがあります。
+
+* Async
+* Cache
+* Flow
+* For Each
+* Try
+* Until Successful
+
+たとえば、Try スコープでは、フローの特定のシーケンスで発生するエラーを
+分離して処理できます。そのため、アウトバウンド HTTP 要求コネクタ
+(および Transform Message コンポーネントや Logging コンポーネントなど、HTTP
+要求コネクタ前後にあるいくつかの周辺コンポーネント) を Try スコープでラップし、
+エラーが発生した場合に、そのコンポーネントのグルーピングに固有のログまたは
+補正ロジックを適用できます。xref:try-scope-concept.adoc[「Try スコープ」]を参照してください。
+
+別の例として For Each (または Foreach) スコープがあります。このスコープは通常、
+現在の入力イベントから抽出されたデータのコレクションを取得し、コレクション
+内のすべての項目に同じイベントプロセッサのシーケンスを適用します。たとえば、
+For Each スコープはデータベースクエリから返された各行、または CSV ファイルの
+各行を処理するために使用できます。xref:for-each-scope-concept.adoc[「For Each スコープ」]を参照してください。
+
+== トランスフォーマ
+
+トランスフォーマは、Mule イベントの一部を設定または削除するために使用できるコンポーネントです。
+トランスフォーマには次のコンポーネントがあります。
+
+* xref:remove-variable.adoc[Remove Variable]
+* xref:set-payload-transformer-reference.adoc[Set Payload]
+* xref:variable-transformer-reference.adoc[Set Variable]
+
+
+== 関連情報
+
+* xref:connectors::index.adoc[コネクタおよびモジュール]

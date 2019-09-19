@@ -1,0 +1,89 @@
+= now
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[now1]]
+== now&#40;&#41;: DateTime
+
+現在の日付と時刻で `DateTime` (日時) 値を返します。
+
+
+=== 例
+
+次の例では、`now()` を使用して、現在の日付と時刻を `DateTime` (日時) 値として返します。
+
+==== 取得元
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{ nowCalled: now() }
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "nowCalled": "2018-11-26T18:23:06.773-03:00" }
+----
+
+=== 例
+
+次の例では、有効なセレクタによる `now()` 関数の使用を示します。`now() as Number` でエポック時間を取得する方法も示します。
+その他の例は、&#8203;https://docs.mulesoft.com/mule-runtime/4.2/dataweave-types#dw_type_dates[「日時 (dw::Core 型)」]を参照してください。
+
+==== 取得元
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  now: now(),
+  epochTime : now() as Number,
+  nanoseconds: now().nanoseconds,
+  milliseconds: now().milliseconds,
+  seconds: now().seconds,
+  minutes: now().minutes,
+  hour: now().hour,
+  day: now().day,
+  month: now().month,
+  year: now().year,
+  quarter: now().quarter,
+  dayOfWeek: now().dayOfWeek,
+  dayOfYear: now().dayOfYear,
+  offsetSeconds: now().offsetSeconds,
+  formattedDate: now() as String {format: "y-MM-dd"},
+  formattedTime: now() as String {format: "hh:m:s"}
+}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "now": "2019-06-18T16:54:29.379-07:00",
+  "epochTime": 1560902069,
+  "nanoseconds": 379000000,
+  "milliseconds": 379,
+  "seconds": 29,
+  "minutes": 54,
+  "hour": 16,
+  "day": 18,
+  "month": 6,
+  "year": 2019,
+  "quarter": 2,
+  "dayOfWeek": 2,
+  "dayOfYear": 169,
+  "offsetSeconds": -25200,
+  "formattedDate": "2019-06-18",
+  "formattedTime": "04:54:29"
+}
+----

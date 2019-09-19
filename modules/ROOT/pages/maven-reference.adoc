@@ -1,0 +1,169 @@
+= Maven リファレンス
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Maven, バージョン管理, 連動関係, ライブラリ
+
+このページでは、Mule で Maven を使用する場合の作業に役立つ参照情報がまとめられています。概要については、xref:using-maven-with-mule.adoc[「Mule での Maven サポート」]を参照してください。
+
+== pom.xml ファイル
+
+[source,xml]
+----
+<project root>/pom.xml
+----
+
+アプリケーションについて記述する Maven プロジェクトの設定を定義するプロジェクトオブジェクトモデルファイル。これには、ビルドプラグインの設定など、アプリケーションをビルドするために必要なすべての設定が含まれます。`pom.xml` はプロジェクトごとに存在し、プロジェクトと共に配布されます。
+
+== settings.xml ファイル
+
+[source,xml,linenums]
+----
+<system-wide Maven directory>/settings.xml
+<user home directory>/.m2/settings.xml
+----
+
+Maven インストールのグローバル設定が含まれます。プロジェクトの `pom.xml` とは異なり、これはシステム全体の設定を定義するものであり、認証ログイン情報などの機密情報を含む可能性があるためプロジェクトと共に配布されません。
+
+`settings.xml` ファイルは次の 2 つの場所に存在できます。
+
+* システム全体の設定のフォルダ:
++
+この場合は、ユーザに関係なく、システム上のすべての Maven インストールの設定を定義する _グローバル_ `settings.xml`ファイルになります。例:
++
+----
+/etc/maven2/settings.xml
+----
+
+* ユーザ固有の設定のフォルダ:
++
+この場合は、特定のユーザの Maven インストールのみに関連する _ユーザ_ `settings.xml`ファイルになります。デフォルトの場所はユーザのホームディレクトリ内の `.m2` ディレクトリです。
++
+----
+/home/joe/.m2/settings.xml
+----
+
+グローバルとユーザの両方の `settings.xml` ファイルが含まれるシステムでは、両方のファイルの設定がマージされます。重複する設定がある場合、ユーザの設定がグローバル設定よりも優先されます。
+
+== 便利なコマンド
+
+=== Maven バイナリと他のファイルを見つける (Unix)
+
+----
+whereis mvn
+----
+
+=== グローバル設定ファイルなどの Maven ファイルを見つける (Unix)
+
+----
+locate maven
+----
+
+=== Maven バージョンを取得する
+
+----
+mvn --version
+----
+
+Java ホームディレクトリ、ロケール、プロセッサアーキテクチャなど、他の情報も提供されます。
+
+=== Maven コマンドとオプションのリストを取得する
+
+----
+mvn -h
+----
+
+=== Maven のマニュアルページを確認する (Unix)
+
+----
+man mvn
+----
+
+=== プロジェクトを作成する
+
+----
+mvn archetype:generate -DgroupId=com.company.app -DartifactId=myapp -DarchetypeArtifactId=myarchetypeid -DinteractiveMode=false
+----
+
+=== プロジェクトをビルドする
+
+----
+mvn package
+----
+
+=== プロジェクトをクリーンアップする
+
+----
+mvn clean
+----
+
+=== サイトを生成する
+
+----
+mvn site
+----
+
+=== アーティファクトに含まれる JAR ファイルのリストを取得する
+
+----
+mvn dependency:build-classpath
+----
+
+=== アーティファクトの連動関係ツリーを取得する
+
+----
+mvn dependency:tree
+----
+
+== Maven 中央リポジトリへの Mule アーティファクトのデプロイ
+
+中央リポジトリを使用すると、アプリケーションをビルドするときのユーザの時間を節約できます。中央リポジトリにデプロイするには、Mule `POM` ファイルと `JAR` アーティファクトを目的のリポジトリにデプロイする必要があります。
+
+デプロイプラグインは、主にデプロイフェーズ中に、他の開発者やプロジェクトと共有するアーティファクトをリモートリポジトリに追加するために使用されます。
+
+=== pom.xml のデプロイ
+
+`pom.xml` をリモートリポジトリにデプロイするには、次のコマンドを使用します。
+
+[source,text,linenums]
+----
+mvn deploy:deploy-file
+-DgroupId=${project.groupId}
+-DartifactId=${project.artifactId}
+-Dversion=${version}
+-Dpackaging=pom
+-Dfile=${localPom.canonicalPath}
+-Durl=http://<your_repository_ip>/nexus/content/repositories/releases
+-DrepositoryId=releases
+----
+
+`-Durl` パラメータでは、`<your_repository_ip>` を正しい IP アドレスに置き換えます。また、`-DrepositoryId` は、`settings.xml` ファイルで定義されたログイン情報に一致する必要があります。
+
+=== JAR ファイルのデプロイ
+
+`JAR` ファイルをリモートリポジトリにデプロイするには、次のコマンドを使用します。
+
+[source,text,linenums]
+----
+mvn deploy:deploy-file
+-DgroupId=${pomProps.groupId}
+-DartifactId=${pomProps.artifactId}
+-Dversion=${pomProps.version}
+-Dpackaging=jar
+-Dfile=${f.canonicalPath}
+-DpomFile=${localPom.canonicalPath}
+-Durl=http://${your_repository_ip}/nexus/content/repositories/releases
+-DrepositoryId=releases
+----
+
+`-Durl` パラメータでは、`your_repository_ip` を正しい IP アドレスに置き換えます。また、`-DrepositoryId` は、`settings.xml` ファイルで定義されたログイン情報に一致する必要があります。
+
+`JAR` ファイルをローカルにインストールし、そのファイルをリモートにもデプロイする場合、両方の場所を引数定義で保持することができます。
+
+== 外部リソース
+
+* https://maven.apache.org/index.html[Apache Maven ホームページ]
+* https://maven.apache.org/guides/getting-started/index.html[Maven 使用開始ガイド]
+* https://maven.apache.org/plugins/maven-deploy-plugin[Maven デプロイプラグインリファレンス]
+* https://maven.apache.org/pom.html[POM リファレンス]
+* https://maven.apache.org/settings.html[設定リファレンス]

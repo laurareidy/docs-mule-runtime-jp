@@ -1,0 +1,44 @@
+= 対象変数への Enricher の移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+// Explain generally how and why things changed between Mule 3 and Mule 4.
+Mule 3 の Message Enricher とその機能は、Mule 4 で `target` パラメータに置き換わります。Enricher では、メッセージプロセッサのグループを実行し、現在のメッセージへの副作用がなく、出力を変数にリダイレクトすることができました。Mule 4 では、すべての non-void の操作 (`<flow-ref>`、`<http:request>`、`<ftp:write>`、`<db:select>` など) には `target` パラメータと `targetValue` パラメータが含まれ、各操作の出力を変数 (`myVar` など) にリダイレクトできます。その後、Mule フローのその他のコンポーネントは、DataWeave セレクタ (`vars.myVar` など) を使用してそのデータにアクセスできます。
+
+HTTP 要求から発生し、第 3 のシステムにリダイレクトする必要があるメッセージを考えてください。これに、`stateLookup` と呼ばれる 2 次フローを使用して抽出される `state` クエリパラメータを追加します。元のペイロードまたはヘッダーを失いたくないので、元のメッセージに影響を及ぼさずにこの値を抽出する必要があります。Enricher は (郵便番号が含まれている) 現在のメッセージを使用してエンリッチメントリソースをコールアウトし、その結果でメッセージをエンリッチします。
+
+.Mule 3 の例
+----
+<flow name="orderProcessingFlow">
+   <http:listener .../>
+   <enricher target="#[variable:state]">
+       <flow-ref name="stateLookup"/>
+   </enricher>
+  <http:request config-ref="config" path="state" method="POST">
+    <http:request-builder>
+        <http:query-param paramName="state" value="#[flowVars.state]" />
+    </http:request-builder>
+  </http:request>
+</flow>
+----
+
+Mule 4 では、`<flow-ref>` 操作で `target` パラメータを使用できます。
+
+.Mule 4 の例
+----
+<flow name="orderProcessingFlow">
+  <http:listener .../>
+  <flow-ref name="stateLookup" target="state" />
+  <http:request config-ref="config" path="state" method="POST">
+    <http:query-params>
+      #[{'state' : vars.state}]
+    </http:query-params>
+  </http:request>
+</flow>
+----
+
+
+== 関連情報
+
+* xref:target-variables.adoc[対象パラメータ]

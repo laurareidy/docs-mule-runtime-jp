@@ -1,0 +1,1257 @@
+= データの抽出
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, 変換, トランスフォーマ, メタデータ, DataWeave, data weave, datawave, datamapper, dwl, dfl, dw, payload, 属性, 変数, フロー, エラー, メッセージ
+
+DataWeave は、データを DataWeave オブジェクトや配列、そのデータを保存する変数、および DataWeave 関数の出力 (その出力が配列またはオブジェクトの場合) から選択できます。より正確に言えば、DataWeave セレクタは、データを保存する変数、オブジェクトリテラル、配列リテラル、DataWeave 関数の呼び出しへの参照になるコンテキスト内で動作します。DataWeave 式を使用できる Mule モジュール、コネクタ、コンポーネントのセレクタを使用できます。
+
+DataWeave は、セレクタを処理するときに後続のセレクタの新しいコンテキスト (スコープ) を設定するため、セレクタのチェーンを使用して配列やオブジェクトの複雑な構造を移動できます。選択の深さは、現在のコンテキストの深さに制限されます。
+
+サポートされている変数参照は、`payload` や `attributes` などの xref:dataweave-variables-context.adoc[Mule Runtime 変数]と、配列またはオブジェクトを保存する xref:dataweave-variables.adoc[DataWeave 変数]です。簡単な例として `payload.myKey` が挙げられます。payload はオブジェクト `{"myKey" : 1234 }` であるため、結果は `1234` になります。
+
+セレクタは、DataWeave
+`read` などの関数の呼び出しで動作します。たとえば、`read('{"A":"B"}','application/json')."A"` は `"B"` を返します。
+
+== DataWeave 配列やオブジェクトでのセレクタの使用
+
+DataWeave のセレクタは、DataWeave オブジェクト (`{ myKey : "myValue" }` など) または配列 (`[1,2,3,4]` や `[ { "myKey" : "1234" }, { "name" : "somebody" } ]` など) 内から値を抽出します。
+
+次の DataWeave スクリプトでは、単一値セレクタ (`.`) を使用して、変数 `myObject` と `myArray` で定義されたオブジェクトと配列から値を取得します。
+
+.DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+%dw 2.0
+var myObject = { "myKey" : "1234", "name" : "somebody" }
+var myArray = [ { "myKey" : "1234" }, { "name" : "somebody" } ]
+output application/json
+---
+{
+    selectingValueUsingKeyInObject : myObject.name,
+    selectingValueUsingKeyOfObjectInArray : myArray.name,
+}
+----
+
+.出力:
+[source,JSON,linenums]
+----
+{
+    "selectingValueUsingKeyInObject": "somebody",
+    "selectingValueUsingKeyOfObjectInArray": [ "somebody" ]
+ }
+----
+
+出力は次のようになります。
+
+* `myObject.name` は、値 `"somebody"` を返します。
+* `myArray.name` は、配列 `[ "somebody" ]` を返します。
+
+== セレクタクイックリファレンス
+
+単一値 (`.`)::
+配列やオブジェクトで動作し、一致するキーの値を返します。構文は `.myKey` です。DataWeave _オブジェクト_の重複キーの値を取得するには、代わりに `*` を使用します。例については、「<<single_value>>」を参照してください。
+
+複数値 (`*`)::
+配列やオブジェクトで動作し、データ構造の階層の単一レベルで一致するすべてのキーの値を取得します。構文は `*myKey` です。階層の下位レベルのすべての重複キーの値を取得する場合は、代わりに子孫セレクタ (`..`) を使用します。例については、「<<multi_value>>」を参照してください。
+
+キー - 値ペア (`&amp;`)::
+配列やオブジェクトで動作します。このセレクタは、DataWeave オブジェクトの値を返す代わりに DataWeave オブジェクト全体 (キーと値) を返します。
+構文は `.&amp;myKey` です。例については、「<<key_value>>」を参照してください。
+
+子孫 (`..`)::
+配列やオブジェクトで動作し、階層の場所に関係なく、特定のキーの下にある配列やオブジェクトから一致するすべてのキーを取得します。
+構文は `..myKey` です。例については、「<<descendants>>」を参照してください。
+
+インデックス (`[]`)::
+配列の指定したインデックスの値を返します。たとえば、`["a","b","c"][0]` の最後の `[0]` は `"a"` を返します。例については、「<<index>>」を参照してください。
+
+範囲 `[index1 to index2]`::
+選択したインデックスの値が含まれる配列を返します。たとえば、`["a","b","c","d"][2 to 3]` の最後の `[2 to 3]` は `["c","d"]` を返します。例については、「<<range>>」を参照してください。
+
+XML 属性 (`.@myKey`)::
+XML 属性の選択したキーの値を返します。例については、「<<xml_attribute>>」を参照してください。
+
+名前空間セレクタ (`myKey.#`)::
+選択したキーも含まれる要素の `xmlns` 名前空間を返します。例については、「<<namespace>>」を参照してください。
+
+セレクタ修飾子 (`?` および `!`)::
+`?`および `!` は、指定したキーをチェックします。`?` は、`true` または `false` を返します。
+`!` は、キーが存在しない場合にエラーを返します。例については、「<<selector_modifiers>>」を参照してください。
+
+絞り込みセレクタ (`myKey[?(booleanExpression)]`)::
+ブール式で `true` が返されて、指定した `key` が存在する場合に、選択した項目を返します。式が false か、キーが存在しない場合、`null` を返します。例については、「<<filter_selectors>>」を参照してください。
+
+[[selector_metadata]] メタデータセレクタ `.^someMetadata`::
+Mule ペイロード、変数、属性の指定したメタデータの値を返します。このセレクタは、クラス (`.^class`)、コンテンツ長 (`.^contentLength`)、エンコード (`.^encoding`)、MIME タイプ (`.^mimeType`)、メディア種別 (`.^mediaType`)、未加工 (`.^raw`)、カスタムメタデータ (`.^myCustomMetadata`) の値を返すことができます。詳細は、「<<metadata_selector>>」を参照してください。
+
+== 有効なキー
+
+DataWeave オブジェクトの有効なキーは文字で始まる必要があり、その後に省略可能な数値、文字、アンダースコア (`&#95;`) の任意の組み合わせが続きます。
+
+* 有効なキーとセレクタを囲む引用符は_省略可能_であるため、次の例はすべて機能します。
+** `{"name" : "somebody"}.name`
+** `{"name" : "somebody"}."name"`
+** `{name : "somebody"}.name`
+** `{name : "somebody"}."name"`
+
+*  _無効な_ キーの場合、キーとセレクタを一重引用符または二重引用符で囲む必要があります。たとえば、`some-name` のような無効なキーの場合、`{ "some-name" : "somebody" }."some-name"` は機能しますが、`{ some-name : "somebody" }.some-name` では `Invalid input '-'` というエラーが発生します。
+キーとセレクタの両方に引用符が必要です。
+
+[[single_value]]
+== 単一値セレクタ (.myKey)
+
+`.myKey` セレクタは、オブジェクトや配列で動作し、一致するキーの値を返します。
+
+=== オブジェクトに対する単一値セレクタ
+
+オブジェクトの場合、単一値セレクタは一致するキーの値を返します。たとえば、次のスクリプトの `myObject.user` は `"a"` を返します。
+
+.DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+%dw 2.0
+var myObject = { user : "a" }
+output application/json
+---
+{ myObjectExample : myObject.user }
+----
+
+.出力:
+[source,json,linenums]
+----
+{ "myObjectExampleOne": "a" }
+----
+
+DataWeave _オブジェクト_ (配列ではない) を操作する場合、`.` セレクタは、オブジェクトに複数の一致するキーがある場合でも、 _最初_ に一致したキーの値のみを返します。次に例を示します。
+
+.DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+%dw 2.0
+var myObject = { user : "a", "user" : "b" }
+output application/json
+---
+{ myObjectExample : myObject.user }
+----
+
+.出力:
+[source,json,linenums]
+----
+{ "myObjectExampleOne": "a" }
+----
+
+このような場合に複数の一致するキーの値を返す方法については、「<<multi_value>>」を参照してください。
+
+次の例の `payload.people.person.address` は `address` 要素の値を返します。また、`output` ディレクティブを使用して、JSON 入力を XML に変換します。
+
+.DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+%dw 2.0
+var myData = {
+  "people": {
+    "size" : 1,
+    "person": {
+      "name": "Nial",
+      "address": {
+        "street": {
+          "name": "Italia",
+          "number": 2164
+        },
+        "area": {
+          "zone": "San Isidro",
+          "name": "Martinez"
+        }
+      }
+    }
+  }
+}
+output application/xml
+---
+{ myaddresses: myData.people.person.address }
+----
+
+.出力:
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<myaddresses>
+  <street>
+    <name>Italia</name>
+    <number>2164</number>
+  </street>
+  <area>
+    <zone>San Isidro</zone>
+    <name>Martinez</name>
+  </area>
+</myaddresses>
+----
+
+[[single_value_array]]
+== 配列に対する単一値セレクタ
+
+配列で動作する場合、一致する値が 1 つのみの場合でも、`.` セレクタは配列を返します。たとえば、`["a":"b"]."a"` は `["b"]` を返します。
+
+`.` セレクタの動作は、オブジェクトと配列で異なります。
+`.*` と同様に、`.` セレクタは、入力配列の指定したレベルで_一致するすべてのキー_の値が含まれる配列を返します。
+
+
+.DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+%dw 2.0
+var myArrayOfKeyValuePairs = [ "aString": "hello", "aNum": 2, "aString" : "world" ]
+var myArrayOfObjects = [ { "aString": "hello" }, { "aNum": 2 }, { "aString" : "world" } ]
+output application/json
+---
+{
+    myKeyValueExample : myArrayOfKeyValuePairs.aString,
+    myObjectExample :  myArrayOfObjects.aString
+}
+----
+
+.出力:
+[source,json,linenums]
+----
+{
+  "myKeyValueExample": [ "hello", "world" ],
+  "myObjectExample": [ "hello", "world" ]
+}
+----
+
+次の例では、入力変数 `myData` の値が、2 つのオブジェクトが含まれる配列になっています。セレクタは、両方のオブジェクトを移動し、両方の `street` キーの値を返します。
+
+.DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+%dw 2.0
+var myData = {
+  "people": [
+    {
+      "person": {
+        "name": "Nial",
+        "address": {
+          "street": {
+            "name": "Italia",
+            "number": 2164
+          },
+          "area": {
+            "zone": "San Isidro",
+            "name": "Martinez"
+          }
+        }
+      }
+    },
+    {
+      "person": {
+        "name": "Coty",
+        "address": {
+          "street": {
+            "name": "Monroe",
+            "number": 323
+          },
+          "area": {
+            "zone": "BA",
+            "name": "Belgrano"
+          }
+        }
+      }
+    }
+  ]
+}
+output application/json
+---
+myData.people.person.address.street
+----
+
+.出力:
+[source,json,linenums]
+----
+[
+  {
+    "name": "Italia",
+    "number": 2164
+  },
+  {
+    "name": "Monroe",
+    "number": 323
+  }
+]
+----
+
+[[multi_value]]
+== 複数値セレクタ (`.*`)
+
+`.*` は、オブジェクトや配列をトラバースして、一致するすべてのキーの値を選択し、一致する結果を配列で返します。
+
+=== オブジェクトに対する複数値セレクタ
+
+`.*` は、キーが式に一致するすべての値が含まれる配列を返します。
+
+次の例では、入力ペイロードのすべての `user` 要素の値を返します。
+
+.DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+payload.users.*user
+----
+
+.入力ペイロード:
+[source,xml,linenums]
+----
+<users>
+  <user>Mariano</user>
+  <user>Martin</user>
+  <user>Leandro</user>
+</users>
+----
+
+.出力:
+[source,json,linenums]
+----
+[ "Mariano", "Martin", "Leandro" ]
+----
+
+=== 配列に対する複数値セレクタ
+
+配列では、`.*` は単一値セレクタ (`.`) と同じように動作します。たとえば、`payload.people.person.address.*street` と `payload.people.person.address.street` (「<<single_value_array>>」の例) は同じ結果を返します。
+
+.DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+%dw 2.0
+var myArrayOfKeyValuePairs = [ "aString": "hello", "aNum": 2, "aString" : "world" ]
+var myArrayOfObjects = [ { "aString": "hello" }, { "aNum": 2 }, { "aString" : "world" } ]
+output application/json
+---
+{
+    myKeyValueExample : myArrayOfKeyValuePairs.*aString,
+    myObjectExample :  myArrayOfObjects.*aString
+}
+----
+
+.出力:
+[source,json,linenums]
+----
+{
+  "myKeyValueExample": [ "hello", "world" ],
+  "myObjectExample": [ "hello", "world" ]
+}
+----
+
+
+[[descendants]]
+== 子孫セレクタ (`..myKey`)
+
+`..` セレクタは、配列やオブジェクトで動作します。
+
+このセレクタは、`..myKey` という形式を使用してコンテキストに適用され、選択したコンテキストのサブツリーの一致するすべてのキー - 値ペアの値を取得します。項目の階層構造に関係なく、出力は同じレベルで返されます。
+
+この例では、入力データのツリーのカーディナリティに関係なく、キー `name` に一致するすべての項目が `names` というリストに配置されます。
+
+
+.DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{ names: payload.people..name }
+----
+
+.入力ペイロード:
+[source,json,linenums]
+----
+{
+  "people": {
+    "person": {
+      "name": "Nial",
+      "address": {
+        "street": {
+          "name": "Italia",
+          "number": 2164
+        },
+        "area": {
+          "zone": "San Isidro",
+          "name": "Martinez"
+        }
+      }
+    }
+  }
+}
+----
+
+.出力:
+[source,json,linenums]
+----
+{
+  "names": [
+    "Nial",
+    "Italia",
+    "Martinez"
+  ]
+}
+----
+
+[[key_value]]
+== キー - 値ペアセレクタ (`.&myKey`)
+
+`&amp;` セレクタは、配列やオブジェクトで動作します。`&amp;` は現在のコンテキストの一致するすべてのキーペアのキーと値の両方を取得します。これらは、取得されたキーと値が含まれるオブジェクトとして返されます。
+
+.DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/xml
+---
+{
+  users: payload.users.&user
+}
+----
+
+
+.入力ペイロード:
+[source,xml,linenums]
+----
+<?xml version='1.0' encoding='US-ASCII'?>
+<users>
+  <user>Mariano</user>
+  <user>Martin</user>
+  <user>Leandro</user>
+  <admin>Admin</admin>
+  <admin>org_owner</admin>
+</users>
+----
+
+.出力:
+[source,xml,linenums]
+----
+<?xml version='1.0' encoding='US-ASCII'?>
+<users>
+  <user>Mariano</user>
+  <user>Martin</user>
+  <user>Leandro</user>
+</users>
+----
+
+複数値セレクタとは異なり、このセレクタの出力はオブジェクトになっており、各値の元のキーも抽出されています。
+
+=== すべての子孫のキー - 値ペアの選択
+
+この例では、`myVar.people..&name` の `..` および `&amp;` セレクタを使用して、キー `name` が含まれる `myData` 入力のすべての子孫オブジェクトの配列を選択して返します。また、JSON 入力を XML 出力に変換します。
+
+.DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+%dw 2.0
+var myData = {
+  "people": {
+    "person": {
+      "name": "Nial",
+      "address": {
+        "street": {
+          "name": "Italia",
+          "number": 2164
+        },
+        "area": {
+          "zone": "San Isidro",
+          "name": "Martinez"
+        }
+      }
+    }
+  }
+}
+output application/json
+---
+{ names: myData.people..&name }
+----
+
+.出力:
+[source,xml,linenums]
+----
+<?xml version='1.0' encoding='UTF-8'?>
+<names>
+  <name>Nial</name>
+  <name>Italia</name>
+  <name>Martinez</name>
+</names>
+----
+
+[[index]]
+== インデックスセレクタ (`[anIndex]`)
+
+このインデックスセレクタは、指定した位置にある要素を返します。これは、配列、オブジェクト、文字列に対して適用できます。
+
+=== 配列に対するインデックスセレクタ
+
+このセレクタは、文字列リテラル、配列、オブジェクトに適用できます。オブジェクトの場合、インデックスの位置にあるキー - 値ペアの値が返されます。
+配列の場合、要素の値が返されます。インデックスは、ゼロベースです。
+
+. インデックスが 0 以上の場合、カウントは最初から開始されます。
+. インデックスが負の場合、カウントは最後から開始されます (-1 は最後の要素)。
+
+.DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+payload.people[1]
+----
+
+
+.入力ペイロード
+[source,json,linenums]
+----
+{
+  "people": [
+        {
+          "nameFirst": "Nial",
+          "nameLast": "Martinez"
+        },
+        {
+          "nameFirst": "Coty",
+          "nameLast": "Belgrano"
+        }
+    ]
+}
+----
+
+.出力:
+[source,json,linenums]
+----
+{
+  "nameFirst": "Coty",
+  "nameLast": "Belgrano"
+}
+----
+
+=== オブジェクトに対するインデックスセレクタ
+
+セレクタは、指定した位置にあるキー - 値ペアを返します。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+payload[1]
+----
+
+.入力:
+[source,json,linenums]
+----
+{
+  "nameFirst": "Mark",
+  "nameLast": "Nguyen"
+}
+----
+
+.出力:
+[source,json,linenums]
+----
+"Nguyen"
+----
+
+=== 文字列に対するインデックスセレクタ
+
+文字列でインデックスセレクタを使用する場合、文字列は配列に分解され、各文字がインデックスになります。
+
+.DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+output application/json
+---
+{ name: "MuleSoft"[0] }
+----
+
+.出力:
+[source,json,linenums]
+----
+{ "name": "M" }
+----
+
+セレクタは、文字列を文字の配列として処理し、特定の位置にある文字を選択します。
+
+. インデックスが 0 以上の場合、カウントは最初から開始されます。
+. インデックスが負の場合、カウントは最後から開始されます。
+
+.DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{ name: "Emiliano"[0] }
+----
+
+.出力:
+[source,json,linenums]
+----
+{ "name": "E" }
+----
+
+[[range]]
+== 範囲セレクタ (`anIndex to anotherIndex`)
+
+`to` セレクタは、配列または文字列の一致するインデックスの値を返します。このセレクタを使用して、範囲内のインデックスの順序を反転させることもできます。セレクタは、文字列の文字をインデックスとして処理します。
+
+* 配列のインデックスを選択:
+** `[1,2,3,4][0]` は `[1]` を返します。
++
+配列の最初の要素のインデックスは常に `0` です。
++
+** `[1,2,3,4][3]` は `[4]` を返します。
+
+=== 配列に対する範囲セレクタ
+
+範囲セレクタは、範囲で指定した要素のみをその特定の順序で出力します。このセレクタでは、配列のスライスや反転を行うことができます。
+
+.DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  slice: [0,1,2][0 to 1],
+  last: [0,1,2][-1 to 0]
+}
+----
+
+.出力:
+[source,json,linenums]
+----
+{
+  "slice": [
+    0,
+    1
+  ],
+  "last": [
+    2,
+    1,
+    0
+  ]
+}
+----
+
+=== 文字列に対する範囲セレクタ
+
+範囲セレクタは、文字列を文字の配列として処理し、範囲で指定した要素のみをその特定の順序で出力します。このセレクタでは、文字列のスライスや反転を行うことができます。
+
+.DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  slice: "DataWeave"[0 to 1],
+  middle : "superfragilisticexpialadocious"[10 to 13],
+  last: "DataWeave"[-1 to 0]
+}
+----
+
+.出力:
+
+[source,json,linenums]
+----
+{
+  "slice": "Da",
+  "middle": "list",
+  "last": "evaeWataD"
+}
+----
+
+[[xml_attribute]]
+== XML 属性セレクタ (`.@myKey`)
+
+`.@myKey` セレクタは、XML 要素の属性を選択します。
+
+キー名なしで `.@` を使用すると、キー - 値ペアとして属性が含まれるオブジェクトが返されます。
+
+この DataWeave の例では、XML サンプルを変数に読み取り、`@` を使用して XML の属性を選択します。
+
+.DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+%dw 2.0
+var myVar = read('<product id="1" type="electronic">
+  <brand>SomeBrand</brand>
+</product>', 'application/xml')
+output application/json
+---
+{
+  item: [
+  	{
+      "type" : myVar.product.@."type",
+      "name" : myVar.product.brand,
+      "attributes": myVar.product.@
+    }
+  ]
+}
+----
+
+.出力:
+[source,dataweave,linenums]
+----
+{
+  "item": [
+    {
+      "type": "electronic",
+      "name": "SomeBrand",
+      "attributes": {
+        "id": "1",
+        "type": "electronic"
+      }
+    }
+  ]
+}
+----
+
+[[namespace]]
+== 名前空間セレクタ (`#`)
+
+`#` は、選択したキーの XML 名前空間を返します。
+
+.DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+payload.order.#
+----
+
+.入力ペイロード:
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<ns0:order xmlns:ns0=http://orders.company.com>
+  <name>Mark</name>
+  <items>42</items>
+  <orderdate>2017-01-04</orderdate>
+</ns0:order>
+----
+
+.出力:
+[source,json,linenums]
+----
+"http://orders.company.com"
+----
+
+[[selector_modifiers]]
+== セレクタ修飾子 (`!`、`?`)
+
+特定のキーの存在を確認できます。
+
+* `!` は、選択したキーを評価し、キーが存在しない場合に例外メッセージを表示して失敗します。
+* `?` は、選択したキーが存在する場合に `true` を返し、存在しない場合に `false` を返します。`?` は、<<filter_selectors>> でも使用されます。
+
+
+[[assert_present]]
+=== アサートの存在検証機能
+
+`!` は、指定したいずれかのキーがない場合にエラーを返します。
+
+* `{ "name": "Annie" }.lastName!` は、`There is no key named 'lastName'` というメッセージと共にエラーを返します。
+* `!` を使用しない場合、`{ "name": "Annie" }.lastName` は `null` を返します。
+* キーが存在する場合 (`{ "name": "Annie" }.name!`)、結果は `"Annie"` になります。
+
+
+[[key_present]]
+=== キーの存在検証機能
+
+指定したキーがオブジェクトに存在する場合や、XML 要素の属性として存在する場合、`true` を返します。
+
+この例では、`name` キーが存在するため `true` を返します。
+
+.DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/xml
+---
+present: payload.name?
+----
+
+.入力ペイロード:
+[source,json,linenums]
+----
+{ "name": "Annie" }
+----
+
+.出力:
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<present>true</present>
+----
+
+`?` は、XML 属性でも動作します。
+
+.DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  item: {
+    typePresent : payload.product.@."type"?
+  }
+}
+----
+
+.入力ペイロード:
+[source,xml,linenums]
+----
+<product id="1" type="tv">
+  <brand>Samsung</brand>
+</product>
+----
+
+.出力:
+[source,json,linenums]
+----
+{
+  "item": { "typePresent": true }
+}
+----
+
+[[filter_selectors]]
+== 絞り込みセレクタ (`myKey[?($ == "aValue")]`)
+
+`myKey[?($ == "aValue")]` は、配列またはオブジェクト内の一致するキーの値のみを返します。`?` は、<<key_present>>でも使用されます。
+ 一致するキー - 値ペアがない場合、結果は `null` になります。
+
+次の例では、`*.name` で返される `name` キーの配列を入力し、値 `"Mariano"` を使用して `name` キーをチェックします。また、一致しない値は除外します。`$` は、選択したキーの値を参照します。
+
+.DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{ users: payload.users.*name[?($ == "Mariano")] }
+----
+
+[[input_filter_selectors]]
+.入力ペイロード:
+[source,xml,linenums]
+----
+<users>
+  <name>Mariano</name>
+  <name>Luis</name>
+  <name>Mariano</name>
+</users>
+----
+
+.出力:
+[source,json,linenums]
+----
+{
+  "users": [
+    "Mariano",
+    "Mariano"
+  ]
+}
+----
+
+次の例では、同じ<<input_filter_selectors>>を想定しています。式 `( 1 == 1 )` が true であるため、入力のすべてのキー - 値ペアを返します。
+`( 1 == 2 )` などの false 式は、`null` を返します。
+
+.DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{ users: payload.users.*name[?( 1 == 1)] }
+----
+
+.出力:
+[source,json,linenums]
+----
+{
+  "users": [
+    "Mariano",
+    "Luis",
+    "Mariano"
+  ]
+}
+----
+
+
+次の例では、同じ<<input_filter_selectors>>を想定しています。`mapObject` を使用して、入力オブジェクト全体を反復処理し、一致しないキー - 値ペアを除外して、一致するペアを返します。
+
+.DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+payload mapObject { ($$) : $[?($=="Mariano")] }
+----
+
+.出力:
+[source,json,linenums]
+----
+{
+  "users": {
+    "name": "Mariano",
+    "name": "Mariano"
+  }
+}
+----
+
+[[metadata_selector]]
+== メタデータセレクタ (.^someMetadata)
+
+Mule ペイロード、変数、属性の指定したメタデータの値を返します。このセレクタは、次のメタデータを返すことができます。
+
+* コンテンツ長メタデータ: `.^contentLength` は、値が存在する場合に値のコンテンツの長さを返します。例については、「<<caret_contentlength>>」を参照してください。
+
+* クラスメタデータ: `.^class` は、Plain Old Java Object (POJO) のクラスを返します。たとえば、`{ "string" : payload.string.^class }` は、入力ペイロードで単純な POJO の Java 文字列 (`simplePojo.string = "myString"` など) が定義されている場合に `{ "string": "java.lang.String" }` を返します。`{ "date" : payload.date.^class }` は `{ "date": "java.util.Date" }` を返します。
+例については、「<<caret_class>>」を参照してください。
+
+* エンコードメタデータ: `.^encoding` は値のエンコードを返します。たとえば、`{ "myEncoding" : payload.^encoding }` は入力 POJO の `{"myEncoding": "UTF-8"}` を返します。例については、「<<caret_encoding>>」を参照してください。
+
+* メディア種別セレクタ: `.^mediaType` はパラメータが含まれる値の MIME タイプ (`application/json;charset=UTF-16` など) を返します。値の式 `{ "myMediaType" : payload.^mediaType }` は入力 POJO の `"myMediaType": "*/*; charset=UTF-8"` を返します。例については、「<<caret_mediatype>>」を参照してください。
+
+* MIME タイプメタデータ: `.^mimeType` はパラメータが含まれない値の MIME タイプ (`application/json` など) を返します。`{ "myMimeType" : payload.^mimeType }` は入力 POJO の `{ "myMediaType": "*/*" }` を返します。例については、「<<caret_mimetype>>」を参照してください。
+
+* 未加工メタデータ: `.^raw` は、Plain Old Java Object (POJO) の基盤となるデータ (通常はバイナリ値) を返します。このセレクタは、中間者攻撃をチェックするときの MD5 ハッシュの計算で使用されることがあります。
+例については、「<<caret_raw>>」を参照してください。
+
+* カスタムメタデータ: `.^myCustomMetadata` はカスタムメタデータの値を返します。
+例については、「<<caret_custom_metadata>>」を参照してください。
+
+[[caret_contentlength]]
+=== コンテンツ長メタデータセレクタ (.^contentLength)
+
+値が存在する場合に値のコンテンツの長さを返します。
+
+次の Mule アプリケーションフローでは、ロガーが `payload.^contentLength` を使用して、Set Payload (`set-payload`) コンポーネントで設定された文字列 `my string` の長さを選択します。
+
+.Anypoint Studio の Mule アプリケーション XML
+[source,XML,linenums]
+----
+<flow name="setpayloadobjectFlow" >
+  <scheduler doc:name="Scheduler" >
+    <scheduling-strategy >
+      <fixed-frequency frequency="15" timeUnit="SECONDS"/>
+    </scheduling-strategy>
+  </scheduler>
+  <!-- Set the payload to "my string". -->
+  <set-payload value='"my string"' doc:name="Set Payload" />
+  <!-- Select the class to which "my string" belongs. -->
+  <logger level="INFO" doc:name="Logger" message="#[payload.^contentLength]"/>
+</flow>
+----
+
+Studio コンソールの出力には、入力文字列 (`my string`) の長さが 11 (`9`) 文字であることが示されます。この長さには、文字列の空白スペースが含まれています。
+
+.Anypoint Studio のコンソール出力
+[source,txt,linenums]
+----
+INFO  2019-05-07 16:59:33,690 [[MuleRuntime].cpuLight.07:
+ [carets].caretsFlow.CPU_LITE @39f1dbde]
+ [event: 28ce97a0-7124-11e9-acfe-8c8590a99d48]
+ org.mule.runtime.core.internal.processor.LoggerMessageProcessor:
+ 11
+----
+
+[[caret_class]]
+=== クラスメタデータセレクタ (.^class)
+
+Plain Old Java Object (POJO) のクラスを返します。値は Java クラスのメソッドのコールの結果として生成されます。また、DataWeave で Java 値として処理されるデータ型 (`String` や `DateTime` など) が含まれることもあります。次に例を示します。
+
+* `{ "string" : payload.mystring.^class }` は、入力ペイロードで単純な POJO の Java 文字列 (`simplePojo.string = "myString"` など) が定義されている場合に `{ "mystring": "java.lang.String" }` を返します。
+* `{ "mydate" : payload.mydate.^class }` は `{ "mydate": "java.util.Date" }` を返します。
+
+次の Mule アプリケーションフローでは、ロガーが `payload.^class` を使用して、Set Payload (`set-payload`) コンポーネントで設定された Java クラス `"my string"` を選択します。
+
+.Anypoint Studio の Mule アプリケーション XML
+[source,XML,linenums]
+----
+<flow name="setpayloadobjectFlow" >
+  <scheduler doc:name="Scheduler" >
+    <scheduling-strategy >
+      <fixed-frequency frequency="15" timeUnit="SECONDS"/>
+    </scheduling-strategy>
+  </scheduler>
+  <!-- Set the payload to "my string". -->
+  <set-payload value='"my string"' doc:name="Set Payload" />
+  <!-- Select the class to which "my string" belongs. -->
+  <logger level="INFO" doc:name="Logger" message="#[payload.^class]"/>
+</flow>
+----
+
+Studio コンソールの出力には、ペイロード文字列がクラス `java.lang.String` に属していることが示されます。
+
+.Anypoint Studio のコンソール出力
+[source,txt,linenums]
+----
+INFO  2019-04-20 16:10:03,075 [[MuleRuntime].cpuLight.08:
+ [setpayloadobject].setpayloadobjectFlow.CPU_LITE @6447187e]
+ [event: 6da29400-63c1-11e9-98e0-8c8590a99d48]
+ org.mule.runtime.core.internal.processor.LoggerMessageProcessor:
+ java.lang.String
+----
+
+//* `.^contentLength` : Starting in Mule 4.2, returns the content length of
+//the value, if present.
+
+[[caret_encoding]]
+=== エンコードメタデータセレクタ (.^encoding)
+
+値のエンコードを返します。たとえば、`{ "myEncoding" : payload.^encoding }` は入力 POJO の `{"myEncoding": "UTF-8"}` を返します。
+
+次の Mule アプリケーションフローでは、ロガーが `payload.^encoding` を使用して、Set Payload (`set-payload`) コンポーネントで設定されたエンコード `"my string"` を選択します。
+Scheduler (`scheduler`) コンポーネントは、定期的に新しい Mule イベントを生成して、Set Payload で設定されたペイロードを保持するイベントソースです。
+
+.Anypoint Studio の Mule アプリケーション XML
+[source,XML,linenums]
+----
+<flow name="setpayloadobjectFlow" >
+  <scheduler doc:name="Scheduler" >
+    <scheduling-strategy >
+      <fixed-frequency frequency="15" timeUnit="SECONDS"/>
+    </scheduling-strategy>
+  </scheduler>
+  <!-- Set the payload to "my string". -->
+  <set-payload value='"my string"' doc:name="Set Payload" />
+  <!-- Select the encoding of "my string". -->
+  <logger level="INFO" doc:name="Logger" message="#[payload.^encoding]"/>
+</flow>
+----
+
+Studio コンソールの出力には、ペイロード文字列に `UTF-8` エンコードが含まれていることが示されます。
+
+.Anypoint Studio のコンソール出力
+[source,txt,linenums]
+----
+INFO  2019-04-20 16:14:24,222 [[MuleRuntime].cpuLight.03:
+ [setpayloadobject].setpayloadobjectFlow.CPU_LITE @62bea6a6]
+ [event: 0938bf70-63c2-11e9-98e0-8c8590a99d48]
+ org.mule.runtime.core.internal.processor.LoggerMessageProcessor:
+ UTF-8
+----
+
+[[caret_mediatype]]
+=== メディア種別メタデータセレクタ (.^mediaType)
+
+パラメータが含まれる値の MIME タイプ (`application/json;charset=UTF-16` など) を返します。値の式 `{ "myMediaType" : payload.^mediaType }` は入力 POJO の `"myMediaType": "*/*; charset=UTF-8"` を返します。
+
+次の Mule アプリケーションフローでは、ロガーが `payload.^mediaType` を使用して、Set Payload (`set-payload`) コンポーネントで設定されたメディア種別 `2014-10-12T11:11:19-00:03` を選択します。
+
+.Anypoint Studio の Mule アプリケーション XML
+[source,XML,linenums]
+----
+<flow name="setpayloadobjectFlow" >
+  <scheduler doc:name="Scheduler" >
+    <scheduling-strategy >
+      <fixed-frequency frequency="15" timeUnit="SECONDS"/>
+    </scheduling-strategy>
+  </scheduler>
+  <set-payload value='#[|2014-10-12T11:11:19-00:03| as DateTime]' doc:name="Set Payload" />
+  <logger level="INFO" doc:name="Logger" message="#[payload.^mediaType]"/>
+</flow>
+----
+
+Studio コンソールの出力には、`DateTime` ペイロードに `application/java; charset=UTF-8` メディア種別が含まれていることが示されます。
+
+.Anypoint Studio のコンソール出力
+----
+INFO  2019-04-20 16:41:01,276 [[MuleRuntime].cpuLight.04:
+ [setpayloadobject].setpayloadobjectFlow.CPU_LITE @7e991c71]
+ [event: c0e96860-63c5-11e9-bcff-8c8590a99d48]
+ rg.mule.runtime.core.internal.processor.LoggerMessageProcessor:
+ application/java; charset=UTF-8
+----
+
+次の Mule アプリケーションフローでは、ロガーが `payload.^mediaType` を使用して文字列 `"my string"` を選択し、Set Payload (`set-payload`) コンポーネントの *fx* 式内で設定された文字列 (`#["my string as String type" as String]`) を選択します。
+
+.Anypoint Studio の Mule アプリケーション XML
+[source,XML,linenums]
+----
+<flow name="setpayloadobjectFlow" >
+  <scheduler doc:name="Scheduler" >
+    <scheduling-strategy >
+      <fixed-frequency frequency="15" timeUnit="SECONDS"/>
+    </scheduling-strategy>
+  </scheduler>
+  <!-- Set the payload to "my string". -->
+  <set-payload value='"my string"' doc:name="Set Payload" />
+  <!-- Select the media type of "my string". -->
+  <logger level="INFO" doc:name="Logger" message='#[payload.^mediaType]'/>
+  <!-- Set the payload using the fx expression "my string" as String. -->
+  <set-payload value='#["my string as String type" as String]' doc:name="Set Payload" />
+  <!-- Select the media type of a Java string. -->
+  <logger level="INFO" doc:name="Logger" message='#[payload.^mediaType]'/>
+</flow>
+----
+
+Studio コンソールの出力には、単純な文字列にメディア種別 `*/*` が含まれていて、*fx* 式で設定された文字列にメディア種別 `application/java; charset=UTF-8` が含まれていることが示されます。
+
+.Anypoint Studio のコンソール出力
+[source,txt,linenums]
+----
+INFO  2019-04-20 16:52:50,801 [[MuleRuntime].cpuLight.01:
+ [setpayloadobject].setpayloadobjectFlow.CPU_LITE @5d914abe]
+ [event: 68121cd0-63c7-11e9-bcff-8c8590a99d48]
+ org.mule.runtime.core.internal.processor.LoggerMessageProcessor:
+ */*
+
+INFO  2019-04-20 16:52:51,085 [[MuleRuntime].cpuLight.01:
+ [setpayloadobject].setpayloadobjectFlow.CPU_LITE @5d914abe]
+ [event: 68121cd0-63c7-11e9-bcff-8c8590a99d48]
+ org.mule.runtime.core.internal.processor.LoggerMessageProcessor:
+ application/java; charset=UTF-8
+----
+
+[[caret_mimetype]]
+=== MIME タイプメタデータセレクタ (.^mimeType)
+
+パラメータが含まれない値の MIME タイプ (`application/json` など) を返します。`{ "myMimeType" : payload.^mimeType }` は入力 POJO の `{ "myMediaType": "*/*" }` を返します。
+
+次の Mule アプリケーションフローでは、ロガーが `payload.^mimeType` を使用して文字列 `"my string"` を選択し、Set Payload (`set-payload`) コンポーネントの *fx* 式内で設定された文字列 (`#["my string as String type" as String]`) を選択します。
+
+.Anypoint Studio の Mule アプリケーション XML
+[source,XML,linenums]
+----
+<flow name="setpayloadobjectFlow" >
+  <scheduler doc:name="Scheduler" >
+    <scheduling-strategy >
+      <fixed-frequency frequency="15" timeUnit="SECONDS"/>
+    </scheduling-strategy>
+  </scheduler>
+  <!-- Set the payload to "my string". -->
+  <set-payload value='"my string"' doc:name="Set Payload" />
+  <!-- Select the MIME type of "my string". -->
+  <logger level="INFO" doc:name="Logger" message='#[payload.^mimeType]'/>
+  <!-- Set the payload using the fx expression "my string" as String. -->
+  <set-payload value='#["my string as String type" as String]' doc:name="Set Payload" />
+  <!-- Select the MIME type of a Java string. -->
+  <logger level="INFO" doc:name="Logger" message='#[payload.^mimeType]'/>
+</flow>
+----
+
+Studio コンソールの出力には、単純な文字列に MIME タイプ `*/*` が含まれていて、*fx* 式で設定された文字列に MIME タイプ `application/java` が含まれていることが示されます。
+
+.Anypoint Studio のコンソール出力
+[source,txt,linenums]
+----
+INFO  2019-04-20 17:02:07,762 [[MuleRuntime].cpuLight.06:
+ [setpayloadobject].setpayloadobjectFlow.CPU_LITE @2d6f64b9]
+ [event: b4097b00-63c8-11e9-bcff-8c8590a99d48]
+ org.mule.runtime.core.internal.processor.LoggerMessageProcessor:
+ */*
+
+INFO  2019-04-20 17:02:08,029 [[MuleRuntime].cpuLight.06:
+ [setpayloadobject].setpayloadobjectFlow.CPU_LITE @2d6f64b9]
+ [event: b4097b00-63c8-11e9-bcff-8c8590a99d48]
+ org.mule.runtime.core.internal.processor.LoggerMessageProcessor:
+ application/java
+----
+
+[[caret_raw]]
+=== 未加工メタデータセレクタ (.^raw)
+
+POJO の基盤となるバイナリ値を返します。このセレクタは、中間者 (MITM) 攻撃をチェックするための MD5 やその他の暗号化ハッシュ関数の計算で使用されることがあります。
+
+次の例では、Set Payload コンポーネント (`set-payload`) を使用してバイナリ値を生成し、Transform Message コンポーネント (`ee:transform`) を使用してバイナリ値の MD5 の未加工データ (`MD5(payload.^raw)`) を返します。また、Logger コンポーネント (`logger`) は、未加工データを Studio コンソールに書き込むように設定されます。比較のために、2 番目のロガーは標準 JSON 形式の一般的な `payload` を返します。
+
+
+.Anypoint Studio の Mule アプリケーション XML
+[source,XML,linenums]
+----
+<flow name="rawcaret2Flow" >
+  <scheduler doc:name="Scheduler" >
+    <scheduling-strategy >
+      <fixed-frequency frequency="30" timeUnit="SECONDS"/>
+    </scheduling-strategy>
+  </scheduler>
+  <set-payload value='#["1234-5678-9123" as Binary]' doc:name="Set Payload" />
+  <ee:transform doc:name="Transform Message" >
+    <ee:message >
+      <ee:set-payload ><![CDATA[%dw 2.0
+import * from dw::Crypto
+output application/json
+---
+{ "myRawData" : MD5(payload.^raw) }]]></ee:set-payload>
+    </ee:message>
+  </ee:transform>
+  <logger level="INFO" doc:name="Logger" message="#[payload.^raw]"/>
+  <logger level="INFO" doc:name="Logger" message="#[payload]"/>
+</flow>
+----
+
+ロガーメッセージの未加工出力では、標準 JSON 出力が生成されずに、ペイロード全体が二重引用符で囲まれ、新しい行ごとに改行文字 (`\n`) が挿入されます。
+
+.Anypoint Studio のコンソール出力
+[source,txt,linenums]
+----
+INFO  2019-04-22 14:10:14,537 [[MuleRuntime].cpuLight.08:
+ [rawcaret2].rawcaret2Flow.CPU_LITE @764a5a61]
+ [event: 058f6a90-6543-11e9-9d99-8c8590a99d48]
+ org.mule.runtime.core.internal.processor.LoggerMessageProcessor:
+ "{\n  "myRawData": "5403e5a202c594871d59898b13054be5"\n}"
+
+INFO  2019-04-22 14:10:14,540 [[MuleRuntime].cpuLight.08:
+ [rawcaret2].rawcaret2Flow.CPU_LITE @764a5a61]
+ [event: 058f6a90-6543-11e9-9d99-8c8590a99d48]
+ org.mule.runtime.core.internal.processor.LoggerMessageProcessor:
+ { "myRawData": "5403e5a202c594871d59898b13054be5" }
+----
+
+[[caret_custom_metadata]]
+===
+
+=== カスタムメタデータセレクタ (.^myCustomMetadata)
+
+カスタムメタデータの値を返します。メタデータは、`as` 演算子を使用して任意の値に関連付けることができます。
+
+次の例では、`userName.^myCustomMetadata` を使用して、スクリプトのヘッダーで変数 `userName` として定義されているカスタムメタデータの値を DataWeave スクリプトとして返します。比較のために、この例では `userName` の値も返します。
+
+.DataWeave スクリプト:
+[source,DataWeave,linenums]
+----
+%dw 2.0
+output application/json
+var userName = "DataWeave" as String {myCustomMetadata: "customMetadataValue"}
+---
+
+{
+  "valueOfVariableMetaData" :  userName.^myCustomMetadata,
+  "valueOfVariable" :  userName,
+}
+
+----
+
+スクリプトの出力は、`"customMetadataValue"` (カスタムメタデータの値) と `"DataWeave"` (`userName` 変数の値) です。
+
+.出力:
+[source,txt,linenums]
+----
+{
+  "valueOfVariableMetaData": "customMetadataValue",
+  "valueOfVariable": "DataWeave"
+}
+----
+
+== 関連情報
+
+* xref:dataweave-selectors.adoc[DataWeave セレクタ]
+
+* xref:dataweave-quickstart.adoc[DataWeave クイックスタート]
+
+* xref:dataweave-types.adoc[DataWeave の型]
+
+* xref:dataweave-cookbook.adoc[DataWeave の解説書]

@@ -1,0 +1,292 @@
+= match ステートメントを使用した DataWeave のパターン一致
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+`match` 関数は、他の言語 (Java や C++ など) の `match` または `switch` ステートメントのように動作し、何らかの条件に基づいて入力式を特定の出力式にルーティングします。
+
+.match ステートメントの構文:
+[source,dataweave,linenums]
+----
+inputExpression match {
+  case <condition> -> <routing expression>
+  case <condition> -> <routing expression>
+  else -> <default routing expression>
+}
+----
+
+他の言語と同様に、DataWeave の `match` 関数には、複数の連鎖した `if-else` ステートメントを整理するためのコンパクトな方法が用意されています。`match` 式は、必要に応じて `else` ステートメントで終了する `case` ステートメントのリストで構成されます。
+各 `case` ステートメントは、`true` または `false` に評価されるセレクタ条件式で構成されます。この条件式は `if` ステートメントで表される条件に対応します。その後に対応する DataWeave ルーティング式が続きます。この式には `match` 関数の入力式を含めることができます。
+
+各 `case` ステートメントは `if` ステートメントにすることができます。また、`case` ステートメントで他のパターン一致のショートカットを使用して、`case` ステートメントの条件を定義することもできます。`case` ステートメントが `false` の場合、ルーティング式は無視されます。
+
+DataWeave では、`case` ステートメントの条件として 4 つの種別のパターンがサポートされます。
+
+* <<pattern_match_expressions,式>>
+* <<pattern_match_literals,リテラル値>>
+* <<pattern_match_data_types,データ型>>
+* <<pattern_match_regex,正規表現>>
+
+各 case に名前を付けても名前を付けなくても構いません。case に名前を付けると、その名前で入力式がローカル変数として保存され、その case ステートメントの条件式と、対応するルーティング式の両方で使用できるようになります。
+
+.match ステートメントの構造
+[source,dataweave,linenums]
+----
+value match {
+  case (<name>:) <condition> -> <routing expression>
+  case (<name>:) <condition> -> <routing expression>
+  else -> <when none of them matched>
+}
+----
+
+この例のように、式は最初に一致した `case` ステートメントの結果を返します。
+
+.match ステートメントの例
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+"hello world" match {
+	case word matches /(hello)\s\w+/ ->  word[1] as String ++ " was matched"
+	case literalMatch: "hello world" -> upper(literalMatch)
+	case hasOne if( hasOne is Object and hasOne.three? ) -> hasOne.three
+	else -> $
+}
+----
+
+.出力
+[source,json,linenums]
+----
+"hello was matched"
+----
+
+入力式 ("hello world") は、各 `case` ステートメントのローカル変数名 (`word` または `literalMatch`) で参照できます。`else` ステートメントの場合、デフォルトのパラメータ名 `$` (名前のないパラメータ) を使用して入力式を参照できます。
+
+`else` ステートメントの入力式に名前を付けるには、`else` ステートメントを常に `true` になる `case` ステートメントに置き換えます。
+
+.match ステートメントの例
+[source,dataweave,linenums]
+----
+"hello world" match {
+	case word matches  /(hello)\s\w+/ ->  word[1] ++ " was matched"
+	case literalMatch: "hello world" -> upper(literalMatch)
+	case last if(true) -> last
+}
+----
+
+値が一致するかどうかに基づくブール値の結果のみが必要な場合は、パターン一致を使用する代わりに `matches` 関数を使用できます。
+
+[[pattern_match_literals]]
+== リテラル値とのパターン一致
+
+評価された値が単純なリテラル値に等しい場合に一致します。
+
+次の例では、1 番目の項目で `payload.string` の値と照合し、ブール値を返します。2 番目の項目では同じ照合が実行されますが、ブール値と、検証された値への参照の両方を含むオブジェクトを返します。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  a: payload.string match {
+    case "Emiliano" -> true
+    case "Mariano" -> false
+  },
+  b: payload.string match {
+    case str: "Emiliano" -> { "matches": true, value: str }
+    case str: "Mariano" -> { "matches": false, value: str }
+  }
+}
+----
+
+.入力
+[source,json,linenums]
+----
+{
+  "string": "Emiliano"
+}
+----
+
+.出力
+[source,json,linenums]
+----
+{
+  "a": true,
+  "b": {
+    "matches": true,
+    "value": "Emiliano"
+  }
+}
+----
+
+[[pattern_match_expressions]]
+== 式に対するパターン一致
+
+提供された式が `true` を返す場合に一致します。
+
+次の例では、1 番目の項目で `payload.string` の値の 2 つの選択肢と照合し、条件に応じて別の文字列を追加します。2 番目の項目では、3 と比較して `payload.number` の値が「greater than」(より大)、「less than」(より小)、または「equal」(等しい) かどうかを評価し、対応する文字列を返します。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  a: payload.string match {
+    case str if str == "Mariano" -> str ++ " de Achaval"
+    case str if str == "Emiliano" -> str ++ " Lesende"
+  },
+  b: payload.number match {
+    case num if num == 3 -> "equal"
+    case num if num > 3 -> "greater than"
+    case num if num < 3 -> "less than"
+  }
+}
+----
+
+.入力
+[source,json,linenums]
+----
+{
+  "string": "Emiliano",
+  "number": 3.14
+}
+----
+
+.出力
+[source,json,linenums]
+----
+[
+  {
+    "a": "Emiliano Lesende",
+    "b": "greater than"
+  }
+]
+----
+
+[[pattern_match_data_types]]
+== データ型に対するパターン一致
+
+評価された値が、指定されたデータ型の場合に一致します。
+
+次の例では、1 番目の項目で `payload.a` の型を評価し、対応する型名の文字列を返します。2 番目の項目でも同様ですが、`payload.b` の値も返します。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  a: payload.a match {
+    case is Object -> 'OBJECT'
+    case is String -> 'STRING'
+    case is Number -> 'NUMBER'
+    case is Boolean -> 'BOOLEAN'
+    case is Array -> 'ARRAY'
+    case is Null -> 'NULL'
+    else -> 'ANOTHER TYPE'
+  },
+  b: payload.b match {
+    case y is Object -> { 'Type': { 'OBJECT' : y} }
+    case y is String -> { 'Type': { 'STRING' : y} }
+    case y is Number -> { 'Type': { 'NUMBER' : y} }
+    case y is Boolean -> { 'Type': { 'BOOLEAN' : y} }
+    case y is Array -> { 'Type': { 'ARRAY' : y} }
+    case y is Null -> { 'Type': { 'NULL' : y} }
+    else -> { 'Type': { 'ANOTHER TYPE' : payload.b} }
+  }
+}
+----
+
+.入力
+[source,json,linenums]
+----
+{
+  "a": "Emiliano",
+  "b": 3.14
+}
+----
+
+.出力
+[source,json,linenums]
+----
+{
+  "a": "STRING",
+  "b": {
+    "Type": {
+      "NUMBER": 3.14
+    }
+  }
+}
+----
+
+[[pattern_match_regex]]
+== 正規表現に対するパターン一致
+
+評価された値が、提供された正規表現 (具体的には Java でサポートされる正規表現の「フレーバー」) に適合する場合に一致します。次の例では、入力ペイロードに文字列の配列が含まれます。スクリプトは `map` 関数を使用して配列を反復処理します。Java 正規表現に対して各要素を評価し、入力との一致に基づいてオブジェクトを出力します。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  a: payload.phones map ($ match {
+     case phone matches /\+(\d+)\s\((\d+)\)\s(\d+\-\d+)/ -> { country: phone[1]}
+     case phone matches /\((\d+)\)\s(\d+\-\d+)/ -> { area: phone[1], number: phone[2] }
+   }),
+ b: payload.phones map ($ match {
+   case phone matches /\+(\d+)\s\((\d+)\)\s(\d+\-\d+)/ -> { country: phone[1], area: phone[2], number: phone[3] }
+   case phone matches /\((\d+)\)\s(\d+\-\d+)/ -> { area: phone[1], number: phone[2] }
+ })
+}
+----
+
+.入力
+[source,json,linenums]
+----
+{
+  "phones": [
+    "+1 (415) 229-2009",
+    "(647) 456-7008"
+  ]
+}
+----
+
+.出力
+[source,json,linenums]
+----
+{
+  "a": [
+    {
+      "country": "1"
+    },
+    {
+      "area": "647",
+      "number": "456-7008"
+    }
+  ],
+  "b": [
+    {
+      "country": "1",
+      "area": "415",
+      "number": "229-2009"
+    },
+    {
+      "area": "647",
+      "number": "456-7008"
+    }
+  ]
+}
+----
+
+== 関連情報
+
+* xref:dataweave-types.adoc[DataWeave の型]
+* xref:dataweave-selectors.adoc[DataWeave セレクタ]

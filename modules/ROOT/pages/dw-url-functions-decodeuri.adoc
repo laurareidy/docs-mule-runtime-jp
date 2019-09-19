@@ -1,0 +1,48 @@
+= decodeURI
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[decodeuri1]]
+== decodeURI&#40;String&#41;: String
+
+URI 内のエスケープシーケンス (`%20` など) をデコードします。
+
+
+この関数は、エンコードされた URI 内の各エスケープシーケンスをそれが表す文字に置き換えますが、`encodeURI` によって挿入された可能性のないエスケープシーケンスはデコードしません。文字 `#` はエスケープシーケンスからデコードされません。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `text` | デコードする URI。
+|===
+
+=== 例
+
+次の例では、スペースに使用される URL パーセントエンコード `%20` を含む URI をデコードします。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+import * from dw::core::URL
+output application/json
+---
+{
+  "decodeURI" : decodeURI('http://asd/%20text%20to%20decode%20/text')
+}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "decodeURI": "http://asd/ text to decode /text"
+}
+----

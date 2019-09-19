@@ -1,0 +1,106 @@
+= replace
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[replace1]]
+== replace&#40;String, Regex&#41;: &#40;&#40;Array<String&#62;, Number&#41; &#45;&#62; String&#41; &#45;&#62; String
+
+文字列置換を実行します。
+
+
+このバージョンの `replace` は、文字列の一部を照合する Java 正規表現を受け入れます。入力文字列の一致部分の置換文字列を指定するには、`with` ヘルパー関数を使用する必要があります。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `text` | 照合する文字列。
+| `matcher` | 入力 `text` 文字列内の文字を照合する Java 正規表現。
+|===
+
+=== 例
+
+取得元の最初の例では、2 番目のハイフン (このハイフンを含む) までのすべての文字 (`123-456-`) を空の値で置き換えるため、最後の 4 桁の数字が返されます。2 番目の例では、入力文字列内の文字 `b13e` をハイフン (`-`) で置き換えます。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+["123-456-7890" replace /.*-/ with(""), "abc123def" replace /[b13e]/ with("-")]
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+[ 7890, "a-c-2-d-f" ]
+----
+
+=== 例
+
+次の例では、入力文字列内の数値 `123` を `ID` で置き換えます。この例では正規表現 `(\d+)` が使用されています。`\d` メタ文字は 0 ～ 9 の任意の数字を意味し、`+` は、1 桁以上の数字が出現可能であることを意味します。
+`+` がない場合、1 桁の数字ごとに 1 つの `ID` が出力に含まれます。この例では、中置表記を使用して式を記述する方法と、前置表記を使用して式を記述する方法も示しています。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+[ "my123" replace /(\d+)/ with("ID"), replace("myOther123", /(\d+)/) with("ID") ]
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+[ "myID", "myOtherID" ]
+----
+
+
+[[replace2]]
+== replace&#40;String, String&#41;: &#40;&#40;Array<String&#62;, Number&#41; &#45;&#62; String&#41; &#45;&#62; String
+
+文字列置換を実行します。
+
+
+このバージョンの `replace` は、指定された文字列の一部を照合する文字列を受け入れます。入力文字列の一致部分の置換文字列を渡すには、`with` ヘルパー関数を使用する必要があります。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `text` | 照合する文字列。
+| `matcher` | 入力 `text` 文字列内の文字を照合するための文字列。
+|===
+
+=== 例
+
+次の例では、入力文字列からの数値 `123` を、`with` 関数で渡された文字 `ID` で置き換えます。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{ "replace": "admin123" replace "123" with("ID") }
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "replace": "adminID" }
+----
+

@@ -1,0 +1,78 @@
+= divideBy
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[divideby1]]
+== divideBy&#40;Array<T&#62;, Number&#41;: Array<Array<T&#62;&#62;
+
+配列を、指定数の要素が含まれるサブ配列に分割します。
+
+
+入力配列内の要素数が指定数より少ない場合、
+この関数は 1 つのサブ配列にそれらの要素を入力します。指定数より多い場合、
+この関数は、必要な数のサブ配列に追加の
+要素を入力します。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `items` | 入力配列の項目。
+| `amount` | サブ配列あたりの許容される要素数。
+|===
+
+=== 例
+
+次の例では、指定された `amount` (数量) に基づいて配列をサブ配列に分割します。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+import * from dw::core::Arrays
+output application/json
+---
+{
+  "divideBy" : [
+      { "divideBy2" : [1, 2, 3, 4, 5] divideBy 2 },
+      { "divideBy2" : [1, 2, 3, 4, 5, 6] divideBy 2 },
+      { "divideBy3" : [1, 2, 3, 4, 5] divideBy 3 }
+  ]
+}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+ "divideBy": [
+  {
+    "divideBy2": [
+      [ 1, 2 ],
+      [ 3, 4 ],
+      [ 5 ]
+    ]
+  },
+  {
+    "divideBy2": [
+      [ 1, 2 ],
+      [ 3, 4 ],
+      [ 5, 6 ]
+    ]
+  },
+    {
+      "divideBy3": [
+        [ 1, 2, 3 ],
+        [ 4, 5 ]
+      ]
+    }
+ ]
+}
+----
+

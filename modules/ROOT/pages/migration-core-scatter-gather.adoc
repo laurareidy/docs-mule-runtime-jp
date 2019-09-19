@@ -1,0 +1,91 @@
+= Scatter-Gather ルータの移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+// sme: PLG, author: rodro
+
+Mule 3 と Mule 4 の Scatter-Gather ルータでの最も重要な変更は、異なるルートの結果をまとめるために使用される `AggregationStrategy` で行われました。集約ロジックで Java クラスを提供する代わりに、DataWeave 変換で集約を実行できます。
+
+Scatter-Gather から返されるペイロードは、メッセージのコレクションで、各メッセージは各ルートの結果です。それらのメッセージには DataWeave を使用してアクセスできます。
+
+== 例
+
+これは、aggregation strategy (集約戦略) がある Java クラスを参照する `custom-aggregation-strategy` 要素を使用した Mule 3 の Scatter-Gather です。
+
+----
+<scatter-gather doc:name="Scatter-Gather">
+    <custom-aggregation-strategy class="com.example.poc.CustomSGAggregationStrategy"/>
+    <processor-chain>
+        ...
+    </processor-chain>
+    <processor-chain>
+        ...
+    </processor-chain>
+</scatter-gather>
+<logger message="#[payload]" level="INFO" doc:name="Logger"/>
+----
+
+aggregation strategy (集約戦略) の実装は次のとおりです。
+
+----
+package com.example.poc;
+
+import ...
+
+public class CustomSGAggregationStrategy implements AggregationStrategy {
+    @Override
+    public MuleEvent aggregate(AggregationContext context) throws MuleException {
+        StringBuilder responseBuilder = new StringBuilder();
+        MuleEvent result = null;
+        ArrayList < MarketRate > marketRates = new ArrayList < > ();
+        for (MuleEvent event: context.collectEventsWithoutExceptions()) {
+           String response = (String) event.getMessage().getPayload();
+           String[] spiltResponse = StringUtils.split(response, ",");
+           MarketRate marketRate = new MarketRate();
+           marketRate.setEvent(event);
+           marketRate.setMarketName(spiltResponse[0]);
+           marketRate.setMarketRate(new Integer(spiltResponse[1]));
+           marketRates.add(marketRate);
+           System.out.println(marketRate);
+        }
+        Collections.sort(marketRates);
+        result = DefaultMuleEvent.copy(marketRates.get(0).getEvent());
+        result.getMessage().setPayload(marketRates.get(0).toString());
+        return result;
+     }
+    }
+----
+
+Mule 4 では Java クラスが削除され、フロー要素は次のようになります。
+
+----
+<scatter-gather doc:name="Scatter-Gather">
+    <route>
+        ...
+    </route>
+    <route>
+        ...
+    </route>
+</scatter-gather>
+<ee:transform>
+    <ee:message >
+    	<ee:set-payload ><![CDATA[%dw 2.0
+output text/plain
+---
+(payload map ((response, index) -> (response.payload splitBy(','))[1]) orderBy ((rate, index) -> rate))[0]
+]]]></ee:set-payload>
+    </ee:message>
+</ee:transform>
+<logger message="#[payload]" level="INFO" doc:name="Logger"/>
+----
+
+Java ではなく、DataWeave で `CustomSGAggregationStrategy` のロジックを複製する `ee:transform` 要素に留意してください。
+
+== 関連情報
+
+xref:scatter-gather-concept.adoc[Scatter-Gather について]
+
+xref:transform-component-about.adoc[Transform コンポーネントについて]
+
+xref:dataweave-language-introduction.adoc[DataWeave スクリプト]

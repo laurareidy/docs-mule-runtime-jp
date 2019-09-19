@@ -1,0 +1,313 @@
+= DataWeave の演算子
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+DataWeave 2.0 は、いくつかの数学演算子、等価演算子、比較演算子、論理演算子、先頭追加演算子、追加演算子をサポートしています。
+
+== 数学演算子
+
+DataWeave 2.0 は、ほとんどの一般的な数学演算子をサポートしています。
+
+[%header,cols="1,2"]
+|===
+| 演算子 | 説明
+| `+` | 加算
+| `-` | 減算
+| `*` | 乗算
+| `/`  | 除算
+|===
+
+次の例では、数学演算子を使用しています。
+
+.取得元
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{ "math" : [
+    { "2 + 2" : (2 + 2) },
+    { "2 - 2" : (2 - 2) },
+    { "2 * 2" : (2 * 2) },
+    { "2 / 2" : (2 / 2) }
+  ]
+}
+----
+
+.出力
+[source,json,linenums]
+----
+"math": [
+    { "2 + 2": 4 },
+    { "2 - 2": 0 },
+    { "2 * 2": 4 },
+    { "2 / 2": 1.0 }
+  ]
+}
+----
+
+いくつかの DataWeave 関数は数値を操作します。たとえば、xref:dw-core-functions-sum.adoc[sum]、xref:dw-core-functions-mod.adoc[mod] (剰余)、xref:dw-core-functions-abs.adoc[avg] (平均) などがあります。
+
+== 等価演算子と比較演算子
+
+DataWeave 2.0 は、次の等価演算子と比較演算子をサポートしています。
+
+[%header,cols="1,2"]
+|===
+| 演算子 | 説明
+| `<` | 次の値より小さい。
+| `>` | 次の値より大きい。
+| `&lt;=` | 次の値以下。
+| `>=` | 次の値以上。
+| `==` | 次の値と等しい。
+| `~=` | 値の型が異なる場合、等価演算子は、1 つの値をもう 1 つの値の型に強制変換しようとします。
+|===
+
+<<logical_operators, 論理演算子>> `not` を使用することで、これらの演算子を否定することができます。
+
+次の例では、比較演算子を使用しています。
+
+.取得元
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{ "relational" : [
+    { "1 < 1" : (1 < 1) },
+    { "1 > 2" : (1 > 2) },
+    { "1 <= 1" : (1 <= 1) },
+    { "1 >= 1" : (1 >= 1) }
+  ]
+}
+----
+
+.出力
+[source,json,linenums]
+----
+"relational": [
+    { "(1 < 1)": false },
+    { "(1 > 2)": false },
+    { "(1 <= 1)": true },
+    { "(1 >= 1)": true }
+  ]
+}
+----
+
+次の例では、等価演算子を使用しています。
+
+.取得元
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/dw
+---
+{ "equality" :
+  [
+    (1 == 1),
+    (1 == 2),
+    ("true" == true),
+    ("true" ~= true),
+    (['true'] ~= [true]),
+    ('1' ~= 1)
+  ]
+}
+----
+
+.出力
+[source,text,linenums]
+----
+{
+  equality: [ true, false, false, true, true, true ]
+}
+----
+
+[[logical_operators]]
+== 論理演算子
+
+次の論理演算子がサポートされています。
+
+[%header,cols="1,2"]
+|===
+| 演算子 | 説明
+| `not` | 入力の結果を否定します。`!` も参照してください。
+| `!` | 入力の結果を否定します。`not` も参照してください。_DataWeave 2.2.0 で導入されました。Mule 4.2 以降でサポートされます。_
+| `and` | すべての入力の結果が true の場合は `true` を返し、それ以外の場合は `false` を返します。
+| `or` | いずれかの入力の結果が true の場合は `true` を返し、それ以外の場合は `false` を返します。
+|===
+
+NOTE: `not` と `!` のセマンティクスは同じですが、優先順位は異なります。`not true or true` は `not (true or true)` として実行されるため `false` を返しますが、`!true or true` は `true` を返します。`!` が最初の `true` にのみ適用されるためです。`!(true or true)` は `true` を返します。
+
+次の例は、これらの演算子の使用方法を示しています。
+
+.取得元
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+var myArray = [1,2,3,4,5]
+var myMap = myArray map not (($ mod 2) == 0)
+---
+{
+  "not" : [
+    "notTrue" : not true,
+    "notFalse" : not false,
+    "myMapWithNot" : myMap
+  ],
+  "and" : [
+    "andTrueFalse" : true and false,
+    "andIsTrue" : (1 + 1 == 2) and (2 + 2 == 4),
+    "andIsFalse" : (1 + 1 == 2) and (2 + 2 == 2)
+  ],
+  "or" : [
+    "orTrueFalse" : true or false,
+    "orIsTrue" : (1 + 1 == 2) or (2 + 2 == 2),
+    "orIsFalse" : (1 + 1 == 1) or (2 + 2 == 2)
+  ],
+  "!-vs-not" : [
+	  "example-!" : (! true or true),
+	  "example-not" : (not true or true)
+  ]
+}
+----
+
+`myMap` はリスト (`myArray`) 内の項目を反復処理し、剰余 (`mod`) 式が各項目に適用されたときに `0` と評価 _されない_ かどうかを決定します。
+
+.出力
+[source,json,linenums]
+----
+{
+  "not": [
+    { "notTrue": false },
+    { "notFalse": true },
+    { "myMapWithNot": [ true, false, true, false, true ] }
+  ],
+  "and": [
+    { "andTrueFalse": false },
+    { "andIsTrue": true },
+    { "andIsFalse": false }
+  ],
+  "or": [
+    { "orTrueFalse": true },
+    { "orIsTrue": true },
+    { "orIsFalse": false }
+  ],
+  "!-vs-not": [
+    { "example-!": true },
+    { "example-not": false }
+  ]
+}
+----
+
+`not` は `not (true)` のような式では機能しますが、`not(true)` (スペースなし) では機能しないことに注意してください。
+
+
+論理演算子は組み合わせて使用することができます。次の例では、`orNot` 式で `or not` を、`andNot` 式で `and not` を、`notWithAndNot` 式で `not` と `and not` を使用しています。
+
+.例: 論理演算子を組み合わせた使用
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+var orNot = if (1 + 1 == 4 or not 1 == 2) {"answer": "foo"}
+             else {"answer": "nope"}
+var andNot = if (1 + 1 == 2 and not 1 == 2) {"answer": "bar"}
+             else {"answer": "nope"}
+var notWithAndNot = if (not (1 + 1 == 2 and not 1 == 1)) {"answer": "foobar"}
+              else {"answer": "nope"}
+---
+{ "answers" :
+  [
+    orNot,
+    andNot,
+    notWithAndNot
+  ]
+}
+----
+
+.出力
+[source,json,linenums]
+----
+{
+  "answers": [
+    { "answer": "foo" },
+    { "answer": "bar" },
+    { "answer": "foobar" }
+  ]
+}
+----
+
+== 配列用の先頭追加演算子と追加演算子
+
+DataWeave 2.0 は、配列内に項目を追加および先頭に追加する演算子をサポートしています。
+
+[%header,cols="1,2"]
+|===
+| 演算子 | 説明
+| `>>` | 演算子の左側のデータを右側の配列内の項目の先頭に追加します。たとえば、`1 >> [2]` の結果は `[ 1, 2 ]` となり、配列内の `2` の前に `1` が追加されます。
+| `<<` | 演算子の右側のデータを左側の配列内の項目に追加します。たとえば、`[1] << 2` の結果は `[ 1, 2 ]` となり、配列内の `1` の後に `2` が追加されます。
+| `+` | 演算子の右側のデータを左側の配列内の項目に追加します。たとえば、`[1] + 2` の結果は `[ 1, 2 ]` となり、配列内の `1` の後に `2` が追加されます。配列は、常に演算子の左側になります。
+|===
+
+次の例は、これらの演算子の使用方法を示しています。
+
+.例: 先頭追加演算子と追加演算子の使用
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  "prepend-append" : [
+  	 // Array on right side when prepending.
+     { "prepend" : 1 >> [2] },
+     { "prepend-number" : 1 >> [1] },
+     { "prepend-string" : "a" >> [1] },
+     { "prepend-object" : { "a" : "b"} >> [1] },
+     { "prepend-array" : [1] >> [2, 3] },
+     { "prepend-binary" : (1 as Binary) >> [1] },
+     { "prepend-date-time" : |23:57:59Z| >> [ |2017-10-01| ] },
+  	 // Array is on left side when appending.
+     { "append-number" : [1] << 2 },
+     { "append-string" : [1] << "a" },
+     { "append-object" : [1] << { "a" : "b"} },
+     { "append-array" : [1,2] << [1, 2, 3] },
+     { "append-binary" : [1] << (1 as Binary) },
+     { "append-date-time" : [ |2017-10-01| ] << |23:57:59Z| },
+     { "append-object-to-array" : [1,2] << {"a" : "b"} },
+     { "append-array-to-array1" : ["a","b"] << ["c","d"] },
+     { "append-array-to-array2" : [["a","b"],["c","d"]] << ["e","f"] },
+     // + always appends within the array
+     { "append-with-+" : [1] + 2 },
+     { "append-with-+" : [2] + 1 }
+  ]
+}
+----
+
+.出力
+[source,json,linenums]
+----
+{
+  "prepend-append": [
+    { "prepend": [ 1, 2 ] },
+    { "prepend-number": [ 1, 1 ] },
+    { "prepend-string": [ "a", 1 ] },
+    { "prepend-array": [ [ 1 ], 2, 3 ] },
+    { "prepend-object": [ { "a": "b" }, 1 ] },
+    { "prepend-binary": [ "\u0001", 1 ] },
+    { "prepend-date-time": [ "23:57:59Z", "2017-10-01" ] },
+    { "append-number": [ 1, 2 ] },
+    { "append-string": [ 1, "a" ] },
+    { "append-object": [ 1, { "a": "b" } ] },
+    { "append-array": [ 1, 2, [ 1, 2, 3 ] ] },
+    { "append-binary": [ 1, "\u0001" ] },
+    { "append-date-time": [ "2017-10-01", "23:57:59Z" ] },
+    { "append-object-to-array": [ 1, 2, { "a": "b" } ] },
+    { "append-array-to-array1": [ "a", "b", ["c","d"] ] },
+    { "append-array-to-array2": [ ["a","b"], ["c","d"], ["e","f"] ] },
+    { "append-with-+": [ 1, 2] },
+    { "append-with-+": [ 2, 1] }
+  ]
+}
+----

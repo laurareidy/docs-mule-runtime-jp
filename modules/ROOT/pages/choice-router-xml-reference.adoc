@@ -1,0 +1,51 @@
+= Choice ルータ XML リファレンス
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Choice フロー制御コンポーネントの構造は、次のとおりです。
+
+
+* 1 つのルート要素 `<choice>`
+* 各ルーティングオプションの `<when>` 子要素 (それぞれに照合する式がある)
+* `<when>` 要素のどの式も True に評価されないすべてのケースを処理する choice の `<otherwise>` 子要素 (省略可能)
+* 各 choice に基づいて条件付きで実行されるコンポーネント。`when` および `otherwise` 要素の子要素として定義されます。
+
+== `<when>` のプロパティ
+
+[%header,cols="30,70"]
+|===
+|プロパティ |説明
+| 式 (`expression`) | 入力を評価する DataWeave 言語の式。式が `true` に評価されると、このルーティングオプションが使用されます。
+| ビジネスイベント | ビジネスイベント機能を有効化する場合に使用します。
+|===
+
+[source,xml,linenums]
+----
+<choice doc:name="Choice">
+  <when expression="#[vars.language == 'french']">
+    <set-payload value="Bonjour!" doc:name="Reply in French"/>
+  </when>
+  <when expression="#[vars.language == 'spanish']">
+    <set-payload value="Hola!" doc:name="Reply in Spanish"/>
+  </when>
+  <otherwise >
+    <set-variable variableName="language" value="English" doc:name="Set Language to English"/>
+    <set-payload value="Hello!" doc:name="Reply in English"/>
+  </otherwise>
+</choice>
+----
+
+
+
+== 関連情報
+
+xref:choice-router-concept.adoc[Choice ルータ]
+
+xref:about-flows.adoc[フローおよびサブフロー]
+
+xref:dataweave-cookbook-extract-data.adoc[データの抽出]
+
+xref:dataweave-language-introduction.adoc[DataWeave スクリプト]
+
+xref:business-events.adoc[ビジネスイベント]

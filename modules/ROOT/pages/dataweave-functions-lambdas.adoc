@@ -1,0 +1,144 @@
+= DataWeave での関数とラムダの操作
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, esb, 変換, トランスフォーマ, 形式, 集約, 名前変更, 分割, 変換の絞り込み, xml, json, csv, pojo, java オブジェクト, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング
+
+DataWeave では、関数とラムダ (匿名関数) を値として渡すか、変数に割り当てることができます。
+
+`map` などの関数と共に DataWeave ファイルの本文内でラムダを使用する場合、その属性を明示的に名前付けするか、匿名のままにできます。どちらの場合も、ラムダは `$`、`$$`、などとして参照できます。
+
+== 関数の宣言および呼び出し
+
+`fun` キーワードを使用して、DataWeave スクリプトのヘッダーまたは本文内で関数を宣言できます。これで、スクリプトの本文の任意の場所で関数を呼び出すことができます。
+
+関数を参照するには、`functionName()` または `functionName(arg1, arg2, argN)` の形式を使用します。
+
+各引数の括弧内で式を渡すことができます。括弧内の各引数を評価し、結果を、関数本文の実行内で使用する引数として渡します。
+
+.入力
+[source,json,linenums]
+----
+{
+  "field1": "Annie",
+  "field2": "Point",
+  "field3": "Stuff"
+}
+----
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+fun toUser(obj) = {
+  firstName: obj.field1,
+  lastName: obj.field2
+}
+---
+{
+  "user" : toUser(payload)
+}
+----
+
+.出力
+[source,json,linenums]
+----
+{
+  "user": {
+    "firstName": "Annie",
+    "lastName": "Point"
+  }
+}
+----
+
+== Var へのラムダの割り当て
+
+`var` を介して定数ディレクティブを使用して、関数を変数として定義できます。
+
+.入力
+[source,json,linenums]
+----
+{
+  "field1": "Annie",
+  "field2": "Point",
+  "field3": "Stuff"
+}
+----
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+var toUser = (user) -> {
+  firstName: user.field1,
+  lastName: user.field2
+}
+---
+{
+  "user" : toUser(payload)
+}
+----
+
+.出力
+[source,json,linenums]
+----
+{
+  "user": {
+    "firstName": "Annie",
+    "lastName": "Point"
+  }
+}
+----
+
+== ラムダでの名前付きパラメータの使用
+
+次の例では、`name` として明示的に名前付けされた属性と共にラムダを使用します。
+
+.入力
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+var names = ["john", "peter", "matt"]
+---
+users: names map((name) -> upper(name))
+----
+
+.変換
+[source,json,linenums]
+----
+{
+  "users": ["JOHN","PETER","MATT"]
+}
+----
+
+== ラムダでの匿名パラメータの使用
+
+次の例では、明示的に名前付けされていないためにデフォルトで `$` として参照される属性と共にラムダを使用します。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+var names = ["john", "peter", "matt"]
+---
+users: names map upper($)
+----
+
+.出力
+[source,json,linenums]
+----
+{
+  "users": ["JOHN","PETER","MATT"]
+}
+----
+
+
+== 関連情報
+
+xref:dataweave-formats.adoc[DataWeave の出力形式とライタープロパティ]
+
+xref:dataweave-language-introduction.adoc[DataWeave スクリプト]

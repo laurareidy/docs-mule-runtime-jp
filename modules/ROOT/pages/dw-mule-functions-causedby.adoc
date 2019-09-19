@@ -1,0 +1,47 @@
+= causedBy
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[causedby1]]
+== causedBy&#40;Error, String&#41;: Boolean
+
+この関数は、エラーハンドラのように、エラーをその種別によって一致させます。
+
+
+`causedBy` は、上位の種別による一致だけでなく特定のサブ種別のロジックも必要な場合に役立ちます。また、異なる種別の子エラーを含む COMPOSITE_ROUTING エラーを処理する場合にも役立つ可能性があります。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `error` | 省略可能。`Error` (エラー) 型
+| `errorType` | HTTP:UNAUTHORIZED などのエラーを識別する文字列。
+|===
+
+=== 例
+
+次の XML の例では、Mule エラー処理コンポーネントの `when` 式から `causedBy` をコールし、HTTP:UNAUTHORIZED エラーまたは HTTP:FORBIDDEN エラーのどちらが原因であるかに応じて SECURITY エラーを異なる方法で処理します。最初の式は `error` (`Error` 型) を明示的に渡していますが、2 番目の式はパラメータの値を指定せずに暗黙的に渡しています。
+`error` は、Mule メッセージオブジェクトに関連付けられたエラーに対して DataWeave が使用する変数です (https://docs.mulesoft.com/mule-runtime/4.2/dataweave-variables-context[「DataWeave Variables for Mule Runtime」](Mule Runtime の DataWeave 変数) を参照)。
+
+==== 取得元
+
+[source,XML,linenums]
+----
+<error-handler name="securityHandler">
+  <on-error-continue type="SECURITY">
+    <!-- general error handling for all SECURITY errors -->
+    <choice>
+      <when expression="#[Mule::causedBy(error, 'HTTP:UNAUTHORIZED')]">
+        <!-- specific error handling only for HTTP:UNAUTHORIZED errors -->
+      </when>
+      <when expression="#[Mule::causedBy('HTTP:FORBIDDEN')]">
+        <!-- specific error handling only for HTTP:FORBIDDEN errors -->
+      </when>
+    </choice>
+  </on-error-continue>
+</error-handler>
+----

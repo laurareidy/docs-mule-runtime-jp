@@ -1,0 +1,364 @@
+= XML 暗号化
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: 暗号化, モジュール, 署名, 暗号化, xml, AES
+:toc:
+:toc-title:
+
+== 暗号化
+
+この例では、後で暗号化に使用される対称キーを格納するキーストアを設定します。
+
+.例: JCE 設定
+[source,xml,linenums]
+----
+<crypto:jce-config name="symmetricConfig" keystore="secret.jks" password="mule1234" type="JCEKS">
+    <crypto:jce-key-infos>
+        <crypto:jce-symmetric-key-info keyId="mySymKey" alias="aes128test" password="mule1234"/>
+    </crypto:jce-key-infos>
+</crypto:jce-config>
+----
+
+次の例では、XML encrypt 操作を使用して XML ドキュメントの特定の要素を暗号化します。
+
+.例: Encrypt 操作の使用
+[source,xml,linenums]
+----
+<crypto:xml-encrypt config-ref="symmetricConfig" keyId="mySymKey" algorithm="AES_CBC" elementPath="//song"/>
+----
+
+`elementPath` は、暗号化する要素を識別する XPath 式です。
+ニーズに応じて、対称キーまたは非対称キーを使用して XML ドキュメントを暗号化できます。
+
+== 復号化
+
+.例: JCE 設定
+[source,xml,linenums]
+----
+<crypto:jce-config name="jceConfig" keystore="keystore.jks" password="mule1234">
+    <crypto:jce-key-infos>
+        <crypto:jce-symmetric-key-info keyId="mySymKey" alias="aes128test" password="mule1234"/>
+        <crypto:jce-asymmetric-key-info keyId="myAsymKey" alias="test1" password="test1234"/>
+    </crypto:jce-key-infos>
+</crypto:jce-config>
+----
+
+次の例では、XML decrypt 操作 (`crypto:xml-decrypt`) を使用して XML ドキュメントを復号化します。この操作では、参照されるキーストアに保存されている非対称キーを使用します。
+
+.例: Decrypt 操作の使用
+[source,xml,linenums]
+----
+<crypto:xml-decrypt config-ref="jceConfig" keyId="myAsymKey"/>
+----
+
+ニーズに応じて、対称キーまたは非対称キーを使用して復号化できます。
+
+== 署名
+
+.例: JCE 設定
+[source,xml,linenums]
+----
+<crypto:jce-config name="asymmetricConfig" keystore="keystore.jks" password="mule1234">
+    <crypto:jce-key-infos>
+        <crypto:jce-asymmetric-key-info keyId="myAsymKey" alias="test1" password="test1234"/>
+    </crypto:jce-key-infos>
+</crypto:jce-config>
+----
+
+次の例では、非対称キーを使用して XML ドキュメントに署名します (XML エンベロープを作成し、署名されるコンテンツ内に署名を挿入する)。
+
+.例: エンベロープ署名
+[source,xml,linenums]
+----
+<crypto:xml-sign config-ref="asymmetricConfig" keyId="myAsymKey" type="ENVELOPING" digestAlgorithm="SHA256" elementPath="/PurchaseOrder/Buyer"/>
+----
+
+次の例では、XML ドキュメントの要素に基づいて、分離された XML 署名が作成されます。分離された署名は、署名されるコンテンツに挿入されずに個別の XML 要素として返されます。
+
+.例: 分離された署名
+[source,xml,linenums]
+----
+<crypto:xml-sign config-ref="asymmetricConfig" keyId="myAsymKey" type="DETACHED" digestAlgorithm="SHA256" elementPath="/PurchaseOrder/Buyer"/>
+----
+
+== 署名の検証
+
+.例: JCE 設定
+[source,xml,linenums]
+----
+<crypto:jce-config name="asymmetricConfig" keystore="keystore.jks" password="mule1234">
+    <crypto:jce-key-infos>
+        <crypto:jce-asymmetric-key-info keyId="myAsymKey" alias="test1" password="test1234"/>
+    </crypto:jce-key-infos>
+</crypto:jce-config>
+----
+
+次の例では、非対称キーを使用して、`elementPath` XPath 式で指定された XML 要素の署名を検証します。
+
+.例: Validate 操作の使用
+[source,xml,linenums]
+----
+<crypto:xml-validate config-ref="asymmetricConfig" keyId="myAsymKey" elementPath="/PurchaseOrder/Buyer"/>
+----
+
+== 参照
+
+=== モジュール設定
+
+XML ドキュメントや要素を署名または暗号化するための Java キーストアおよびインラインキーの JCE 設定。
+
+==== パラメータ
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|===
+| Name (名前) | 型 | 説明 | デフォルト値 | 必須
+|Name (名前) | String (文字列) | この設定の名前。コネクタはこの名前の設定を参照します。 | | *x*{nbsp}
+| Keystore (キーストア) a| String (文字列) |  +++キーストアファイルへのパス。+++ |  | {nbsp}
+| 型 a| Enumeration (列挙)。次のいずれかになります。
+
+** `JKS`
+** `JCEKS`
+** `PKCS12` |  +++キーストアの種別。+++ |  `JKS` | {nbsp}
+| Password (パスワード) a| String (文字列) |  +++キーストアのロックを解除するパスワード。+++ |  | {nbsp}
+| Jce Key Infos (JCE キー情報) a| Array (配列)。次のいずれかになります。
+
+* <<JceAsymmetricKeyInfo>>
+* <<JceSymmetricKeyInfo>> |  +++対象となるキーのリスト。これらの参照には内部 ID が使用されます。+++ |  | {nbsp}
+| Expiration Policy (有効期限ポリシー) a| <<ExpirationPolicy>> |  +++動的設定インスタンスがアイドル状態を続けられる最小時間を設定します。この時間が経過すると、Runtime で期限切れに相当するとみなされます。これは、対象になった瞬間にプラットフォームでインスタンスの有効期限が切れるという意味ではありません。ランタイムによって適切と判断されたときに、インスタンスが実際にパージされます。+++ |  | {nbsp}
+|===
+
+[[xmlDecrypt]]
+== Xml Decrypt 操作
+`<crypto:xml-decrypt>`
+
++++
+XML ドキュメントを復号化します。
++++
+
+=== パラメータ
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|===
+| Name (名前) | 型 | 説明 | デフォルト値 | 必須
+| Configuration (設定) | String (文字列) | 使用する設定の名前。 | | *x*{nbsp}
+| Content (コンテンツ) a| Binary (バイナリ) |  +++復号化するドキュメント+++ |  `#[payload]` | {nbsp}
+| Streaming Strategy (ストリーミング戦略) a| * <<repeatable-in-memory-stream>>
+* <<repeatable-file-store-stream>>
+* non-repeatable-stream |  +++反復可能ストリームを使用すべきかどうか、およびその動作を設定します。+++ |  | {nbsp}
+| Key Id (キー ID) a| String (文字列) |  +++JCE 設定で定義されるキー ID。+++ |  | {nbsp}
+| Jce Key Info (JCE キー情報) a| 次のいずれかになります。
+
+* <<JceAsymmetricKeyInfo>>
+* <<JceSymmetricKeyInfo>> |  +++インラインキー定義。+++ |  | {nbsp}
+| Target Variable (対象変数) a| String (文字列) |  +++操作の出力が格納される変数の名前+++ |  | {nbsp}
+| Target Value (対象値) a| String (文字列) |  +++操作の出力に対して評価される式。その式の結果は対象変数に保存されます。+++ |  `#[payload]` | {nbsp}
+|===
+
+=== 出力型
+
+Binary (バイナリ)
+
+=== スロー
+* `CRYPTO:MISSING_KEY` {nbsp}
+* `CRYPTO:KEY` {nbsp}
+* `CRYPTO:PASSPHRASE` {nbsp}
+* `CRYPTO:PARAMETERS` {nbsp}
+* `CRYPTO:DECRYPTION` {nbsp}
+
+
+[[xmlEncrypt]]
+== Xml Encrypt 操作
+`<crypto:xml-encrypt>`
+
++++
+XML ドキュメントを暗号化します。
++++
+
+=== パラメータ
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|===
+| Name (名前) | 型 | 説明 | デフォルト値 | 必須
+| Configuration (設定) | String (文字列) | 使用する設定の名前。 | | *x*{nbsp}
+| Content (コンテンツ) a| Binary (バイナリ) |  +++暗号化するドキュメント+++ |  `#[payload]` | {nbsp}
+| Algorithm (アルゴリズム) a| Enumeration (列挙)。次のいずれかになります。
+
+** `AES_CBC`
+** `AES_GCM`
+** `TRIPLEDES` |  +++暗号化のアルゴリズム+++ |  `AES_CBC` | {nbsp}
+| Element Path (要素のパス) a| String (文字列) |  +++暗号化する要素へのパス。空の場合、ドキュメント全体が対象になります。+++ |  | {nbsp}
+| Streaming Strategy (ストリーミング戦略) a| * <<repeatable-in-memory-stream>>
+* <<repeatable-file-store-stream>>
+* non-repeatable-stream |  +++反復可能ストリームを使用すべきかどうか、およびその動作を設定します。+++ |  | {nbsp}
+| Key Id (キー ID) a| String (文字列) |  +++JCE 設定で定義されるキー ID。+++ |  | {nbsp}
+| Jce Key Info (JCE キー情報) a| 次のいずれかになります。
+
+* <<JceAsymmetricKeyInfo>>
+* <<JceSymmetricKeyInfo>> |  +++インラインキー定義。+++ |  | {nbsp}
+| Target Variable (対象変数) a| String (文字列) |  +++操作の出力が格納される変数の名前+++ |  | {nbsp}
+| Target Value (対象値) a| String (文字列) |  +++操作の出力に対して評価される式。その式の結果は対象変数に保存されます。+++ |  `#[payload]` | {nbsp}
+|===
+
+=== 出力型
+
+Binary (バイナリ)
+
+=== スロー
+* `CRYPTO:MISSING_KEY` {nbsp}
+* `CRYPTO:ENCRYPTION` {nbsp}
+* `CRYPTO:KEY` {nbsp}
+* `CRYPTO:PARAMETERS` {nbsp}
+
+
+[[xmlSign]]
+== Xml Sign 操作
+`<crypto:xml-sign>`
+
++++
+XML ドキュメントに署名します。
++++
+
+=== パラメータ
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|===
+| Name (名前) | 型 | 説明 | デフォルト値 | 必須
+| Configuration (設定) | String (文字列) | 使用する設定の名前。 | | *x*{nbsp}
+| Content (コンテンツ) a| Binary (バイナリ) |  +++署名する XML ドキュメント+++ |  `#[payload]` | {nbsp}
+| Digest Algorithm (ダイジェストアルゴリズム) a| Enumeration (列挙)。次のいずれかになります。
+
+** `RIPEMD160`
+** `SHA1`
+** `SHA256`
+** `SHA512` |  +++署名のハッシュアルゴリズム+++ |  `SHA256` | {nbsp}
+| Canonicalization Algorithm (正規化アルゴリズム) a| Enumeration (列挙)。次のいずれかになります。
+
+** `EXCLUSIVE`
+** `EXCLUSIVE_WITH_COMMENTS`
+** `INCLUSIVE`
+** `INCLUSE_WITH_COMMENTS` |  +++空白と名前空間の統合の正規化方法+++ |  `EXCLUSIVE` | {nbsp}
+| 型 a| Enumeration (列挙)。次のいずれかになります。
+
+** `DETACHED`
+** `ENVELOPED`
+** `ENVELOPING` |  +++作成する署名の種別+++ |  `ENVELOPED` | {nbsp}
+| Element Path (要素のパス) a| String (文字列) |  +++署名する要素に解決される明確な XPath 式 (内部的に分離された署名の場合)+++ |  | {nbsp}
+| Streaming Strategy (ストリーミング戦略) a| * <<repeatable-in-memory-stream>>
+* <<repeatable-file-store-stream>>
+* non-repeatable-stream |  +++反復可能ストリームを使用すべきかどうか、およびその動作を設定します。+++ |  | {nbsp}
+| Key Id (キー ID) a| String (文字列) |  +++JCE 設定で定義されるキー ID。+++ |  | {nbsp}
+| Jce Key Info (JCE キー情報) a| 次のいずれかになります。
+
+* <<JceAsymmetricKeyInfo>>
+* <<JceSymmetricKeyInfo>> |  +++インラインキー定義。+++ |  | {nbsp}
+| Target Variable (対象変数) a| String (文字列) |  +++操作の出力が格納される変数の名前+++ |  | {nbsp}
+| Target Value (対象値) a| String (文字列) |  +++操作の出力に対して評価される式。その式の結果は対象変数に保存されます。+++ |  `#[payload]` | {nbsp}
+|===
+
+=== 出力型
+
+Binary (バイナリ)
+
+=== スロー
+* `CRYPTO:MISSING_KEY` {nbsp}
+* `CRYPTO:KEY` {nbsp}
+* `CRYPTO:PASSPHRASE` {nbsp}
+* `CRYPTO:SIGNATURE` {nbsp}
+
+
+[[xmlValidate]]
+== Xml Validate 操作
+`<crypto:xml-validate>`
+
++++
+署名済み XML ドキュメントを検証します。
++++
+
+=== パラメータ
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|===
+| Name (名前) | 型 | 説明 | デフォルト値 | 必須
+| Configuration (設定) | String (文字列) | 使用する設定の名前。 | | *x*{nbsp}
+| Content (コンテンツ) a| Binary (バイナリ) |  +++検証するドキュメント (署名を含む)+++ |  `#[payload]` | {nbsp}
+| Element Path (要素のパス) a| String (文字列) |  +++署名済み要素に解決される明確な XPath 式 (内部的に分離された署名の場合)+++ |  | {nbsp}
+| Key Id (キー ID) a| String (文字列) |  +++JCE 設定で定義されるキー ID。+++ |  | {nbsp}
+| Jce Key Info (JCE キー情報) a| 次のいずれかになります。
+
+* <<JceAsymmetricKeyInfo>>
+* <<JceSymmetricKeyInfo>> |  +++インラインキー定義。+++ |  | {nbsp}
+|===
+
+=== スロー
+* `CRYPTO:MISSING_KEY` {nbsp}
+* `CRYPTO:PARAMETERS` {nbsp}
+* `CRYPTO:VALIDATION` {nbsp}
+
+== 型の定義
+[[ExpirationPolicy]]
+=== Expiration Policy (有効期限ポリシー)
+
+[cols=".^20%,.^25%,.^30%,.^15%,.^10%", options="header"]
+|===
+| 項目 | 型 | 説明 | デフォルト値 | 必須
+| Max Idle Time (最大アイドル時間) a| Number (数値) | 有効期限の対象とみなされるまで、動的設定インスタンスがアイドル状態を維持できる最大時間のスカラー時間値 |  |
+| Time Unit (時間単位) a| Enumeration (列挙)。次のいずれかになります。
+
+** `NANOSECONDS`
+** `MICROSECONDS`
+** `MILLISECONDS`
+** `SECONDS`
+** `MINUTES`
+** `HOURS`
+** `DAYS` | maxIdleTime 属性の時間単位 |  |
+|===
+
+[[repeatable-in-memory-stream]]
+=== Repeatable In Memory Stream (反復可能なメモリ内ストリーム)
+
+[cols=".^20%,.^25%,.^30%,.^15%,.^10%", options="header"]
+|===
+| 項目 | 型 | 説明 | デフォルト値 | 必須
+| Initial Buffer Size (初期バッファサイズ) a| Number (数値) | これは、ストリームをコンシュームし、ストリームへのランダムアクセスを提供する目的で割り当てられるメモリの容量です。ストリームに含まれているデータがこのバッファに適合できる量を超えている場合、`bufferSizeIncrement` 属性に従って拡張され、上限は `maxInMemorySize` となります。. |  |
+| Buffer Size Increment (バッファサイズ増分) a| Number (数値) | バッファサイズが初期サイズを超えた場合に、どれくらい拡張されるか。値を 0 以下に設定すると、バッファが拡張されません。つまり、バッファがフルになると、`STREAM_MAXIMUM_SIZE_EXCEEDED` エラーが発生します。 |  |
+| Max Buffer Size (最大バッファサイズ) a| Number (数値) | 使用するメモリの最大量。これを超えると、`STREAM_MAXIMUM_SIZE_EXCEEDED` エラーが発生します。0 以下の値は無制限を意味します。 |  |
+| Buffer Unit (バッファ単位) a| Enumeration (列挙)。次のいずれかになります。
+
+** `BYTE`
+** `KB`
+** `MB`
+** `GB` | これらのすべての属性の単位 |  |
+|===
+
+[[repeatable-file-store-stream]]
+=== Repeatable File Store Stream (反復可能なファイルストアストリーム)
+
+[cols=".^20%,.^25%,.^30%,.^15%,.^10%", options="header"]
+|===
+| 項目 | 型 | 説明 | デフォルト値 | 必須
+| Max In Memory Size (最大メモリ内サイズ) a| Number (数値) | データをメモリ内に保持するためにストリームで使用する最大メモリを定義します。これを超えると、ディスクへのコンテンツのバッファが開始されます。 |  |
+| Buffer Unit (バッファ単位) a| Enumeration (列挙)。次のいずれかになります。
+
+** `BYTE`
+** `KB`
+** `MB`
+** `GB` | maxInMemorySize で表される単位 |  |
+|===
+
+[[JceAsymmetricKeyInfo]]
+=== Jce Asymmetric Key Info (JCE 非対称キー情報)
+
+[cols=".^20%,.^25%,.^30%,.^15%,.^10%", options="header"]
+|===
+| 項目 | 型 | 説明 | デフォルト値 | 必須
+| Key Id (キー ID) a| String (文字列) | 操作から参照される内部キー ID。 |  | x
+| Alias (別名) a| String (文字列) | キーストア内のキーの別名。 |  | x
+| Password (パスワード) a| String (文字列) | キーの非公開部分のロック解除に使用されるパスワード。 |  |
+|===
+
+[[JceSymmetricKeyInfo]]
+=== Jce Symmetric Key Info (JCE 対称キー情報)
+
+[cols=".^20%,.^25%,.^30%,.^15%,.^10%", options="header"]
+|===
+| 項目 | 型 | 説明 | デフォルト値 | 必須
+| Key Id (キー ID) a| String (文字列) | 操作から参照される内部キー ID。 |  | x
+| Alias (別名) a| String (文字列) | キーストア内のキーの別名。 |  | x
+| Password (パスワード) a| String (文字列) | キーのロック解除に使用されるパスワード。 |  | x
+|===

@@ -1,0 +1,131 @@
+= Bitronix を使用したトランザクションの管理
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: bitronix, トランザクション, xa, 管理, bti
+
+Bitronix トランザクションマネージャにより、中断されていたトランザクションを Mule の再起動時に自動的に復元できます。
+
+Mule インスタンスがクラッシュするか、リソースマネージャ (JMS ブローカーやデータベースなど) との接続が失われると、2 フェーズコミットプロトコル (2PC) の準備フェーズとコミットフェーズの間にあるトランザクションは失敗します。この場合、トランザクションマネージャは、復元プロセスを実行して、障害の発生時に実行途中だったトランザクションを完了させる必要があります。このような障害はあまり発生しませんが、発生した場合のデータの一貫性を維持するためのメカニズムが必要です。
+
+== 単一アプリケーションでの Bitronix の使用
+
+Bitronix を使用するようにアプリケーションを設定するには、次のようにフローの外部でトランザクションマネージャを宣言します。
+
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:bti="http://www.mulesoft.org/schema/mule/ee/bti"
+      xsi:schemaLocation="
+       http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+       http://www.mulesoft.org/schema/mule/ee/bti http://www.mulesoft.org/schema/mule/ee/bti/current/mule-bti-ee.xsd">
+    <bti:transaction-manager/>
+...
+</mule>
+----
+
+== Mule ドメインのすべてのアプリケーションでの Bitronix の使用
+
+Mule ドメインに関連付けられているすべてのドメインで Bitronix を使用するには、次のようにドメイン設定ファイルで Bitronix をトランザクションマネージャとして定義します。このように設定すると、ドメインに関連付けられているすべてのアプリケーションが Bitronix を使用するため、個別のアプリケーションでトランザクションマネージャを宣言する必要はありません。
+
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<domain:mule-domain
+        xmlns:bti="http://www.mulesoft.org/schema/mule/ee/bti"
+        xmlns="http://www.mulesoft.org/schema/mule/core"
+        xmlns:domain="http://www.mulesoft.org/schema/mule/ee/domain"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xsi:schemaLocation="
+               http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+               http://www.mulesoft.org/schema/mule/ee/domain http://www.mulesoft.org/schema/mule/ee/domain/current/mule-domain-ee.xsd
+http://www.mulesoft.org/schema/mule/ee/bti http://www.mulesoft.org/schema/mule/ee/bti/current/mule-bti-ee.xsd">
+	<bti:transaction-manager/>
+
+    <!-- ... -->
+
+</domain:mule-domain>
+----
+
+ドメインの詳細については、xref:shared-resources.adoc[「共有リソース」]を参照してください。
+
+== Anypoint Studio からの Bitronix の追加
+
+Studio からアプリケーションやドメインに Bitronix を追加する手順は次のとおりです。
+
+1.*[Global Elements (グローバル要素)]* タブに移動します。
+2.*[Create (作成)]* ボタンをクリックします。
+3.`Bitronix Transaction Manager` を検索します。
++
+image::bitronix-studio.png[bitronix-studio]
+
+== Bitronix トランザクションマネージャの設定
+
+Bitronix のデフォルト設定値は、ほとんどのユースケースに適していますが、システムプロパティまたは `$MULE_HOME/conf` ディレクトリの `wrapper.conf` ファイルを使用してトランザクションマネージャをカスタマイズすることもできます。
+
+Bitronix の設定属性を下表に示します。
+
+[%header,cols="35,40,25"]
+|===
+|設定属性 |説明 |デフォルト値
+|`mule.bitronix.transactiontimeout` |XA トランザクションのタイムアウト (秒)。 |60
+|`mule.bitronix.recoveryinterval` |XA トランザクションの復元実行間隔 (秒)。 |60
+|`mule.bitronix.serverId` |XA トランザクションログに登録するためのトランザクションマネージャの一意の ID。この値は、Mule インスタンスごとに一意である必要があります。 |ホスト IP と、HA で動作している場合はクラスタノード ID との組み合わせ。
+|===
+
+=== データベースのプーリングデータソースの設定
+
+Bitronix とのインテグレーションにより、データベースコネクタでリソースプーリングを実装するときには必ず使用するデータベースコネクタ用のデータソース接続プールが提供されます。
+
+すべての接続用の共有プーリングデータソースを設定できます。これにより、アプリケーションによってこれらのデータソースが集中して使用されていない場合の接続使用状況が改善されます。
+
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<mule-domain xmlns="http://www.mulesoft.org/schema/mule/ee/domain"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:db="http://www.mulesoft.org/schema/mule/db"
+      xmlns:bti="http://www.mulesoft.org/schema/mule/ee/bti"
+      xmlns:spring="http://www.mulesoft.org/schema/mule/spring"
+      xsi:schemaLocation="
+               http://www.mulesoft.org/schema/mule/ee/bti http://www.mulesoft.org/schema/mule/ee/bti/current/mule-bti-ee.xsd
+               http://www.mulesoft.org/schema/mule/ee/domain http://www.mulesoft.org/schema/mule/ee/domain/current/mule-domain-ee.xsd
+               http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+
+    <spring:config name="springConfig" files="domain-config/datasource-beans.xml"/>
+
+    <bti:transaction-manager/>
+
+    <bti:xa-data-source-pool name="pooledDataSource" dataSource-ref="jdbcDataSource"/>
+
+    <db:generic-config name="dbConfig" dataSource-ref="pooledDataSource"/>
+
+</mule-domain>
+----
+
+プーリングデータソースの設定属性を下表に示します。
+
+[%header,cols="35,45,10,10"]
+|===
+|属性 |説明 | 必須 | デフォルト値
+|`name` |コネクタが参照できるようにプールを識別します。 | はい |
+|`datasource-ref` |JDBC データソースオブジェクトへの参照。`XADataSource` オブジェクトを用意する必要があります。 | はい |
+|`min-pool-size` |プールに格納する最小の接続数を定義します。 | いいえ | 4
+|`max-pool-size` |プールに格納できる最大の接続数を定義します。 | いいえ | 16
+|`max-idle-time` |プール内のアイドル接続を閉じるまでの秒数。 | いいえ |60
+|`acquire-increment` |プールが枯渇したときに一度に取得を試みる接続数を決定します。 | いいえ |1
+|`acquire-timeout-seconds` |プールが枯渇したときに `getConnection()` を呼び出しているクライアントが接続のチェックインまたは取得を待つ秒数。0 を指定すると無限に待ちます。 | いいえ |30
+|`prepared-statement-cache-size` |プールされた接続ごとにキャッシュされるステートメント数を決定します。0 を指定するとキャッシュは無効になります。 | いいえ | 5
+|===
+
+== トランザクションの復元
+
+Mule には自動的に実行される復元手順があり、設定は不要です。システムクラッシュ後に Mule が再起動すると、XA トランザクションに関与していたすべてのリソースに接続してトランザクション復元プロセスを開始し、すべてのシステムを一貫した状態に保ちます。
+
+== 関連情報
+
+* xref:shared-resources.adoc[共有リソース]
+* xref:transaction-management.adoc[トランザクションの管理]
+* xref:xa-transactions.adoc[XA トランザクション]

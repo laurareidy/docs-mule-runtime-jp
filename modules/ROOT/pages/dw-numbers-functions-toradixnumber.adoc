@@ -1,0 +1,50 @@
+= toRadixNumber
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[toradixnumber1]]
+== toRadixNumber&#40;Number, Number&#41;: String
+
+10 進数を他の基数の数値文字列に変換します。
+
+
+_DataWeave 2.2.0 で導入されました。Mule 4.2 以降でサポートされます。_
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `number` | 10 進数。
+| `radix` | 結果の数値の基数。
+|===
+
+=== 例
+
+次の例では、さまざまな入力での `toRadixNumber` の動作を示します。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+import toRadixNumber from dw::core::Numbers
+output application/json
+---
+{
+    a: toRadixNumber(2, 2),
+    b: toRadixNumber(255, 16)
+}
+----
+==== 出力
+[source,JSON,linenums]
+----
+{
+  "a": "10",
+  "b": "ff"
+}
+----
+

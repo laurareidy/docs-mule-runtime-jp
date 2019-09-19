@@ -1,0 +1,144 @@
+= DataWeave を使用した日付の解析
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, 変換, トランスフォーマ, 形式, xml, json, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング
+
+これらの DataWeave の例では、DataWeave ヘッダーで関数 (`fun`) を定義して、さまざまな日付形式内の日付区切り文字 (`/`、`.`、`-`) を正規化して、すべてで同じ区切り文字 (`-`) が使用されるようにします。
+
+この例では、次の関数を使用します。
+
+* すべての日付を 1 つのパターンに一致させる `replace`。
+* `date` 要素を調べる `mapObject`。スクリプトで正規化関数を各 `date` に適用します。
+* 値のデータ型を特定の日付形式の Date (日付) 型に変更する `as` (2 番目の DataWeave スクリプト)。
+
+
+== 例: String (文字列) 型として日付を返す
+
+.入力
+[source,dataweave,linenums]
+----
+<dates>
+  <date>26-JUL-16</date>
+  <date>27/JUL/16</date>
+  <date>28.JUL.16</date>
+</dates>
+----
+
+.DataWeave
+[source,dataweave,linenums]
+----
+%dw 2.0
+output text/xml
+fun normalize(date) date replace "/" with "-" replace "." with "-"
+---
+
+dates: (payload.dates mapObject {
+    normalized_as_string: normalize($.date)
+})
+
+----
+
+.出力 (日付が String (文字列) 型)
+[source,dataweave,linenums]
+----
+<?xml version='1.0' encoding='US-ASCII'?>
+<dates>
+  <normalized_as_string>26-JUL-16</normalized_as_string>
+  <normalized_as_string>27-JUL-16</normalized_as_string>
+  <normalized_as_string>28-JUL-16</normalized_as_string>
+</dates>
+----
+
+== 例: Date (日付) 型として日付を返す
+
+.入力
+[source,dataweave,linenums]
+----
+<dates>
+  <date>26-JUL-16</date>
+  <date>27/JUL/16</date>
+  <date>28.JUL.16</date>
+</dates>
+----
+
+.DataWeave
+[source,dataweave,linenums]
+----
+%dw 2.0
+output text/xml
+fun normalize(date) date replace "/" with "-" replace "." with "-"
+---
+// Outputs date values as Date types in the specified format
+dates: (payload.dates mapObject {
+    normalized_as_date: normalize($.date) as Date {format: "d-MMM-yy"}
+})
+----
+
+.出力 (日付が Date (日付) 型)
+[source,dataweave,linenums]
+----
+<?xml version='1.0' encoding='US-ASCII'?>
+<dates>
+  <normalized_as_date>2016-07-26</normalized_as_date>
+  <normalized_as_date>2016-07-27</normalized_as_date>
+  <normalized_as_date>2016-07-28</normalized_as_date>
+</dates>
+----
+
+////
+TODO: NEED TO GET THIS TO WORK BEFORE PUBLISHING!
+== Example: Using Conditional Date Parsing
+
+Suppose that you want to include a date field that admits different formats, and want DataWeave to be able to parse each accordingly. For this example, imagine that you want to accept these three formats:
+
+* Sun, 06 Nov 1994 08:49:37 GMT = `E, d LLL u H:m:s O`
+* Sun Nov 6 08:49:37 1994 = `cccc, d-LLL-u H:m:s O`
+* Sunday, 06-Nov-94 08:49:37 GMT = `E LLL d H:m:s u`
+
+Start out by writing a regular expression to match each of them:
+
+* Sun, 06 Nov 1994 08:49:37 GMT = `/^[A-z][A-z][A-z],/`
+* Sun Nov 6 08:49:37 1994 = `/^[A-z][A-z][A-z]\s/`
+* Sunday, 06-Nov-94 08:49:37 GMT = This will be the default
+
+You can use these regular expressions in a DW xref:dataweave-types.adoc#functions-and-lambdas[function] that first evaluates a string to see which regular expression it matches, and then converts it through the the corresponding function. This function should do the following:
+
+. Take the input string as argument
+. Match it with regular expressions in order to determine which format it's in
+. Run the coerce to date function with the corresponding properties
+. Return a date time object
+
+=== Transformation Example
+
+
+.DataWeave
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+var parseDate = (dateStr) -> (
+  if (dateStr contains /^[A-z][A-z][A-z],/)
+    dateStr as Localdatetime {format: "E, d LLL u H:m:s O"}
+  else if (dateStr contains /^[A-z][A-z][A-z]\s/)
+      (dateStr as Localdatetime {format: "E LLL d H:m:s u"})
+    else dateStr as Localdatetime {format: "cccc, d-LLL-u H:m:s O"})
+---
+date: parseDate(payload.dateString)
+----
+////
+
+== 関連する例
+
+* xref:dataweave-cookbook-add-and-subtract-time.adoc[日付の加算と減算]
+
+* xref:dataweave-cookbook-reference-multiple-inputs.adoc[複数の入力の参照]
+
+
+== 関連情報
+
+* xref:dataweave-types.adoc[DataWeave の型]
+
+* xref:dataweave-selectors.adoc[DataWeave セレクタ]
+
+* xref:dataweave-cookbook.adoc[DataWeave の解説書]

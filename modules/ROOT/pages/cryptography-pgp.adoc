@@ -1,0 +1,482 @@
+= PGP 暗号化
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: 暗号化, モジュール, 署名, 暗号化, pgp, AES
+:toc:
+:toc-title:
+
+Mule は、Pretty Good Privacy (PGP) を使用して、メッセージのすべての部分を暗号化できます。PGP は、データ圧縮とデータ暗号化を組み合わせてメッセージを保護します。圧縮により、ペイロードのサイズが削減されて、後でアプリケーションで送信するときの時間が短縮されます。
+
+PGP 暗号化は複雑であるため、JCE または XML 暗号化よりも負荷の高いタスクになります。
+
+このセクションは、次のシナリオに対応します。
+
+* 暗号化: 別のパーティの公開キーを使用して、Mule アプリケーションで送信メッセージを暗号化する。
+* 復号化: 独自の非公開キーを使用して、Mule アプリケーションで受信メッセージを復号化する。
+
+== 前提条件
+
+このドキュメントは、PGP 暗号化や、公開キー、非公開キー、非対称暗号化の概念についてある程度理解していることを前提としています。
+
+== 暗号化
+
+PGP 暗号化を使用する場合、メッセージの送信者は受信者の公開キーを使用してそのコンテンツを暗号化する必要があります。そのため、他の誰かの公開キーを使用して Mule アプリケーションでメッセージを暗号化する場合、公開キーをキーリングに追加する必要があります。新しい PGP 設定を Mule アプリケーションに追加する場合、キーリングファイルを指定し、暗号化モジュールがそこから公開キーを取得してメッセージを暗号化できるようにする必要があります。
+
+. GPG Suite などのツールを使用して、他のパーティの公開キーをインポートします。詳細は、以下を参照してください。
+. 同じツールを使用し、出力形式として `binary` を選択して公開キーをエクスポートします。これにより、拡張子が `.gpg` のキーリングファイルが生成されます。
+. 実行時に Mule アプリケーションがアクセスできる場所にキーリング (`.gpg`) ファイルが保存されていることを確認します。
+
+.例: PGP 設定
+[source,xml,linenums]
+----
+<crypto:pgp-config name="encrypt-conf" publicKeyring="pgp/pubring.gpg">
+    <crypto:pgp-key-infos>
+        <crypto:pgp-asymmetric-key-info keyId="myself" fingerprint="DE3F10F1B6B7F221"/>
+    </crypto:pgp-key-infos>
+</crypto:pgp-config>
+----
+
+次の例では、ASCII アーマー形式の暗号化ペイロードを返します。これは、プレーンテキストチャネルを送信する場合に適しています。
+
+.例: Encrypt 操作の使用
+[source,xml,linenums]
+----
+<crypto:pgp-encrypt config-ref="encrypt-conf" keyId="myself"/>
+----
+
+代わりにバイナリ出力を返するには、`pgp-encrypt-binary` 操作を使用します。
+
+----
+<crypto:pgp-encrypt-binary config-ref="pgpConfig" keyId="recipient"/>
+----
+バイナリ出力は、ASCII アーマー形式を使用する場合よりも短時間で生成できます。ただし、標準出力ではないため、他のシステムに送信して復号化するのに適してしない場合があります。
+
+後でそのようなペイロードを別のシステムに送信する必要がある場合、ASCII アーマー形式に変換できます。
+
+----
+<crypto:pgp-binary-to-armored/>
+----
+上記の操作には、1 つの入力パラメータ (変換するメッセージペイロード) があります。
+
+== 復号化
+
+PGP 復号化を使用する場合、メッセージの受信者はその非公開キーを使用して、公開キーで暗号化されたメッセージのコンテンツを復号化する必要があります。
+そのため、受信者はその公開キーを送信者 (公開キーを使用して暗号化されたメッセージを送信するユーザ) に配信する必要があります。
+
+.例: PGP 設定
+[source,xml,linenums]
+----
+<crypto:pgp-config name="decrypt-conf" privateKeyring="pgp/secring.gpg">
+    <crypto:pgp-key-infos>
+        <crypto:pgp-asymmetric-key-info keyId="myself" fingerprint="DE3F10F1B6B7F221" passphrase="mule1234"/>
+    </crypto:pgp-key-infos>
+</crypto:pgp-config>
+----
+上記の例では、decrypt 操作で非公開キーリングを使用できるようにするために少なくとも 3 つのパラメータを指定する必要があります。
+
+* キー ID (`keyId`): 操作からこのキーを参照できるようにする内部 ID。
+* キーフィンガープリント (`fingerprint`): 外部 GPG ツール (GPG Keychain など) から取得できるキーフィンガープリントの末尾の 16 文字。
+* パスフレーズ (`passphrase`): 非公開キーのパスフレーズ。
+
+.例: Decrypt 操作の使用
+[source,xml,linenums]
+----
+<crypto:pgp-decrypt config-ref="decrypt-conf"/>
+----
+
+== 署名
+
+.例: Sign 操作の使用
+[source,xml,linenums]
+----
+<crypto:pgp-sign config-ref="sign-conf" keyId="myself"/>
+----
+
+== 署名の検証
+
+.例: Validate 操作の使用
+[source,xml,linenums]
+----
+<crypto:pgp-validate config-ref="validate-conf" value="#[payload]" expected="#[vars.expected]"/>
+----
+
+== 参照
+
+=== モジュール設定
+
+PGP のキーストア設定。操作で使用される内部名と共にキーのリストが含まれます。
+
+==== パラメータ
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|===
+| Name (名前) | 型 | 説明 | デフォルト値 | 必須
+|Name (名前) | String (文字列) | この設定の名前。コネクタはこの名前の設定を参照します。 | | *x*{nbsp}
+| Public Keyring (公開キーリング) a| String (文字列) |  +++公開キーリングファイル。+++ |  | {nbsp}
+| Private Keyring (非公開キーリング) a| String (文字列) |  +++非公開キーリングファイル。+++ |  | {nbsp}
+| Pgp Key Infos (PGP キー情報) a| Array (配列)。次のいずれかになります。
+
+* <<PgpAsymmetricKeyInfo>> |  +++対象となるキーのリスト。これらの参照には内部 ID が使用されます。+++ |  | {nbsp}
+| Expiration Policy (有効期限ポリシー) a| <<ExpirationPolicy>> |  +++動的設定インスタンスがアイドル状態を続けられる最小時間を設定します。この時間が経過すると、Runtime で期限切れに相当するとみなされます。これは、対象になった瞬間にプラットフォームでインスタンスの有効期限が切れるという意味ではありません。ランタイムによって適切と判断されたときに、インスタンスが実際にパージされます。+++ |  | {nbsp}
+|===
+
+[[pgpDecrypt]]
+== Pgp Decrypt 操作
+`<crypto:pgp-decrypt>`
+
++++
+PGP を使用してストリームを復号化し、結果として元のデータを取得します。復号化は非公開キーを使用して行われるため、シークレットパスフレーズを指定する必要があります。
++++
+
+=== パラメータ
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|===
+| Name (名前) | 型 | 説明 | デフォルト値 | 必須
+| Configuration (設定) | String (文字列) | 使用する設定の名前。 | | *x*{nbsp}
+| Content (コンテンツ) a| Binary (バイナリ) | DataWeave 式を使用して、すべて、または一部のメッセージを復号化できます。 +
+たとえば、[Content (コンテンツ)] を `#[payload.name]` に設定して、ペイロードの暗号化された `name` という変数のみ復号化できます。 |  `#[payload]` | {nbsp}
+| File Name (ファイル名) a| String (文字列) |  +++復号化する内部ファイル名。指定しない場合、最初のファイル名が使用されます。+++ |  | {nbsp}
+| Output Mime Type (出力 MIME タイプ) a| String (文字列) |  +++この操作で出力されるペイロードの MIME タイプ。+++ |  | {nbsp}
+| Output Encoding (出力エンコード) a| String (文字列) |  +++この操作で出力されるペイロードのエンコード。+++ |  | {nbsp}
+| Streaming Strategy (ストリーミング戦略) a| * <<repeatable-in-memory-stream>>
+* <<repeatable-file-store-stream>>
+* non-repeatable-stream |  +++反復可能ストリームを使用すべきかどうか、およびその動作を設定します。+++ |  | {nbsp}
+| Target Variable (対象変数) a| String (文字列) |  +++操作の出力が格納される変数の名前+++ |  | {nbsp}
+| Target Value (対象値) a| String (文字列) |  +++操作の出力に対して評価される式。その式の結果は対象変数に保存されます。+++ |  `#[payload]` | {nbsp}
+|===
+
+=== 出力型
+
+Binary (バイナリ)
+
+=== スロー
+* `CRYPTO:MISSING_KEY` {nbsp}
+* `CRYPTO:KEY` {nbsp}
+* `CRYPTO:PASSPHRASE` {nbsp}
+* `CRYPTO:DECRYPTION` {nbsp}
+
+
+[[pgpEncrypt]]
+== Pgp Encrypt 操作
+`<crypto:pgp-encrypt>`
+
++++
+PGP を使用してストリームを暗号化し、結果として ASCII アーマー形式のストリーム出力を取得します。暗号化は受信者の公開キーを使用して行われるため、シークレットパスフレーズは必要ありません。
++++
+
+=== パラメータ
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|===
+| Name (名前) | 型 | 説明 | デフォルト値 | 必須
+| Configuration (設定) | String (文字列) | 使用する設定の名前。 | | *x*{nbsp}
+| Content (コンテンツ) a| Binary (バイナリ) | DataWeave 式を使用して、すべて、または一部のメッセージを暗号化できます。 +
+たとえば、[Content (コンテンツ)] を `#[payload.name]` に設定して、ペイロードの `name` という変数のみ暗号化できます。 |  `#[payload]` | {nbsp}
+| Algorithm (アルゴリズム) a| Enumeration (列挙)。次のいずれかになります。
+
+** `IDEA`
+** `TRIPLE_DES`
+** `CAST5`
+** `BLOWFISH`
+** `SAFER`
+** `DES`
+** `AES_128`
+** `AES_192`
+** `AES_256`
+** `TWOFISH`
+** `CAMELLIA_128`
+** `CAMELLIA_192`
+** `CAMELLIA_256` |  +++暗号化で使用する対称アルゴリズム+++ |  `AES_256` | {nbsp}
+| File Name (ファイル名) a| String (文字列) |  +++結果の PGP ヘッダーで使用する内部ファイル名+++ |  +++stream+++ | {nbsp}
+| Streaming Strategy (ストリーミング戦略) a| * <<repeatable-in-memory-stream>>
+* <<repeatable-file-store-stream>>
+* non-repeatable-stream |  +++反復可能ストリームを使用すべきかどうか、およびその動作を設定します。+++ |  | {nbsp}
+| Key Id (キー ID) a| String (文字列) |  +++PGP 設定で定義されるキー ID。+++ |  | {nbsp}
+| Pgp Key Info (PGP キー情報) a| 次のいずれかになります。
+
+* <<PgpAsymmetricKeyInfo>> |  +++インラインキー定義。+++ |  | {nbsp}
+| Target Variable (対象変数) a| String (文字列) |  +++操作の出力が格納される変数の名前+++ |  | {nbsp}
+| Target Value (対象値) a| String (文字列) |  +++操作の出力に対して評価される式。その式の結果は対象変数に保存されます。+++ |  `#[payload]` | {nbsp}
+|===
+
+=== 出力型
+
+Binary (バイナリ)
+
+=== スロー
+* `CRYPTO:MISSING_KEY` {nbsp}
+* `CRYPTO:ENCRYPTION` {nbsp}
+* `CRYPTO:KEY` {nbsp}
+
+
+[[pgpEncryptBinary]]
+== Pgp Encrypt Binary 操作
+`<crypto:pgp-encrypt-binary>`
+
++++
+PGP を使用してストリームを暗号化し、結果としてバイナリ出力を取得します。暗号化は受信者の公開キーを使用して行われるため、シークレットパスフレーズは必要ありません。
++++
+
+=== パラメータ
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|===
+| Name (名前) | 型 | 説明 | デフォルト値 | 必須
+| Configuration (設定) | String (文字列) | 使用する設定の名前。 | | *x*{nbsp}
+| Content (コンテンツ) a| Binary (バイナリ) | DataWeave 式を使用して、すべて、または一部のメッセージを暗号化できます。 +
+たとえば、[Content (コンテンツ)] を `#[payload.name]` に設定して、ペイロードの `name` という変数のみ暗号化できます。 |  `#[payload]` | {nbsp}
+| Algorithm (アルゴリズム) a| Enumeration (列挙)。次のいずれかになります。
+
+** `IDEA`
+** `TRIPLE_DES`
+** `CAST5`
+** `BLOWFISH`
+** `SAFER`
+** `DES`
+** `AES_128`
+** `AES_192`
+** `AES_256`
+** `TWOFISH`
+** `CAMELLIA_128`
+** `CAMELLIA_192`
+** `CAMELLIA_256` |  +++暗号化で使用する対称アルゴリズム+++ |  `AES_256` | {nbsp}
+| File Name (ファイル名) a| String (文字列) |  +++結果の PGP ヘッダーで使用する内部ファイル名+++ |  +++stream+++ | {nbsp}
+| Output Mime Type (出力 MIME タイプ) a| String (文字列) |  +++この操作で出力されるペイロードの MIME タイプ。+++ |  | {nbsp}
+| Output Encoding (出力エンコード) a| String (文字列) |  +++この操作で出力されるペイロードのエンコード。+++ |  | {nbsp}
+| Streaming Strategy (ストリーミング戦略) a| * <<repeatable-in-memory-stream>>
+* <<repeatable-file-store-stream>>
+* non-repeatable-stream |  +++反復可能ストリームを使用すべきかどうか、およびその動作を設定します。+++ |  | {nbsp}
+| Key Id (キー ID) a| String (文字列) |  +++PGP 設定で定義されるキー ID。+++ |  | {nbsp}
+| Pgp Key Info (PGP キー情報) a| 次のいずれかになります。
+
+* <<PgpAsymmetricKeyInfo>> |  +++インラインキー定義。+++ |  | {nbsp}
+| Target Variable (対象変数) a| String (文字列) |  +++操作の出力が格納される変数の名前+++ |  | {nbsp}
+| Target Value (対象値) a| String (文字列) |  +++操作の出力に対して評価される式。その式の結果は対象変数に保存されます。+++ |  `#[payload]` | {nbsp}
+|===
+
+=== 出力型
+
+Binary (バイナリ)
+
+=== スロー
+* `CRYPTO:MISSING_KEY` {nbsp}
+* `CRYPTO:ENCRYPTION` {nbsp}
+* `CRYPTO:KEY` {nbsp}
+
+
+[[pgpSign]]
+== Pgp Sign 操作
+`<crypto:pgp-sign>`
+
++++
+ストリームの分離された (スタンドアロン) PGP 署名を作成します。署名は送信者の非公開キーを使用して行われるため、シークレットパスフレーズを指定する必要があります。
++++
+
+=== パラメータ
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|===
+| Name (名前) | 型 | 説明 | デフォルト値 | 必須
+| Configuration (設定) | String (文字列) | 使用する設定の名前。 | | *x*{nbsp}
+| Content (コンテンツ) a| Binary (バイナリ) |  +++署名するコンテンツ+++ |  `#[payload]` | {nbsp}
+| Algorithm (アルゴリズム) a| Enumeration (列挙)。次のいずれかになります。
+
+** `MD5`
+** `RIPEMD160`
+** `TIGER_192`
+** `HAVAL_5_160`
+** `DOUBLE_SHA`
+** `SHA1`
+** `SHA224`
+** `SHA256`
+** `SHA384`
+** `SHA512` |  +++ダイジェスト (ハッシュ) アルゴリズム+++ |  `SHA256` | {nbsp}
+| Streaming Strategy (ストリーミング戦略) a| * <<repeatable-in-memory-stream>>
+* <<repeatable-file-store-stream>>
+* non-repeatable-stream |  +++反復可能ストリームを使用すべきかどうか、およびその動作を設定します。+++ |  | {nbsp}
+| Key Id (キー ID) a| String (文字列) |  +++PGP 設定で定義されるキー ID。+++ |  | {nbsp}
+| Pgp Key Info (PGP キー情報) a| 次のいずれかになります。
+
+* <<PgpAsymmetricKeyInfo>> |  +++インラインキー定義。+++ |  | {nbsp}
+| Target Variable (対象変数) a| String (文字列) |  +++操作の出力が格納される変数の名前+++ |  | {nbsp}
+| Target Value (対象値) a| String (文字列) |  +++操作の出力に対して評価される式。その式の結果は対象変数に保存されます。+++ |  `#[payload]` | {nbsp}
+|===
+
+=== 出力型
+
+Binary (バイナリ)
+
+=== スロー
+* `CRYPTO:MISSING_KEY` {nbsp}
+* `CRYPTO:KEY` {nbsp}
+* `CRYPTO:PASSPHRASE` {nbsp}
+* `CRYPTO:SIGNATURE` {nbsp}
+
+
+[[pgpSignBinary]]
+== Pgp Sign Binary 操作
+`<crypto:pgp-sign-binary>`
+
++++
+ストリームの分離された (スタンドアロン) PGP 署名を作成します。署名は送信者の非公開キーを使用して行われるため、シークレットパスフレーズを指定する必要があります。
++++
+
+=== パラメータ
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|===
+| Name (名前) | 型 | 説明 | デフォルト値 | 必須
+| Configuration (設定) | String (文字列) | 使用する設定の名前。 | | *x*{nbsp}
+| Content (コンテンツ) a| Binary (バイナリ) |  +++署名するコンテンツ+++ |  `#[payload]` | {nbsp}
+| Algorithm (アルゴリズム) a| Enumeration (列挙)。次のいずれかになります。
+
+** `MD5`
+** `RIPEMD160`
+** `TIGER_192`
+** `HAVAL_5_160`
+** `DOUBLE_SHA`
+** `SHA1`
+** `SHA224`
+** `SHA256`
+** `SHA384`
+** `SHA512` |  +++ダイジェスト (ハッシュ) アルゴリズム+++ |  `SHA256` | {nbsp}
+| Output Mime Type (出力 MIME タイプ) a| String (文字列) |  +++この操作で出力されるペイロードの MIME タイプ。+++ |  | {nbsp}
+| Output Encoding (出力エンコード) a| String (文字列) |  +++この操作で出力されるペイロードのエンコード。+++ |  | {nbsp}
+| Streaming Strategy (ストリーミング戦略) a| * <<repeatable-in-memory-stream>>
+* <<repeatable-file-store-stream>>
+* non-repeatable-stream |  +++反復可能ストリームを使用すべきかどうか、およびその動作を設定します。+++ |  | {nbsp}
+| Key Id (キー ID) a| String (文字列) |  +++PGP 設定で定義されるキー ID。+++ |  | {nbsp}
+| Pgp Key Info (PGP キー情報) a| 次のいずれかになります。
+
+* <<PgpAsymmetricKeyInfo>> |  +++インラインキー定義。+++ |  | {nbsp}
+| Target Variable (対象変数) a| String (文字列) |  +++操作の出力が格納される変数の名前+++ |  | {nbsp}
+| Target Value (対象値) a| String (文字列) |  +++操作の出力に対して評価される式。その式の結果は対象変数に保存されます。+++ |  `#[payload]` | {nbsp}
+|===
+
+=== 出力型
+
+Binary (バイナリ)
+
+=== スロー
+* `CRYPTO:MISSING_KEY` {nbsp}
+* `CRYPTO:KEY` {nbsp}
+* `CRYPTO:PASSPHRASE` {nbsp}
+* `CRYPTO:SIGNATURE` {nbsp}
+
+
+[[pgpValidate]]
+== Pgp Validate 操作
+`<crypto:pgp-validate>`
+
++++
+ストリームに対して PGP 署名を検証し、認証します。検証は送信者の公開キーを使用して行われるため、シークレットパスフレーズは必要ありません。
++++
+
+=== パラメータ
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|===
+| Name (名前) | 型 | 説明 | デフォルト値 | 必須
+| Configuration (設定) | String (文字列) | 使用する設定の名前。 | | *x*{nbsp}
+| 値 a| Binary (バイナリ) |  +++認証するメッセージ+++ |  `#[payload]` | {nbsp}
+| Expected (想定) a| Binary (バイナリ) |  +++署名+++ |  | *x*{nbsp}
+|===
+
+=== スロー
+* `CRYPTO:MISSING_KEY` {nbsp}
+* `CRYPTO:VALIDATION` {nbsp}
+
+
+[[pgpBinaryToArmored]]
+== Pgp Binary To Armored 操作
+`<crypto:pgp-binary-to-armored>`
+
++++
+暗号化された PGP メッセージまたは PGP 署名をプレーンテキストチャネルに適した ASCII アーマー形式の表現に変換します。
++++
+
+=== パラメータ
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|===
+| Name (名前) | 型 | 説明 | デフォルト値 | 必須
+| Content (コンテンツ) a| Binary (バイナリ) |  +++変換するコンテンツ+++ |  `#[payload]` | {nbsp}
+| Streaming Strategy (ストリーミング戦略) a| * <<repeatable-in-memory-stream>>
+* <<repeatable-file-store-stream>>
+* non-repeatable-stream |  +++反復可能ストリームを使用すべきかどうか、およびその動作を設定します。+++ |  | {nbsp}
+| Target Variable (対象変数) a| String (文字列) |  +++操作の出力が格納される変数の名前+++ |  | {nbsp}
+| Target Value (対象値) a| String (文字列) |  +++操作の出力に対して評価される式。その式の結果は対象変数に保存されます。+++ |  `#[payload]` | {nbsp}
+|===
+
+=== 出力型
+
+Binary (バイナリ)
+
+=== スロー
+* `CRYPTO:PARAMETERS` {nbsp}
+
+== 型
+[[ExpirationPolicy]]
+=== Expiration Policy (有効期限ポリシー)
+
+[cols=".^20%,.^25%,.^30%,.^15%,.^10%", options="header"]
+|===
+| 項目 | 型 | 説明 | デフォルト値 | 必須
+| Max Idle Time (最大アイドル時間) a| Number (数値) | 有効期限の対象とみなされるまで、動的設定インスタンスがアイドル状態を維持できる最大時間のスカラー時間値 |  |
+| Time Unit (時間単位) a| Enumeration (列挙)。次のいずれかになります。
+
+** `NANOSECONDS`
+** `MICROSECONDS`
+** `MILLISECONDS`
+** `SECONDS`
+** `MINUTES`
+** `HOURS`
+** `DAYS` | maxIdleTime 属性の時間単位 |  |
+|===
+
+[[repeatable-in-memory-stream]]
+=== Repeatable In Memory Stream (反復可能なメモリ内ストリーム)
+
+[cols=".^20%,.^25%,.^30%,.^15%,.^10%", options="header"]
+|===
+| 項目 | 型 | 説明 | デフォルト値 | 必須
+| Initial Buffer Size (初期バッファサイズ) a| Number (数値) | これは、ストリームをコンシュームし、ストリームへのランダムアクセスを提供する目的で割り当てられるメモリの容量です。ストリームに含まれているデータがこのバッファに適合できる量を超えている場合、`bufferSizeIncrement` 属性に従って拡張され、上限は `maxInMemorySize` となります。. |  |
+| Buffer Size Increment (バッファサイズ増分) a| Number (数値) | バッファサイズが初期サイズを超えた場合に、どれくらい拡張されるか。値を 0 以下に設定すると、バッファが拡張されません。つまり、バッファがフルになると、`STREAM_MAXIMUM_SIZE_EXCEEDED` エラーが発生します。 |  |
+| Max Buffer Size (最大バッファサイズ) a| Number (数値) | 使用するメモリの最大量。これを超えると、`STREAM_MAXIMUM_SIZE_EXCEEDED` エラーが発生します。0 以下の値は無制限を意味します。 |  |
+| Buffer Unit (バッファ単位) a| Enumeration (列挙)。次のいずれかになります。
+
+** `BYTE`
+** `KB`
+** `MB`
+** `GB` | これらのすべての属性の単位 |  |
+|===
+
+[[repeatable-file-store-stream]]
+=== Repeatable File Store Stream (反復可能なファイルストアストリーム)
+
+[cols=".^20%,.^25%,.^30%,.^15%,.^10%", options="header"]
+|===
+| 項目 | 型 | 説明 | デフォルト値 | 必須
+| Max In Memory Size (最大メモリ内サイズ) a| Number (数値) | データをメモリ内に保持するためにストリームで使用する最大メモリを定義します。これを超えると、ディスクへのコンテンツのバッファが開始されます。 |  |
+| Buffer Unit (バッファ単位) a| Enumeration (列挙)。次のいずれかになります。
+
+** `BYTE`
+** `KB`
+** `MB`
+** `GB` | maxInMemorySize で表される単位 |  |
+|===
+
+[[PgpAsymmetricKeyInfo]]
+=== Pgp Asymmetric Key Info (PGP 非対称キー情報)
+
+[cols=".^20%,.^25%,.^30%,.^15%,.^10%", options="header"]
+|===
+| 項目 | 型 | 説明 | デフォルト値 | 必須
+| Key Id (キー ID) a| String (文字列) | 操作から参照される内部キー ID。 |  | x
+| Key Pair Identifier (キーペア識別子) a| <<PgpAsymmetricKeyIdentifier>> | キーストア内のキーを識別する方法。 |  | x
+| Passphrase (パスフレーズ) a| String (文字列) | キーのシークレット部分のロックを解除するためのパスワード。 |  |
+|===
+
+[[PgpAsymmetricKeyIdentifier]]
+=== Pgp Asymmetric Key Identifier (PGP 非対称キー識別子)
+
+[cols=".^20%,.^25%,.^30%,.^15%,.^10%", options="header"]
+|===
+| 項目 | 型 | 説明 | デフォルト値 | 必須
+| Fingerprint (フィンガープリント) a| String (文字列) | 設定されたキーのフィンガープリント |  |
+| Principal (プリンシパル) a| String (文字列) | キーの生成時に指定される名前とメールの組み合わせ |  |
+|===

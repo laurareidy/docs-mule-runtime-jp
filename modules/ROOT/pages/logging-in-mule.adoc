@@ -1,0 +1,288 @@
+= ログの設定
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Mule, Studio, Logger, ログ, log, 通知, エラー, デバッグ
+
+MuleSoft は、アプリケーションと Mule サーバの監視とトラブルシューティングに役立つアプリケーションログとランタイムログを提供します。
+
+== アプリケーションログ
+
+Studio でビルドするすべてのアプリケーションに、その独自の `log4j2.xml` ファイルが付属します。ログにはアプリケーションで発生したエラーに関する情報が含まれます (ただし、このエラーを処理するアプリケーションロジックがある場合を除く)。また、アプリケーション内でロジックをビルドした場合は、ログに明示的に記録する必要がある情報も含まれます。
+
+Mule は、イベントのデバッグと追跡に役立つようにアプリケーションフロー内のいくつかのメッセージと特定の要素を自動的に記録します。また、xref:logger-component-reference.adoc[Logger コンポーネント]をフローの任意の場所に含めて、必要なメッセージを出力するようにセットアップすることもできます。
+
+アプリケーションログは次の方法で表示できます。
+
+* アプリケーションを Anypoint Platform から実行している場合、アプリケーションログからの出力は Anypoint Studio のコンソールウィンドウに表示されます
+
+* コマンドラインから Mule を使用してアプリケーションを実行している場合、アプリケーションログは OS コンソールに表示されます。
+
+アプリケーションのログファイル (`log4j2.xml`) でログファイルのパスがカスタマイズされていない場合、次のデフォルトの場所でアプリケーションログを表示することもできます。
+
+`MULE_HOME/logs/<app-name>.log`
+
+== ランタイムログ
+
+ランタイムログ (`mule_ee.log`) にはアプリケーションとライフサイクルイベントに関する情報が含まれます。たとえば、Mule サービスまたはアプリケーションの開始、デプロイ、停止、またはアンデプロイ時にログにエントリが記録されます。ログは `conf` ディレクトリ内の `log4j2.xml` ファイルに配置されます。サーバをスタンドアロンモードで実行した場合、このファイルをカスタマイズできます。
+
+Anypoint Studio でランタイムログを表示する方法
+
+* *[Anypoint Studio]* -> *[About Anypoint Studio (Anypoint Studio について)]* -> *[Installation Details (インストールの詳細)]* -> *[Configuration (設定)]* タブをクリックし、*[View Error Log (エラーログを表示)]* をクリックします。
++
+image::logging-in-mule-view-error-log.png[エラーログを表示]
+
+== ログの設定
+
+設定ファイルを作成し、次の設定を定義できます。
+
+ * 記録するメッセージの種類
+ * メッセージの記録方法 (非同期または同期)
+ * メッセージの記録場所 (コンソールまたはディスク、エンドポイントまたはデータベースなど)
+
+Mule は `slf4j` を使用します。これは、Apache Log4j 2 や JDK ロガーなど、クラスパスからログ戦略を検出して使用するログファサードです。デフォルトでは、Mule には Log4j 2 が含まれます。これは、`log4j2.xml` というファイルで設定されます。
+
+== 同期ログと非同期ログの比較
+デフォルトでは、Mule はメッセージを非同期で記録します。ログを同期的に記録すると、メッセージを処理しているスレッドの実行が中断し、ログメッセージが完全に処理されるまで待機した後、メッセージの処理を続行できます。
+
+image::logger-synch.png[align="center"]
+
+ログを非同期的に記録すると、ログ記録の操作は個別のスレッドで実行されるため、ログ記録が完了する前にメッセージを処理できます。
+
+image::logger-asynch-alternativo.png[align="center"]
+
+MuleSoft は、ほとんどの状況で​*非同期ログ*​を使用することをお勧めします。大幅にスループットが向上し、メッセージ処理のレイテンシが短縮されるためです。
+
+非同期ログを使用すると、システムクラッシュが発生した場合にいくつかのアクションが記録されない可能性があります。この状況は、他のアクションとは無関係に動作する別のスレッドでログの書き込みが実行されるために発生します。この問題を緩和する方法についての詳細は、xref:exception_handling[「非同期ログでの例外処理」]を参照してください。
+
+アプリケーションログを監査履歴として使用する場合は、必ず​*同期*​ログを使用するようにアプリケーションを設定してください。これにより、ログメッセージの損失が防止されます。
+
+=== パフォーマンステスト
+以下のチャートは、同期ログと非同期ログのパフォーマンスの違いと、同時メッセージ数の増加に応じてレイテンシがどの程度増加したかを示しています。このテストでは、各実行で使用するスレッドの量を増加しながら、アプリケーションで約 100 万件のメッセージをログに記録しました。各トランザクションの結果、1,000 件のメッセージが生成されました。
+
+image::logging-latency-vs-concurrency.png[]
+
+このチャートで示されているように、非同期でログを記録した場合の結果は、ログを記録しない場合の結果に非常に近くなりました。
+
+== カスタムログの設定
+
+デフォルトでは、Mule では、ログは非同期の方法で INFO 以上のレベルで記録されます。デフォルトのログレベルでは、DEBUG または TRACE レベルのログメッセージは破棄されます。
+
+同期ログを使用するには、ログレベルを調整するか、カスタムカテゴリを定義します。これらのプロパティは、ロガーの動作を指定する `$MULE_HOME/conf/log4j2.xml` ファイルを使用して設定できます。このファイルを編集しない場合、Mule はデフォルトのプロパティを使用します、
+
+Anypoint Studio では、`log4j2.xml` は各 Mule オブジェクトの `src/main/resources` パスに含まれます。
+
+デフォルト設定では、すべてのロガー (ルートロガーを含む) が非同期として定義されます。この設定はドメインまたはアプリケーションレベルで上書きできます。この設定をアプリケーションレベルで上書きするには、`logConfigFile` エントリを `mule-artifact.json` ファイルに追加します。例:
+
+[source,json,linenums]
+----
+{
+  "minMuleVersion": "4.0.0",
+
+  "logConfigFile": "../../../test-classes/resources/logging/custom-log4j2.xml"
+}
+----
+
+----
+log.configFile=myCustomFolder/myCustomlog4j2.xml
+----
+
+このデプロイメントプロパティを設定しない場合、アプリケーションのデプロイ時に Mule は次のような子優先パターンに従って設定ファイルを検索します。
+
+* アプリケーションのクラスパスで `log4j2-test.xml` というファイルを検索します。
+* アプリケーションのクラスパスで `log4j2.xml` というファイルを検索します。
+* ドメインのクラスパスで `log4j2-test.xml` というファイルを検索します。
+* ドメインのクラスパスで `log4j2.xml` というファイルを検索します。
+* デフォルト設定を適用します。
+
+`log4j2.xml` ファイルのデフォルト設定を以下に示します。
+
+[source,xml,linenums]
+----
+<Configuration>
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%-5p %d [%t] %c: %m%n"/>
+        </Console>
+    </Appenders>
+
+    <Loggers>
+
+        <!-- CXF is used heavily by Mule for web services -->
+        <AsyncLogger name="org.apache.cxf" level="WARN"/>
+
+        <!-- Apache Commons tend to make a lot of noise which can clutter the log-->
+        <AsyncLogger name="org.apache" level="WARN"/>
+
+        <!-- Reduce startup noise -->
+        <AsyncLogger name="org.springframework.beans.factory" level="WARN"/>
+
+        <!-- Mule classes -->
+        <AsyncLogger name="org.mule" level="INFO"/>
+        <AsyncLogger name="com.mulesoft" level="INFO"/>
+
+        <AsyncRoot level="INFO">
+            <AppenderRef ref="Console"/>
+        </AsyncRoot>
+    </Loggers>
+
+</Configuration>
+----
+
+[TIP]
+
+== Runtime Manager エージェントのログの設定
+
+[NOTE]
+この設定は、Runtime Manager エージェント 1.5.2 以降を使用している場合のみ有効です。
+
+Runtime Manager エージェントの状態をデフォルトの `mule_agent.log` ファイル以外の場所に記録するには、`mule-agent-appender` という新しい Log4j 2 アペンダーを含めるように `$MULE_HOME/conf/log4j2.xml` ファイルを設定します。含まれている場合、Runtime Manager エージェントプラグインはこのアペンダーを使用して状態を記録します。
+
+この機能を有効にするには、`log4j2.xml` ファイルに次のようなスニペットが含まれている必要があります。
+
+[source,xml,linenums]
+----
+<Configuration>
+    <Appenders>
+
+      (...)
+
+        <RollingFile name="mule-agent-appender" fileName="${env:MULE_HOME}/logs/custom_mule_agent.log" filePattern="${env:MULE_HOME}/logs/custom_mule_agent.log-%d{MM-dd-yyyy}.log.gz">
+            <PatternLayout>
+                <Pattern>%d %p %c{1.} [%t] %m%n</Pattern>
+            </PatternLayout>
+            <Policies>
+                <TimeBasedTriggeringPolicy />
+                <SizeBasedTriggeringPolicy size="250 MB"/>
+            </Policies>
+        </RollingFile>
+    </Appenders>
+
+    <Loggers>
+
+        (...)
+
+        <AsyncLogger name="com.mulesoft.agent" additivity="TRUE" level="ALL">
+          <AppenderRef ref="mule-agent-appender" />
+        </AsyncLogger>
+
+        <AsyncRoot level="INFO">
+          <AppenderRef ref="Console"/>
+        </AsyncRoot>
+
+</Configuration>
+----
+
+上の例を使用すると、Runtime Manager エージェントはその状態を `$MULE_HOME/logs/custom_mule_agent.log` 内のローリングログファイルに記録します。このファイルは、250MB サイズに達するまで毎日繰り越されます。
+
+他の Log4j 2 アペンダー設定については、Apache Log4j 2 のドキュメントを参照してください。
+
+[[exception_handling]]
+== 非同期ログでの例外処理
+
+非同期ログを使用していて、不完全なログが生成される可能性があるシステムクラッシュが発生した場合、LMAX `ExceptionHandler` ハンドラが役立つ可能性があります。デフォルトでは、Mule はこのハンドラを登録し、イベントをディスク、コンソール、および `logs/mule_ee.log` に記録します。独自の例外ハンドラを提供するには、システムプロパティ `AsyncLoggerConfig.ExceptionHandler` を、インターフェースを実装するクラスの正規名に設定します。
+
+デフォルトの例外ハンドラを以下に示します。
+
+
+[source,java,linenums]
+----
+/*
+ * Copyright (c) MuleSoft, Inc.  All rights reserved.  http://www.mulesoft.com
+ * The software in this package is published under the terms of the CPAL v1.0
+ * license, a copy of which has been included with this distribution in the
+ * LICENSE.txt file.
+ */
+package org.mule.runtime.module.launcher.api.log4j2;
+
+import com.lmax.disruptor.ExceptionHandler;
+
+import org.apache.logging.log4j.status.StatusLogger;
+
+/**
+ * Implementation of {@link com.lmax.disruptor.ExceptionHandler} to be used when async loggers fail to log their messages. It will
+ * log this event using the {@link org.apache.logging.log4j.status.StatusLogger}
+ *
+ * @since 3.6.0
+ */
+public class AsyncLoggerExceptionHandler implements ExceptionHandler {
+
+  private static final StatusLogger LOGGER = StatusLogger.getLogger();
+
+  @Override
+  public void handleEventException(Throwable ex, long sequence, Object event) {
+    LOGGER.error("Failed to asynchronously log message: " + event, ex);
+  }
+
+  @Override
+  public void handleOnStartException(Throwable ex) {
+    LOGGER.error("Failed to start asynchronous logger", ex);
+  }
+
+  @Override
+  public void handleOnShutdownException(Throwable ex) {
+    LOGGER.error("Failed to stop asynchronous logger", ex);
+  }
+}
+----
+
+非同期ログと同期ログの間には、パフォーマンスと信頼性のトレードオフがあります。ログメッセージの損失のリスクが重大な問題になる場合、ロガーを同期として設定します。同期ログと非同期ログの両方を組み合わせることができます。
+
+== 設定の再読み込み
+
+Mule Runtime はログのフレームワークとして Log4j 2 を使用します。変更の有無を Log4j 2 で確認する監視間隔を追加または変更するには、`monitorInterval` を `log4j2.xml` 設定ファイルに追加します。
+
+. Mule インストールフォルダで `conf/log4j2.xml` を開きます。
+. 1 行目の後に `<Configuration monitorInterval="15">` を追加します。例:
++
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration monitorInterval="15">
+    <Appenders>
+       <Console name="Console" target="SYSTEM_OUT">
+           <PatternLayout pattern="%-5p %d [%t] %c: %m%n"/>
+       </Console>
+    </Appenders>
+...
+----
++
+この例では、Log4j 2 は変更の有無を 15 秒ごとに確認します。
++
+. ファイルを保存して、Mule サーバを再起動します。
+
+詳細は、Log4j 2 の自動設定に関する Apache のドキュメントを参照してください。
+
+== HTTP コネクタを使用するプロジェクトのデバッグ
+
+HTTP コネクタを使用するプロジェクトをデバッグするには、通常よりも詳細なログを記録し、プロジェクトでの HTTP コネクタの `http-listener` および `http-request` 操作の動作をすべて追跡することをお勧めします。詳細は、xref:connectors::http/http-troubleshooting.adoc[『HTTP コネクタトラブルシューティングガイド』]を参照してください。
+
+== SOAP の要求および応答のログ
+
+//. In Anypoint Studio,
+
+. `src/main/resources` で `log4j2.xml` ファイルを開き、`HttpMessageLogger` を設定に追加します。
++
+[source,xml,linenums]
+----
+<!-- HTTP is used by Mule for dispatching to web services -->
+<AsyncLogger name="org.mule.service.http.impl.service.HttpMessageLogger" level="DEBUG" />
+----
++
+. プロジェクトを保存します。
+
+== ログのトラブルシューティング
+
+ログ出力が表示されません::
+
+クラスパスのルートで `log4j2.xml` を設定します。
++
+Log4j 2 を再設定しましたが何も起こりません::
+
+この問題は、別の `log4j2.xml` ファイルがクラスパスに存在し、変更前にそのファイルが選択されているために発生します。Log4j 2 がどの設定ファイルを使用しているかを確認するには、Mule の開始時に次のスイッチを追加します (または Mule を埋め込んでいる場合はコンテナの起動スクリプトに追加します)。
++
+----
+-M-Dlog4j.debug=true
+----
++
+このスイッチにより、使用されている設定ファイルの場所を含め、Log4j 2 の起動情報が `stdout` に書き込まれます。変更した設定を機能させる前に、この設定ファイルを削除する必要があります。

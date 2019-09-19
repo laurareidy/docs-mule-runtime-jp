@@ -1,0 +1,80 @@
+= 自己終了 XML タグの出力
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, 変換, トランスフォーマ, 形式, xml, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング
+
+XML の場合、DataWeave はタグに値が含まれていなくても (例: `<element2></element2>`)、デフォルトで開始タグと終了タグ内のすべての値を出力します。
+
+空のタグを自己終了 XML 要素 (例: `<element2/>`) として出力するには、DataWeave ヘッダーで `inlineCloseOn="empty"` 出力ディレクティブを設定します。
+
+.DataWeave
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/xml inlineCloseOn="empty"
+---
+payload
+----
+
+.入力 JSON
+[source,json,linenums]
+----
+{
+  "customer":{
+    "userName": "John Doe",
+    "password":{},
+    "status":"active",
+    "lastLogin":{}
+  }
+}
+----
+
+.出力 XML
+[source,xml,linenums]
+----
+<?xml version='1.0' encoding='UTF-8'?>
+<customer>
+  <userName>John Doe</userName>
+  <password/>
+  <status>active</status>
+  <lastLogin/>
+</customer>
+----
+
+////
+NOT CLEAR WHY THIS CONTENT WAS ON THIS PAGE:
+
+1. inlineCloseOn is not valid for JSON.
+2. We're talking about XML tags here, not JSON.
+
+PROBABLY CHOPPED UP EXAMPLE INCORRECTLY.
+TODO: NEED TO FIND REST OF CONTENT AND FIX.
+
+removeAttribute(payload, "password")
+----
+
+{
+  "parentchild":{
+
+    "child":{},
+    "child2":{},
+    "child3":{}
+  }
+}
+----
+////
+
+== 関連する例
+
+* xref:dataweave-cookbook-insert-attribute.adoc[XMLタグへの属性の挿入]
+
+* xref:dataweave-cookbook-remove-certain-xml-attributes.adoc[指定した XML 属性の削除]
+
+* xref:dataweave-cookbook-include-xml-namespaces.adoc[XML 名前空間を含める]
+
+== 関連情報
+
+* xref:dataweave-selectors.adoc[DataWeave セレクタ]
+
+* xref:dataweave-cookbook.adoc[DataWeave の解説書]

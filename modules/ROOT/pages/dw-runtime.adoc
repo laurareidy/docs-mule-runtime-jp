@@ -1,0 +1,28 @@
+= Runtime (dw::Runtime)
+
+このモジュールには、DataWeave エンジンを操作する関数が含まれています。
+
+
+このモジュールを使用するには、DataWeave コードにインポートする必要があります。その方法として、たとえば、行 `import * from dw::Runtime` を DataWeave スクリプトの
+ヘッダーに追加します。
+
+== 関数
+
+[%header, cols="1,3"]
+|===
+| Name (名前)  | 説明
+| xref:dw-runtime-functions-fail.adoc[fail] | 指定されたメッセージと共に例外をスローします。
+| xref:dw-runtime-functions-failif.adoc[failIf] | エバリュエータの式が `true` を返す場合は、指定されたメッセージでエラーを生成し、それ以外の場合は値を返します。
+| xref:dw-runtime-functions-locationstring.adoc[locationString] | 指定された値の位置の文字列を返します。
+| xref:dw-runtime-functions-orelse.adoc[orElse] | `previous` の try 結果が失敗の場合は `orElse` の結果を返し、失敗でない場合は `previous` の結果を返します。
+| xref:dw-runtime-functions-orelsetry.adoc[orElseTry] | 複数の `try` をチェーニングするために try で使用される関数
+| xref:dw-runtime-functions-prop.adoc[prop] | 指定された名前のプロパティの値を返すか、プロパティが定義されていない場合は `null` を返します。
+| xref:dw-runtime-functions-props.adoc[props] | Mule Runtime に設定されたすべてのプロパティを返します。
+| xref:dw-runtime-functions-try.adoc[try] | デリゲート関数を評価し、オブジェクトと結果を返すか、エラーメッセージを返します。
+| xref:dw-runtime-functions-wait.adoc[wait] | 指定されたタイムアウト (ミリ秒) の間、実行を停止します。
+|===
+
+== 型
+* xref:dw-runtime-types.adoc[Runtime の型]
+
+

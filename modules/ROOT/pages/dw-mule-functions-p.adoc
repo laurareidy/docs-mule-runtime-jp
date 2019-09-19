@@ -1,0 +1,36 @@
+= p
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[p1]]
+== p&#40;String&#41;: String
+
+この関数は、Mule プロパティプレースホルダ、システムプロパティ、または環境変数のいずれかの入力プロパティの値を識別する文字列を返します。
+
+
+このトピックについての詳細は、&#8203;https://docs.mulesoft.com/mule-runtime/4.2/configuring-properties[「プロパティの設定」]を参照してください。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `propertyName` | プロパティを識別する文字列。
+|===
+
+=== 例
+
+次の例では、Logger コンポーネントでプロパティ `http.port` の値を記録します。
+
+==== 取得元
+
+[source,xml,linenums]
+----
+<flow name="simple">
+ <logger level="INFO" doc:name="Logger"
+   message="#[Mule::p('http.port')]"/>
+</flow>
+----

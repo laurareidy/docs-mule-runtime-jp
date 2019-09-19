@@ -1,0 +1,61 @@
+= Mule での Maven のサポート
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Maven, バージョン管理, 連動関係, ライブラリ, ランタイム
+
+Maven は、プロジェクト開発を強化するために Mule が実装しているプロジェクト管理ユーティリティです。Mule には次のような Maven の機能が組み込まれています。
+
+* Anypoint Exchange
+** Anypoint Exchange のコネクタは、Maven 連動関係情報を提供します。Anypoint Exchange でコネクタアセットをクリックして *[Dependency Snippets (連動関係スニペット)]* をクリックすると、Maven の `pom.xml` ファイルの連動関係をリストできます。
+* Anypoint Studio
+** Anypoint Studio 7 以降で作成されたすべての新規プロジェクトは、デフォルトでは Maven で設定されます。コマンドラインから Maven でプロジェクトを実行したり、Anypoint Studio から直接実行したりできます。
+** 既存の Maven プロジェクトを Anypoint Studio にインポートして作業を続けることができます。詳細は、xref:studio::import-export-packages.adoc[「プロジェクトのインポートとエクスポート」]を参照してください。
+* Mule Runtime Engine
+** xref:mmp-concept.adoc[Mule Maven プラグイン]を使用することで、Mule アプリケーションのパッケージ、テスト、デプロイメントを Maven ライフサイクルと統合できます。
+
+== 前提条件
+
+​`pom.xml` ファイルの管理や Maven プラグインの操作といった Maven の概念に慣れておく必要があります。
+Maven を使い始めたばかりであれば、&#8203;http://maven.apache.org/guides/getting-started/[「Maven の使用開始チュートリアル」]を参照してください。
+
+== 利点
+
+Maven は、Anypoint Studio の内部と外部の両方で Mule アプリケーションの管理を容易にし、以下の利点を提供します。
+
+* Anypoint Studio を使用して新規の Mule プロジェクトを作成すると、正しい Mule プロジェクトフォルダ構造と標準連動関係の基本セットを使用することが保証されます。
+* Anypoint Studio は、追加の連動関係を必要とする新しい要素がフローに追加されるたびに、POM ファイルを自動的に管理します。
+* Maven POM ファイルを使用することで、POM が連動関係を参照するため、すべての連動関係をユーザ自身が見つけてプロジェクト自身に含める必要がなくなり、プロジェクトの共有が容易かつ軽量になります。
+* Maven を使用してビルドを管理することにより、最終的なビルドがクリーンで標準化されます。
+* bamboo などの外部フレームワークを使用して自動ビルドをプログラムすることで、継続的なインテグレーションを保証できます。
+
+== 推奨事項
+
+* Anypoint Studio を使用してアプリケーションを設計してください。
++
+Anypoint Studio には Maven のサポートが組み込まれているため、新しい連動関係を追加した場合でも POM ファイルを手動で更新したり、アプリケーションを修正する必要はほとんどありません。
+
+* POM ファイルと `settings.xml` は必要に応じて更新してください。
++
+コマンドラインからアーキタイプを使用して Maven プロジェクトを作成する場合は、POM ファイルを手動で管理する必要があります。また、場合によっては `settings.xml` を編集して、MuleSoft Enterprise リポジトリを参照して、ログイン情報を供給する必要があります。また、プロジェクトを Anypoint Studio で管理している場合でも、手動での POM ファイルの調整が必要になるケースもあります。
+
+* SNAPSHOT バージョンを使用してください。
++
+SNAPSHOT により、プロジェクトのバージョンを識別できるため、安定した製品をリリースできるようになります。たとえば、プロジェクトのバージョン `1.0.0-SNAPSHOT` をビルドしたら、機能をテストしたり修正を加えたりしてから、バージョン `1.0.0` としてリリースできます。その後は、新しいバージョンである `1.1.0-SNAPSHOT` を使用してビルドを続けられます。
++
+XML の例:
++
+[source,xml,linenums]
+----
+<groupId>com.mycompany</groupId>
+<artifactId>version</artifactId>
+<version>1.0.0-SNAPSHOT</version>
+----
+
+== 関連情報
+
+* http://maven.apache.org/[Apache Maven]
+* xref:studio::maven-preferences-reference.adoc[Anypoint Studio での Maven 設定の調整]
+* xref:studio::import-export-packages.adoc[Anypoint Studio でのプロジェクトのインポートとエクスポート]
+* xref:mmp-concept.adoc[Mule Maven プラグイン]
+* xref:maven-reference.adoc[Maven リファレンス]

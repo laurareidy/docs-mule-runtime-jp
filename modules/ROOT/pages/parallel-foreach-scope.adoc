@@ -1,0 +1,112 @@
+= Parallel For Each スコープ
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Anypoint Studio, Studio, Mule, 分割, 集約, スコープ, 並列, for, each
+
+[IMPORTANT]
+このコンポーネントは Anypoint Studio の *[Mule Palette (Mule パレット)]* では使用できません。XML 設定を手動で変更することで、Parallel For Each スコープを設定して使用できます。
+
+Parallel For Each スコープによってコレクションが分割され、スコープ内のコンポーネントを使用してコレクションの各部が並列処理されます (設定されている同時実行の制限に従います)。出力は各ルートの結果が含まれるコレクションです。すべてのメッセージが処理された後で、結果は分割前と同じ順序でフロー内で続行する前に集約されます。
+
+== Configuration (設定)
+
+Parallel For Each スコープは次の項目から設定できます。
+
+[%header,cols="1,3"]
+|===
+|子要素 |説明
+|Collection (コレクション) (`collection`) | 並列で処理する部分のコレクションを定義する式を指定します。デフォルトでは、受信ペイロードを使用します。
+|===
+
+[%header,cols="1,3"]
+|===
+|属性 |説明
+|Collection Expression (コレクション式) (`collection`) | コレクションを返す式。デフォルトでは、ペイロードは分割するコレクションとして扱われます。
+|Timeout (タイムアウト) (`timeout`) | 各並列ルートのタイムアウトを指定します。デフォルトでは、タイムアウトはありません。
+|Max Concurrency (最大同時実行) (`maxConcurrency`) | ルータが使用する並列性の最大レベルを指定します。デフォルトでは、すべてのルートが並列実行されます。
+|Target Variable (対象変数) (`target`) | 処理されたペイロードを保存するために使用する変数を指定します。デフォルトでは、出力はフローのペイロードに保存されます。
+|Target Value (対象値) (`targetValue`) | 操作の出力値に対して評価する式を指定します。この式の結果は対象変数に保存されます。デフォルトでは、これは操作の出力値と同じです。
+|===
+
+== 例
+
+この XML の例では、コレクションのすべての要素に文字列 `"-result"` を追加します。
+
+[source,xml,linenums]
+----
+<parallel-foreach collection="#[['apple', 'banana', 'orange']]">
+    <set-payload value="#[payload ++ '-result']"/>
+</parallel-foreach>
+
+----
+
+Parallel ForEach スコープのすべての実行は、ブロックの実行前と同じ変数および値で開始されます。1 つの要素の処理中に新しい変数を追加したり既存の変数を修正したりしても、別の要素の処理中は表示されません。こうした変数の変更はすべて Parallel ForEach スコープ外では使用できません。つまり、Parallel ForEach スコープの実行後の変数 (およびその値) のセットは、その実行前と同じままになります。
+
+[source,xml,linenums]
+----
+<set-variable variableName="var1" value="var1"/>
+<set-variable variableName="var2" value="var2"/>
+<parallel-foreach collection="#[['apple', 'banana', 'orange']"]>
+    <choice>
+        <when expression="#[payload == 'apple']">
+            <set-variable variableName="var2" value="newValue"/>
+            <set-variable variableName="var3" value="appleVal"/>
+        </when>
+        <when expression="#[payload == 'banana']">
+            <set-variable variableName="var3" value="bananaVal"/>
+        </when>
+        <otherwise>
+            <set-variable variableName="var3" value="otherVal"/>
+            <set-variable variableName="var4" value="val4"/>
+        </otherwise>
+    </choice>
+</parallel-foreach>
+----
+
+集約後、変数は次のようになります。
+
+`{var1: "var1", var2: "var2"}`
+
+変数の新規作成を含めて、変更は一切登録されません。
+
+== エラー処理
+
+すべてのルートが並列処理されます。そのため、1 つのルートでエラーがスローされた場合、Parallel For Each は引き続き各ルートを処理して、結果の集約およびすべてのルートのエラーを含めてxref:intro-error-handlers.adoc[エラーハンドラ]を呼び出します。たとえば次のようになります。
+
+[source,xml,linenums]
+----
+<parallel-foreach collection="#['banana', 'apple']">
+    <choice>
+        <when expression="#[payload == 'banana']">
+            <!-- Processor that throws error -->
+        </when>
+        <otherwise>
+            <set-payload value="#[payload ++ '-result']"/>
+        </otherwise>
+    </choice>
+</parallel-foreach>
+<error-handler>
+    <on-error-continue type="COMPOSITE_ROUTING">
+        <!-- This will have the error thrown by the above processor -->
+        <logger message="#[error.errorMessage.payload.failures['0']]"/>
+        <!-- This will be a null value -->
+        <logger message="#[error.errorMessage.payload.failures['1']]"/>
+        <!-- This will be a null value -->
+        <logger message="#[error.errorMessage.payload.results['0']]"/>
+        <!-- This will have the result of this (correctly executed) route -->
+        <logger message="#[error.errorMessage.payload.results['1']]"/>
+    </on-error-continue>
+</error-handler>
+----
+
+=== スロー
+
+* `MULE:COMPOSITE_ROUTING`
+
+include::partial$parallelforeach_vs_foreach.adoc[]
+
+== 関連情報
+
+* xref:for-each-scope-concept.adoc[For Each スコープ]
+* xref:transaction-management.adoc#tx_scopes_routers[トランザクションによるスコープとルータへの影響]

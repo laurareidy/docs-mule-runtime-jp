@@ -1,0 +1,158 @@
+= DataWeave を使用した Java メソッドのコール
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, esb, 変換, トランスフォーマ, 形式, 集約, 名前変更, 分割, 変換の絞り込み, xml, json, csv, pojo, java オブジェクト, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング
+
+DataWeave ステートメントから、Mule プロジェクトにある任意の Java クラスの Java メソッドをコールできます。DataWeave では、静的メソッド (クラスの特定のインスタンスに属するメソッドではなく、Java クラスに属するメソッド) のみをコールできます。
+
+
+== Java メソッドのコール
+
+
+メソッドをコールする前に、まず属するクラスを DataWeave コードにインポートする必要があります。DataWeave モジュールをインポートするときのように、`java!` をステートメントに含めて Java クラスをインポートできます。
+
+たとえば、以下は文字列の最後に乱数を追加する 1 つのメソッドがある簡単な Java クラスです。このクラスは、Mule プロジェクトの `src/main/java` フォルダの「utils」という名前の Java パッケージの一部として作成されていることが前提となっています。
+
+[source,java,linenums]
+----
+package utils;
+
+import java.util.Random;
+
+public class MyUtils {
+
+	public static String appendRandom(String base) {
+		return base + new Random().nextInt();
+	}
+
+}
+----
+
+次のいずれかの方法で DataWeave コードから `appendRandom()` メソッドをコールできます。
+
+* クラスをインポートして、メソッドを参照する:
++
+[source,dataweave,linenums]
+----
+%dw 2.0
+import java!utils::MyUtils
+output application/json
+---
+{
+	a: MyUtils::appendRandom("myString")
+}
+----
+
+* クラス全体ではなく 1 つ以上のメソッドをインポートする:
++
+[source,dataweave,linenums]
+----
+%dw 2.0
+import java!utils::MyUtils::appendRandom
+output application/json
+---
+{
+	a: appendRandom("myString")
+}
+----
+
+* メソッドが静的メソッドの場合、1 行でインポートしてコールする:
++
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+	a: java!utils::MyUtils::appendRandom(vars.myString)
+}
+----
+
+3 つのすべての方法で、ランダムな文字列が追加された変数値が返されます。
+
+[source,json,linenums]
+----
+{
+  "a":"myString969858409"
+}
+----
+
+== Java クラスのインスタンス化
+
+DataWeave コードで、任意のクラスの新しいオブジェクトをインスタンス化できます。インスタンスを作成したら、DataWeave でそのインスタンスメソッドをコールできなくなります。ただし、その変数を参照することはできます。
+
+この簡単な Java クラスにはメソッドと変数があります。
+
+[source,java,linenums]
+----
+package utils;
+public class MyClass {
+
+	private String foo;
+	 public MyClass(String foo) {
+		 this.foo = foo;
+	}
+
+	 public String getFoo() {
+		return foo;
+	}
+
+}
+----
+
+Studio プロジェクトで `MyClass` サンプルを作成する手順は、次のとおりです。
+
+. Studio でクラスのプロジェクトを作成します。これを行うには、*[New (新規)]* -> *[Mule Project (Mule プロジェクト)]* をクリックし、*my-app* などの名前を付けて *[Finish (完了)]* をクリックします。
+. *my-app* から `utils` パッケージを作成します。これを行うには、Studio の *Package Explorer* から *src/main/java* を右クリックして、*[New (新規)]* -> *[Package (パッケージ)]* を選択し、パッケージに `utils` という名前を付けます。
+. 新しい `utils` パッケージで `MyClass` クラスを作成します。これを行うには、*utils* を右クリックして、*[New (新規)]* -> *[Class (クラス)]* を選択し、クラスに `MyClass` という名前を付けて *[Finish (完了)]* をクリックします。
+. Studio で開いている *[MyClass.java]* タブで、コンテンツ `MyClass` をコピーして貼り付け、保存します。
+
+次の DataWeave の例では、`MyClass` をインポートし、クラスの新しいインスタンスを作成して、そのインスタンス変数 `foo` をコールします。DataWeave からオブジェクトの `getFoo()` メソッドをコールすることはできません。
+
+[source,dataweave,linenums]
+----
+%dw 2.0
+import java!utils::MyClass
+output application/json
+---
+{
+	a: MyClass::new("myString").foo
+}
+----
+
+この DataWeave の例を Studio プロジェクトに追加する手順は、次のとおりです。
+
+. *src/main/mule* の `my-app.xml` に戻り、Transform Message コンポーネントをプロジェクトのキャンバスにドラッグし、クリックして開きます。
+. コンポーネントの *[Transform Message ]* タブで、ソースコード領域 (右側) のスクリプト全体を DataWeave スクリプト (上記) に置き換えます。
+. *[Preview (プレビュー)]* (タブの右端にある) をクリックして、次の出力を表示します。
++
+[source,json,linenums]
+----
+{
+  "a":"myString"
+}
+----
+
+Mule フローの Transform Message の設定の XML は、次のようになります。
+
+[source,xml,linenums]
+----
+<flow name="my-appFlow" >
+	<ee:transform doc:name="Transform Message" >
+		<ee:message >
+			<ee:set-payload ><![CDATA[%dw 2.0
+import java!utils::MyClass
+output application/json
+---
+{
+a: MyClass::new("myString").foo
+}]]></ee:set-payload>
+		</ee:message>
+	</ee:transform>
+</flow>
+----
+
+== 関連情報
+
+* xref:dataweave-formats.adoc[DataWeave の出力形式とライタープロパティ]

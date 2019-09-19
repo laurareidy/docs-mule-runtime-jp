@@ -1,0 +1,185 @@
+= Core 型 (dw::Core)
+
+|===
+| 型 | 定義 | 説明
+
+| Any (いずれか)
+| `type Any = Any`
+| 最上位型。`Any` はすべてのシステム型を拡張します。つまり、`Any` 型の変数には任意のものを割り当てることができます。
+
+
+| Array (配列)
+| `type Array = Array`
+| 配列型。`Type(T)` によってリストの要素を表す必要があります。
+例: `Array<Number>` は数値の配列を表し、`Array<Any>` は任意の型の配列を表します。
+
+例: `[1, 2, "a", "b", true, false, { a : "b"}, [1, 2, 3] ]`
+
+
+| Binary (バイナリ)
+| `type Binary = Binary`
+| blob。
+
+
+| Boolean (ブール)
+| `type Boolean = Boolean`
+| `true` または `false` の `Boolean` 型。
+
+
+| CData
+| `type CData = String {cdata: true}`
+| XML は、`String` から拡張され、CDATA XML ブロックを識別するために使用される `CData` カスタム型を定義します。
+
+CDATA 内でコンテンツをラップするか、CDATA ブロック内に文字列が到達したかどうかを確認するように、これを使用してライターに指示することができます。`CData` は型 `String` から継承されます。
+
+*取得元*:
+
+`output application/xml --- { "user" : "Shoki" as CData }`
+
+*出力*:
+
+`<?xml version="1.0" encoding="UTF-8"?><user><![CDATA[Shoki]]></user>`
+
+
+| Comparable (比較可能)
+| `type Comparable = String &#124; Number &#124; Boolean &#124; DateTime &#124; LocalDateTime &#124; Date &#124; LocalTime &#124; Time &#124; TimeZone`
+| 互いに比較できるすべての型を表す結合型。
+
+
+| Date (日付)
+| `type Date = Date`
+| 年、月、日で表される日付。例: `&#124;2018-09-17&#124;`
+
+
+| DateTime
+| `type DateTime = DateTime`
+| `TimeZone` 内での `Date` と `Time`。例: `&#124;2018-09-17T22:13:00Z&#124;`
+
+
+| Dictionary (ディクショナリ)
+| `type Dictionary = { _?: T }`
+| 汎用ディクショナリインターフェース。
+
+
+| Enum (列挙)
+| `type Enum = String {enumeration: true}`
+| この型は https://docs.oracle.com/javase/7/docs/api/java/lang/Enum.html[Enum Java クラス]に基づきます。
+
+常に `class` プロパティと共に使用する必要があります。このプロパティは、次の例に示すように完全な Java クラス名を指定します。
+
+*取得元:*
+
+`"Max" as Enum {class: "com.acme.MuleyEnum"}`
+
+
+| Iterator (イテレータ)
+| `type Iterator = Array {iterator: true}`
+| この型は、&#8203;https://docs.oracle.com/javase/8/docs/api/java/util/Iterator.html[iterator Java クラス]に基づきます。
+イテレータにはコレクションと、その反復処理と絞り込みを行うメソッドが含まれます。
+
+Java クラスと同様に、`Iterator` は 1 回のみコンシュームされるように設計されています。たとえば、この型を&#8203;https://docs.mulesoft.com/mule-runtime/4.2/logger-component-reference[ロガーコンポーネント]に渡すと、ロガーによってコンシュームされるため、フロー内のそれ以降の要素が参照することはできなくなります。
+
+
+| キー
+| `type Key = Key`
+| `Object` のキー。
+
+例: `{ myKey : "a value" }`、`{ myKey : { a : 1, b : 2} }`、`{ myKey : [1,2,3,4] }`
+
+
+| LocalDateTime
+| `type LocalDateTime = LocalDateTime`
+| 現在の `TimeZone` 内の `DateTime`。例: `&#124;2018-09-17T22:13:00&#124;`
+
+
+| LocalTime
+| `type LocalTime = LocalTime`
+| 現在の `TimeZone` 内の `Time`。例: `&#124;22:10:18&#124;`
+
+
+| NaN
+| `type NaN = Null {NaN: true}`
+| `java.lang.Float` と `java.lang.Double` には、`NaN` と `Infinit` の特殊なケースがあります。
+DataWeave では、数値が多倍精度である性質から、これらの概念はありません。
+そのため、DataWeave 値にマップされると、スキーママーカーを使用して Null にラップされます。
+
+
+| 名前空間
+| `type Namespace = Namespace`
+| `URI` とプレフィックスで表される `Namespace` 型。
+
+
+| Nothing (空)
+| `type Nothing = Nothing`
+| ボトム型。この型は、すべての型に割り当てることができます。
+
+
+| Null
+| `type Null = Null`
+| Null 型。
+
+
+| Number (数値)
+| `type Number = Number`
+| 数値型。数値型で表される任意の数値、10 進数、または整数。
+
+
+| Object (オブジェクト)
+| `type Object = Object`
+| `Key` と値のペアのコレクションである任意のオブジェクトを表す型。
+
+例: `{ myKey : "a value" }`、`{ myKey : { a : 1, b : 2} }`、`{ myKey : [1,2,3,4] }`
+
+
+| Pair (ペア)
+| `type Pair = { l: LEFT, r: RIGHT }`
+| 値のペアを表すために使用する型。
+
+_DataWeave 2.2.0 で導入されました。Mule 4.2 以降でサポートされます。_
+
+
+| Period (期間)
+| `type Period = Period`
+| 期間。
+
+
+| 範囲
+| `type Range = Range`
+| `Range` 型は、一連の数値を表します。
+
+
+| Regex (正規表現)
+| `type Regex = Regex`
+| Java 正規表現 (regex) 型。
+
+
+| SimpleType
+| `type SimpleType = String &#124; Boolean &#124; Number &#124; DateTime &#124; LocalDateTime &#124; Date &#124; LocalTime &#124; Time &#124; TimeZone &#124; Period`
+| すべての単純型を表す結合型。
+
+
+| String (文字列)
+| `type String = String`
+| `String` (文字列) 型
+
+
+| Time (時刻)
+| `type Time = Time`
+| 特定の `TimeZone` での時刻。例: `&#124;22:10:18Z&#124;`
+
+
+| TimeZone
+| `type TimeZone = TimeZone`
+| タイムゾーン。
+
+
+| 型
+| `type Type = Type`
+| DataWeave 型システムの型。
+
+
+| Uri
+| `type Uri = Uri`
+| URI。
+
+|===

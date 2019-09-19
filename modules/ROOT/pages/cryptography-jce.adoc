@@ -1,0 +1,586 @@
+= JCE 暗号化
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+JCE 戦略では、Java Cryptography Extension によって提供される広範な暗号化機能を使用できます。
+
+暗号化機能は、次の 2 つの方法で使用できます。
+
+* PBE (パスワードベースの暗号化): 暗号化パスワードのみを指定してコンテンツを暗号化/署名する。
+* キーベースの暗号化: PGP および XML 暗号化のしくみと似ていますが、対称キーまたは非対称キーを設定して、暗号化/署名操作を実行できます。
+
+これらの 2 つの方法を使用して、メッセージのすべて、または一部を暗号化できます。
+
+== PBE
+
+この方法では、指定されたパスワードにハッシュ関数を適用して、標準暗号化アルゴリズムと互換性のある対称キーを生成します。PBE で必要なのはパスワードのみであるため、PBE 操作にはグローバル設定要素は必要ありません。
+
+.例: PBE 暗号化
+[source,xml,linenums]
+----
+<crypto:jce-encrypt-pbe password="a-Sup3r_Secure-Passw0rd"/>
+----
+アルゴリズムを指定しない場合、`PBEWithHmacSHA256AndAES_128` が使用されます。
+
+.例: PBE 復号化
+[source,xml,linenums]
+----
+<crypto:jce-decrypt-pbe algorithm="PBEWithHmacSHA256AndAES_128" password="a-Sup3r_Secure-Passw0rd"/>
+----
+
+.例: PBE 署名
+[source,xml,linenums]
+----
+<crypto:jce-sign-pbe password="a-Sup3r_Secure-Passw0rd"/>
+----
+
+アルゴリズムを指定しない場合、`PBEWithHmacSHA256` が使用されます。
+
+.例: PBE 署名検証
+[source,xml,linenums]
+----
+<crypto:jce-validate-pbe password="a-Sup3r_Secure-Passw0rd" algorithm="PBEWithHmacSHA256" expected="#[vars.expectedSignature]"/>
+----
+
+`expected` パラメータでは、メッセージを検証するために使用される署名を定義します。
+
+== キーベースの暗号化
+
+このセクションでは、キーベースの暗号化の例を示します。
+
+=== Configuration (設定)
+
+この例では、JCE 設定で異なる種別のキーがあるキーストアが定義されています。
+
+.例: JCE 設定
+[source,xml,linenums]
+----
+<crypto:jce-config name="jceConfig" keystore="jce/keys.jceks" password="123456" type="JCEKS">
+    <crypto:jce-key-infos>
+        <crypto:jce-symmetric-key-info keyId="aes128" alias="aes128" password="123456"/>
+        <crypto:jce-symmetric-key-info keyId="blowfish" alias="blowfish" password="123456"/>
+        <crypto:jce-symmetric-key-info keyId="hmacsha256" alias="hmacsha256" password="123456"/>
+        <crypto:jce-asymmetric-key-info keyId="rsa" alias="myrsakey" password="123456"/>
+        <crypto:jce-asymmetric-key-info keyId="dsa" alias="mydsakey" password="123456"/>
+    </crypto:jce-key-infos>
+</crypto:jce-config>
+----
+
+=== 非対称
+
+.例: 非対称暗号化
+[source,xml,linenums]
+----
+<crypto:jce-encrypt config-ref="jceConfig" keyId="rsa" algorithm="RSA"/>
+----
+
+.例: 非対称復号化
+[source,xml,linenums]
+----
+<crypto:jce-decrypt config-ref="jceConfig" keyId="rsa" algorithm="RSA"/>
+----
+
+=== 対称
+
+.例: 対称暗号化
+[source,xml,linenums]
+----
+<crypto:jce-encrypt config-ref="jceConfig" keyId="aes128" algorithm="AES"/>
+----
+
+.例: 対称復号化
+[source,xml,linenums]
+----
+<crypto:jce-decrypt config-ref="jceConfig" keyId="aes128" algorithm="AES"/>
+----
+
+=== 署名
+
+.例: メッセージの署名
+[source,xml,linenums]
+----
+<crypto:jce-sign config-ref="jceConfig" keyId="dsa" algorithm="SHA256withDSA"/>
+----
+
+.例: 署名の検証
+[source,xml,linenums]
+----
+<crypto:jce-validate config-ref="jceConfig" keyId="dsa" algorithm="SHA256withDSA" expected="#[vars.expectedSignature]"/>
+----
+
+`expected` パラメータでは、メッセージを検証するために使用される署名を定義します。
+
+== 参照
+
+=== モジュール設定
+
+Java キーストアのインラインキーの JCE 設定。
+
+==== パラメータ
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|===
+| Name (名前) | 型 | 説明 | デフォルト値 | 必須
+|Name (名前) | String (文字列) | この設定の名前。コネクタはこの名前の設定を参照します。 | | *x*{nbsp}
+| Keystore (キーストア) a| String (文字列) |  +++キーストアファイルへのパス。+++ |  | {nbsp}
+| 型 a| Enumeration (列挙)。次のいずれかになります。
+
+** `JKS`
+** `JCEKS`
+** `PKCS12` |  +++キーストアの種別。+++ |  `JKS` | {nbsp}
+| Password (パスワード) a| String (文字列) |  +++キーストアのロックを解除するパスワード。+++ |  | {nbsp}
+| Jce Key Infos (JCE キー情報) a| Array (配列)。次のいずれかになります。
+
+* <<JceAsymmetricKeyInfo>>
+* <<JceSymmetricKeyInfo>> |  +++対象となるキーのリスト。これらの参照には内部 ID が使用されます。+++ |  | {nbsp}
+| Expiration Policy (有効期限ポリシー) a| <<ExpirationPolicy>> |  +++動的設定インスタンスがアイドル状態を続けられる最小時間を設定します。この時間が経過すると、Runtime で期限切れに相当するとみなされます。これは、対象になった瞬間にプラットフォームでインスタンスの有効期限が切れるという意味ではありません。ランタイムによって適切と判断されたときに、インスタンスが実際にパージされます。+++ |  | {nbsp}
+|===
+
+[[jceDecrypt]]
+== Jce Decrypt 操作
+`<crypto:jce-decrypt>`
+
++++
+JCE を使用してキーでストリームを復号化します。
++++
+
+=== パラメータ
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|===
+| Name (名前) | 型 | 説明 | デフォルト値 | 必須
+| Configuration (設定) | String (文字列) | 使用する設定の名前。 | | *x*{nbsp}
+| Content (コンテンツ) a| Binary (バイナリ) | DataWeave 式を使用して、すべて、または一部のメッセージを復号化できます。 +
+たとえば、[Content (コンテンツ)] を `#[payload.name]` に設定して、ペイロードの暗号化された `name` という変数のみ復号化できます。 |  `#[payload]` | {nbsp}
+| Output Mime Type (出力 MIME タイプ) a| String (文字列) |  +++この操作で出力されるペイロードの MIME タイプ。+++ |  | {nbsp}
+| Output Encoding (出力エンコード) a| String (文字列) |  +++この操作で出力されるペイロードのエンコード。+++ |  | {nbsp}
+| Streaming Strategy (ストリーミング戦略) a| * <<repeatable-in-memory-stream>>
+* <<repeatable-file-store-stream>>
+* non-repeatable-stream |  +++反復可能ストリームを使用すべきかどうか、およびその動作を設定します。+++ |  | {nbsp}
+| Cipher (暗号化) a| String (文字列) |  +++Java 暗号化ドキュメントに準拠する「アルゴリズム/モード/パディング」形式の未加工の暗号化文字列。一部の組み合わせは無効です。+++ |  | {nbsp}
+| Algorithm (アルゴリズム) a| Enumeration (列挙)。次のいずれかになります。
+
+** `AES`
+** `AESWrap`
+** `ARCFOUR`
+** `Blowfish`
+** `DES`
+** `DESede`
+** `RC2`
+** `DESedeWrap`
+** `RSA` |  +++一連の有効な定義のアルゴリズム (推奨)。+++ |  | {nbsp}
+| Key Id (キー ID) a| String (文字列) |  +++JCE 設定で定義されるキー ID。+++ |  | {nbsp}
+| Jce Key Info (JCE キー情報) a| 次のいずれかになります。
+
+* <<JceAsymmetricKeyInfo>>
+* <<JceSymmetricKeyInfo>> |  +++インラインキー定義。+++ |  | {nbsp}
+| Target Variable (対象変数) a| String (文字列) |  +++操作の出力が格納される変数の名前+++ |  | {nbsp}
+| Target Value (対象値) a| String (文字列) |  +++操作の出力に対して評価される式。その式の結果は対象変数に保存されます。+++ |  `#[payload]` | {nbsp}
+|===
+
+=== 出力型
+
+Binary (バイナリ)
+
+=== スロー
+* `CRYPTO:MISSING_KEY` {nbsp}
+* `CRYPTO:KEY` {nbsp}
+* `CRYPTO:PASSPHRASE` {nbsp}
+* `CRYPTO:PARAMETERS` {nbsp}
+* `CRYPTO:DECRYPTION` {nbsp}
+
+
+[[jceEncrypt]]
+== Jce Encrypt 操作
+`<crypto:jce-encrypt>`
+
++++
+JCE を使用してキーでストリームを暗号化します。
++++
+
+=== パラメータ
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|===
+| Name (名前) | 型 | 説明 | デフォルト値 | 必須
+| Configuration (設定) | String (文字列) | 使用する設定の名前。 | | *x*{nbsp}
+| Content (コンテンツ) a| Binary (バイナリ) | DataWeave 式を使用して、すべて、または一部のメッセージを暗号化できます。 +
+たとえば、[Content (コンテンツ)] を `#[payload.name]` に設定して、ペイロードの `name` という変数のみ暗号化できます。 |  `#[payload]` | {nbsp}
+| Output Mime Type (出力 MIME タイプ) a| String (文字列) |  +++この操作で出力されるペイロードの MIME タイプ。+++ |  | {nbsp}
+| Output Encoding (出力エンコード) a| String (文字列) |  +++この操作で出力されるペイロードのエンコード。+++ |  | {nbsp}
+| Streaming Strategy (ストリーミング戦略) a| * <<repeatable-in-memory-stream>>
+* <<repeatable-file-store-stream>>
+* non-repeatable-stream |  +++反復可能ストリームを使用すべきかどうか、およびその動作を設定します。+++ |  | {nbsp}
+| Cipher (暗号化) a| String (文字列) |  +++Java 暗号化ドキュメントに準拠する「アルゴリズム/モード/パディング」形式の未加工の暗号化文字列。一部の組み合わせは無効です。+++ |  | {nbsp}
+| Algorithm (アルゴリズム) a| Enumeration (列挙)。次のいずれかになります。
+
+** `AES`
+** `AESWrap`
+** `ARCFOUR`
+** `Blowfish`
+** `DES`
+** `DESede`
+** `RC2`
+** `DESedeWrap`
+** `RSA` |  +++一連の有効な定義のアルゴリズム (推奨)。+++ |  | {nbsp}
+| Key Id (キー ID) a| String (文字列) |  +++JCE 設定で定義されるキー ID。+++ |  | {nbsp}
+| Jce Key Info (JCE キー情報) a| 次のいずれかになります。
+
+* <<JceAsymmetricKeyInfo>>
+* <<JceSymmetricKeyInfo>> |  +++インラインキー定義。+++ |  | {nbsp}
+| Target Variable (対象変数) a| String (文字列) |  +++操作の出力が格納される変数の名前+++ |  | {nbsp}
+| Target Value (対象値) a| String (文字列) |  +++操作の出力に対して評価される式。その式の結果は対象変数に保存されます。+++ |  `#[payload]` | {nbsp}
+|===
+
+=== 出力型
+
+Binary (バイナリ)
+
+=== スロー
+* `CRYPTO:MISSING_KEY` {nbsp}
+* `CRYPTO:ENCRYPTION` {nbsp}
+* `CRYPTO:KEY` {nbsp}
+* `CRYPTO:PARAMETERS` {nbsp}
+
+[[jceSign]]
+== Jce Sign 操作
+`<crypto:jce-sign>`
+
++++
+JCE を使用してキーでストリームに署名します。
++++
+
+=== パラメータ
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|===
+| Name (名前) | 型 | 説明 | デフォルト値 | 必須
+| Configuration (設定) | String (文字列) | 使用する設定の名前。 | | *x*{nbsp}
+| Content (コンテンツ) a| Binary (バイナリ) |  +++署名するコンテンツ+++ |  `#[payload]` | {nbsp}
+| Algorithm (アルゴリズム) a| Enumeration (列挙)。次のいずれかになります。
+
+** `MD2withRSA`
+** `MD5withRSA`
+** `SHA1withRSA`
+** `SHA224withRSA`
+** `SHA256withRSA`
+** `SHA384withRSA`
+** `SHA512withRSA`
+** `NONEwithDSA`
+** `SHA1withDSA`
+** `SHA224withDSA`
+** `SHA256withDSA`
+** `HmacMD5`
+** `HmacSHA1`
+** `HmacSHA224`
+** `HmacSHA256`
+** `HmacSHA384`
+** `HmacSHA512` |  +++署名に使用されるアルゴリズム+++ |  `HmacSHA256` | {nbsp}
+| Output Mime Type (出力 MIME タイプ) a| String (文字列) |  +++この操作で出力されるペイロードの MIME タイプ。+++ |  | {nbsp}
+| Key Id (キー ID) a| String (文字列) |  +++JCE 設定で定義されるキー ID。+++ |  | {nbsp}
+| Jce Key Info (JCE キー情報) a| 次のいずれかになります。
+
+* <<JceAsymmetricKeyInfo>>
+* <<JceSymmetricKeyInfo>> |  +++インラインキー定義。+++ |  | {nbsp}
+| Target Variable (対象変数) a| String (文字列) |  +++操作の出力が格納される変数の名前+++ |  | {nbsp}
+| Target Value (対象値) a| String (文字列) |  +++操作の出力に対して評価される式。その式の結果は対象変数に保存されます。+++ | `#[payload]` | {nbsp}
+|===
+
+=== 出力型
+
+String (文字列)
+
+=== スロー
+* `CRYPTO:MISSING_KEY` {nbsp}
+* `CRYPTO:KEY` {nbsp}
+* `CRYPTO:PASSPHRASE` {nbsp}
+* `CRYPTO:SIGNATURE` {nbsp}
+
+
+[[jceValidate]]
+== Jce Validate 操作
+`<crypto:jce-validate>`
+
++++
+キーを使用して署名に対してストリームを検証します。
++++
+
+=== パラメータ
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|===
+| Name (名前) | 型 | 説明 | デフォルト値 | 必須
+| Configuration (設定) | String (文字列) | 使用する設定の名前。 | | *x*{nbsp}
+| 値 a| Binary (バイナリ) |  +++認証するメッセージ+++ |  `#[payload]` | {nbsp}
+| Expected (想定) a| String (文字列) |  +++検証する署名+++ |  | *x*{nbsp}
+| Algorithm (アルゴリズム) a| Enumeration (列挙)。次のいずれかになります。
+
+** `MD2withRSA`
+** `MD5withRSA`
+** `SHA1withRSA`
+** `SHA224withRSA`
+** `SHA256withRSA`
+** `SHA384withRSA`
+** `SHA512withRSA`
+** `NONEwithDSA`
+** `SHA1withDSA`
+** `SHA224withDSA`
+** `SHA256withDSA`
+** `HmacMD5`
+** `HmacSHA1`
+** `HmacSHA224`
+** `HmacSHA256`
+** `HmacSHA384`
+** `HmacSHA512` |  +++署名に使用されるアルゴリズム+++ |  `HmacSHA256` | {nbsp}
+| Key Id (キー ID) a| String (文字列) |  +++JCE 設定で定義されるキー ID。+++ |  | {nbsp}
+| Jce Key Info (JCE キー情報) a| 次のいずれかになります。
+
+* <<JceAsymmetricKeyInfo>>
+* <<JceSymmetricKeyInfo>> |  +++インラインキー定義。+++ |  | {nbsp}
+|===
+
+=== スロー
+* `CRYPTO:MISSING_KEY` {nbsp}
+* `CRYPTO:VALIDATION` {nbsp}
+
+[[jceDecryptPbe]]
+== Jce Decrypt Pbe 操作
+`<crypto:jce-decrypt-pbe>`
+
++++
+JCE を使用してパスワードでストリームを復号化します。
++++
+
+=== パラメータ
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|===
+| Name (名前) | 型 | 説明 | デフォルト値 | 必須
+| Content (コンテンツ) a| Binary (バイナリ) | DataWeave 式を使用して、すべて、または一部のメッセージを復号化できます。 +
+たとえば、[Content (コンテンツ)] を `#[payload.name]` に設定して、ペイロードの暗号化された `name` という変数のみ復号化できます。 |  `#[payload]` | {nbsp}
+| Algorithm (アルゴリズム) a| Enumeration (列挙)。次のいずれかになります。
+
+** `PBEWithMD5AndDES`
+** `PBEWithMD5AndTripleDES`
+** `PBEWithSHA1AndDESede`
+** `PBEWithSHA1AndRC2_40`
+** `PBEWithSHA1AndRC2_128`
+** `PBEWithSHA1AndRC4_40`
+** `PBEWithSHA1AndRC4_128`
+** `PBEWithHmacSHA1AndAES_128`
+** `PBEWithHmacSHA224AndAES_128`
+** `PBEWithHmacSHA256AndAES_128`
+** `PBEWithHmacSHA384AndAES_128`
+** `PBEWithHmacSHA512AndAES_128`
+** `PBEWithHmacSHA1AndAES_256`
+** `PBEWithHmacSHA224AndAES_256`
+** `PBEWithHmacSHA256AndAES_256`
+** `PBEWithHmacSHA384AndAES_256`
+** `PBEWithHmacSHA512AndAES_256` |  +++パスワードからキーを生成するためのアルゴリズム+++ |  `PBEWithHmacSHA256AndAES_128` | {nbsp}
+| Password (パスワード) a| String (文字列) |  +++復号化のパスワード+++ |  | *x*{nbsp}
+| Output Mime Type (出力 MIME タイプ) a| String (文字列) |  +++この操作で出力されるペイロードの MIME タイプ。+++ |  | {nbsp}
+| Output Encoding (出力エンコード) a| String (文字列) |  +++この操作で出力されるペイロードのエンコード。+++ |  | {nbsp}
+| Streaming Strategy (ストリーミング戦略) a| * <<repeatable-in-memory-stream>>
+* <<repeatable-file-store-stream>>
+* non-repeatable-stream |  +++反復可能ストリームを使用すべきかどうか、およびその動作を設定します。+++ |  | {nbsp}
+| Target Variable (対象変数) a| String (文字列) |  +++操作の出力が格納される変数の名前+++ |  | {nbsp}
+| Target Value (対象値) a| String (文字列) |  +++操作の出力に対して評価される式。その式の結果は対象変数に保存されます。+++ |  `#[payload]` | {nbsp}
+|===
+
+=== 出力型
+
+Binary (バイナリ)
+
+=== スロー
+* `CRYPTO:MISSING_KEY` {nbsp}
+* `CRYPTO:KEY` {nbsp}
+* `CRYPTO:PASSPHRASE` {nbsp}
+* `CRYPTO:PARAMETERS` {nbsp}
+* `CRYPTO:DECRYPTION` {nbsp}
+
+[[jceEncryptPbe]]
+== Jce Encrypt Pbe 操作
+`<crypto:jce-encrypt-pbe>`
+
++++
+JCE を使用してパスワードでストリームを暗号化します。
++++
+
+=== パラメータ
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|===
+| Name (名前) | 型 | 説明 | デフォルト値 | 必須
+| Content (コンテンツ) a| Binary (バイナリ) | DataWeave 式を使用して、すべて、または一部のメッセージを暗号化できます。 +
+たとえば、[Content (コンテンツ)] を `#[payload.name]` に設定して、ペイロードの `name` という変数のみ暗号化できます。 |  `#[payload]` | {nbsp}
+| Algorithm (アルゴリズム) a| Enumeration (列挙)。次のいずれかになります。
+
+** `PBEWithMD5AndDES`
+** `PBEWithMD5AndTripleDES`
+** `PBEWithSHA1AndDESede`
+** `PBEWithSHA1AndRC2_40`
+** `PBEWithSHA1AndRC2_128`
+** `PBEWithSHA1AndRC4_40`
+** `PBEWithSHA1AndRC4_128`
+** `PBEWithHmacSHA1AndAES_128`
+** `PBEWithHmacSHA224AndAES_128`
+** `PBEWithHmacSHA256AndAES_128`
+** `PBEWithHmacSHA384AndAES_128`
+** `PBEWithHmacSHA512AndAES_128`
+** `PBEWithHmacSHA1AndAES_256`
+** `PBEWithHmacSHA224AndAES_256`
+** `PBEWithHmacSHA256AndAES_256`
+** `PBEWithHmacSHA384AndAES_256`
+** `PBEWithHmacSHA512AndAES_256` |  +++パスワードからキーを生成するためのアルゴリズム+++ |  `PBEWithHmacSHA256AndAES_128` | {nbsp}
+| Password (パスワード) a| String (文字列) |  +++暗号化のパスワード+++ |  | *x*{nbsp}
+| Output Mime Type (出力 MIME タイプ) a| String (文字列) |  +++この操作で出力されるペイロードの MIME タイプ。+++ |  | {nbsp}
+| Output Encoding (出力エンコード) a| String (文字列) |  +++この操作で出力されるペイロードのエンコード。+++ |  | {nbsp}
+| Streaming Strategy (ストリーミング戦略) a| * <<repeatable-in-memory-stream>>
+* <<repeatable-file-store-stream>>
+* non-repeatable-stream |  +++反復可能ストリームを使用すべきかどうか、およびその動作を設定します。+++ |  | {nbsp}
+| Target Variable (対象変数) a| String (文字列) |  +++操作の出力が格納される変数の名前+++ |  | {nbsp}
+| Target Value (対象値) a| String (文字列) |  +++操作の出力に対して評価される式。その式の結果は対象変数に保存されます。+++ |  `#[payload]` | {nbsp}
+|===
+
+=== 出力型
+
+Binary (バイナリ)
+
+=== スロー
+* `CRYPTO:MISSING_KEY` {nbsp}
+* `CRYPTO:ENCRYPTION` {nbsp}
+* `CRYPTO:KEY` {nbsp}
+* `CRYPTO:PARAMETERS` {nbsp}
+
+[[jceSignPbe]]
+== Jce Sign Pbe 操作
+`<crypto:jce-sign-pbe>`
+
++++
+JCE を使用してキーでストリームに署名します。
++++
+
+=== パラメータ
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|===
+| Name (名前) | 型 | 説明 | デフォルト値 | 必須
+| Content (コンテンツ) a| Binary (バイナリ) |  +++署名するコンテンツ+++ |  `#[payload]` | {nbsp}
+| Algorithm (アルゴリズム) a| Enumeration (列挙)。次のいずれかになります。
+
+** `HmacPBESHA1`
+** `PBEWithHmacSHA1`
+** `PBEWithHmacSHA224`
+** `PBEWithHmacSHA256`
+** `PBEWithHmacSHA384`
+** `PBEWithHmacSHA512` |  +++署名に使用されるアルゴリズム+++ |  `PBEWithHmacSHA256` | {nbsp}
+| Password (パスワード) a| String (文字列) |  +++署名に使用されるパスワード+++ |  | *x*{nbsp}
+| Output Mime Type (出力 MIME タイプ) a| String (文字列) |  +++この操作で出力されるペイロードの MIME タイプ。+++ |  | {nbsp}
+| Target Variable (対象変数) a| String (文字列) |  +++操作の出力が格納される変数の名前+++ |  | {nbsp}
+| Target Value (対象値) a| String (文字列) |  +++操作の出力に対して評価される式。その式の結果は対象変数に保存されます。+++ |  `#[payload]` | {nbsp}
+|===
+
+=== 出力型
+
+String (文字列)
+
+=== スロー
+* `CRYPTO:MISSING_KEY` {nbsp}
+* `CRYPTO:KEY` {nbsp}
+* `CRYPTO:PASSPHRASE` {nbsp}
+* `CRYPTO:SIGNATURE` {nbsp}
+
+[[jceValidatePbe]]
+== Jce Validate Pbe 操作
+`<crypto:jce-validate-pbe>`
+
++++
+キーを使用して署名に対してストリームを検証します。
++++
+
+=== パラメータ
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|===
+| Name (名前) | 型 | 説明 | デフォルト値 | 必須
+| 値 a| Binary (バイナリ) |  +++認証するメッセージ+++ |  `#[payload]` | {nbsp}
+| Expected (想定) a| String (文字列) |  +++検証する署名+++ |  | *x*{nbsp}
+| Algorithm (アルゴリズム) a| Enumeration (列挙)。次のいずれかになります。
+
+** `HmacPBESHA1`
+** `PBEWithHmacSHA1`
+** `PBEWithHmacSHA224`
+** `PBEWithHmacSHA256`
+** `PBEWithHmacSHA384`
+** `PBEWithHmacSHA512` |  +++署名に使用されるアルゴリズム+++ |  `PBEWithHmacSHA256` | {nbsp}
+| Password (パスワード) a| String (文字列) |  +++署名に使用されるパスワード+++ |  | *x*{nbsp}
+|===
+
+=== スロー
+* `CRYPTO:MISSING_KEY` {nbsp}
+* `CRYPTO:VALIDATION` {nbsp}
+
+== 型の定義
+[[ExpirationPolicy]]
+=== Expiration Policy (有効期限ポリシー)
+
+[cols=".^20%,.^25%,.^30%,.^15%,.^10%", options="header"]
+|===
+| 項目 | 型 | 説明 | デフォルト値 | 必須
+| Max Idle Time (最大アイドル時間) a| Number (数値) | 有効期限の対象とみなされるまで、動的設定インスタンスがアイドル状態を維持できる最大時間のスカラー時間値 |  |
+| Time Unit (時間単位) a| Enumeration (列挙)。次のいずれかになります。
+
+** `NANOSECONDS`
+** `MICROSECONDS`
+** `MILLISECONDS`
+** `SECONDS`
+** `MINUTES`
+** `HOURS`
+** `DAYS` | maxIdleTime 属性の時間単位 |  |
+|===
+
+[[repeatable-in-memory-stream]]
+=== Repeatable In Memory Stream (反復可能なメモリ内ストリーム)
+
+[cols=".^20%,.^25%,.^30%,.^15%,.^10%", options="header"]
+|===
+| 項目 | 型 | 説明 | デフォルト値 | 必須
+| Initial Buffer Size (初期バッファサイズ) a| Number (数値) | これは、ストリームをコンシュームし、ストリームへのランダムアクセスを提供する目的で割り当てられるメモリの容量です。ストリームに含まれているデータがこのバッファに適合できる量を超えている場合、`bufferSizeIncrement` 属性に従って拡張され、上限は `maxInMemorySize` となります。. |  |
+| Buffer Size Increment (バッファサイズ増分) a| Number (数値) | バッファサイズが初期サイズを超えた場合に、どれくらい拡張されるか。値を 0 以下に設定すると、バッファが拡張されません。つまり、バッファがフルになると、`STREAM_MAXIMUM_SIZE_EXCEEDED` エラーが発生します。 |  |
+| Max Buffer Size (最大バッファサイズ) a| Number (数値) | 使用するメモリの最大量。これを超えると、`STREAM_MAXIMUM_SIZE_EXCEEDED` エラーが発生します。0 以下の値は無制限を意味します。 |  |
+| Buffer Unit (バッファ単位) a| Enumeration (列挙)。次のいずれかになります。
+
+** `BYTE`
+** `KB`
+** `MB`
+** `GB` | これらのすべての属性の単位 |  |
+|===
+
+[[repeatable-file-store-stream]]
+=== Repeatable File Store Stream (反復可能なファイルストアストリーム)
+
+[cols=".^20%,.^25%,.^30%,.^15%,.^10%", options="header"]
+|===
+| 項目 | 型 | 説明 | デフォルト値 | 必須
+| Max In Memory Size (最大メモリ内サイズ) a| Number (数値) | データをメモリ内に保持するためにストリームで使用する最大メモリを定義します。これを超えると、ディスクへのコンテンツのバッファが開始されます。 |  |
+| Buffer Unit (バッファ単位) a| Enumeration (列挙)。次のいずれかになります。
+
+** `BYTE`
+** `KB`
+** `MB`
+** `GB` | maxInMemorySize で表される単位 |  |
+|===
+
+[[JceAsymmetricKeyInfo]]
+=== Jce Asymmetric Key Info (JCE 非対称キー情報)
+
+[cols=".^20%,.^25%,.^30%,.^15%,.^10%", options="header"]
+|===
+| 項目 | 型 | 説明 | デフォルト値 | 必須
+| Key Id (キー ID) a| String (文字列) | 操作から参照される内部キー ID。 |  | x
+| Alias (別名) a| String (文字列) | キーストア内のキーの別名。 |  | x
+| Password (パスワード) a| String (文字列) | キーの非公開部分のロック解除に使用されるパスワード。 |  |
+|===
+
+[[JceSymmetricKeyInfo]]
+=== Jce Symmetric Key Info (JCE 対称キー情報)
+
+[cols=".^20%,.^25%,.^30%,.^15%,.^10%", options="header"]
+|===
+| 項目 | 型 | 説明 | デフォルト値 | 必須
+| Key Id (キー ID) a| String (文字列) | 操作から参照される内部キー ID。 |  | x
+| Alias (別名) a| String (文字列) | キーストア内のキーの別名。 |  | x
+| Password (パスワード) a| String (文字列) | キーのロック解除に使用されるパスワード。 |  | x
+|===

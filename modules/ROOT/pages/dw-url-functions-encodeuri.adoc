@@ -1,0 +1,61 @@
+= encodeURI
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[encodeuri1]]
+== encodeURI&#40;String&#41;: String
+
+UTF-8 エスケープシーケンスを使用して URI をエンコードします。
+
+
+2 つのサロゲート文字で構成される文字に最大 4 つのエスケープシーケンスを適用します。この関数は、URI が完全な URI であることを前提にしているため、特別な意味を持つ予約文字はエンコードしません。
+
+この関数では、次の文字は UTF-8 エスケープシーケンスによって _エンコードしません_ 。
+
+[%header, cols="2,2"]
+|===
+| 種別 (エスケープされない)   | 例
+| 予約文字  | ; , / ? : @ & = $
+| エスケープされない文字 | アルファベット、10 進数、- _ . ! ~ * ' ( )
+| 番号記号          | #
+|===
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `text` | エンコードする URI。
+|===
+
+=== 例
+
+次の例は、1 つの URL 内のスペースのエンコードと、`not_encoded` 文字列でエンコードされない文字のリストを示しています。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+import * from dw::core::URL
+output application/json
+---
+{
+    "encodeURI" : encodeURI("http://asd/ text to decode /text"),
+    "not_encoded": encodeURI("http://:;,/?:@&=\$_-_.!~*'()")
+}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+   "encodeURI": "http://asd/%20text%20to%20decode%20/%25/\"\'/text",
+   "not_encoded": "http://:;,/?:@&=$_-_.!~*'()"
+}
+----
+

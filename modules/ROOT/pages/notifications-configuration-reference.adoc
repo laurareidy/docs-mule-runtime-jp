@@ -1,0 +1,113 @@
+= 通知設定リファレンス
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Anypoint Studio, esb, 通知, エラーメッセージ, 応答, 例外, 監視
+
+このトピックでは、通知のために設定する要素について詳しく説明します。通知についての詳細は、xref:mule-server-notifications.adoc[「Mule サーバの通知」]を参照してください。
+
+== Notifications (通知)
+
+通知のためにリスナを登録し、インターフェースを特定のイベントに関連付けます。
+
+=== 通知の属性
+
+[%header%autowidth.spread]
+|===
+|Name (名前) |説明
+|`dynamic` |通知マネージャが動的な場合、実行時に動的に登録されるようにリスナをセットアップできます。それ以外の場合、効率のために Mule の一部で通知設定がキャッシュされ、新たに有効になった通知またはリスナのためにイベントが生成されません。 +
+*型*: `boolean` +
+*必須*: いいえ +
+*デフォルト*: `false`
+|===
+
+=== 通知の子要素
+`notification` 要素と `disable-notification` 要素を使用してインターフェースとイベント間のリレーションを設定します。
+[%header%autowidth.spread]
+|===
+|Name (名前) |基数 |説明
+|`notification` |0..* |イベントをインターフェースに関連付けます。インターフェースを実装するリスナがイベントのインスタンスを受信します。
+|`disable-notification` |0..* |特定のインターフェースとのイベントの関連付けをブロックします。これにより、インターフェースとの関連付けが行われた後にイベントを絞り込むため、`notification-listener` などの他の要素よりも優先されます。
+|`notification-listener` |0..* |通知システムに対するリスナとして Bean を登録します。イベントは反映によってディスパッチされます。つまり、リスナは実装するインターフェースに関連付けられているすべてのイベントを受信します。
+|===
+
+== Notification (通知)
+
+イベントをインターフェースに関連付けます。インターフェースを実装するリスナがイベントのインスタンスを受信します。
+
+=== 通知の属性
+
+[%header%autowidth.spread]
+|===
+|Name (名前) |説明
+|`event-class` |インターフェースに配信する通知イベントのクラス名。この属性を `event` 属性の代わりに使用してカスタムクラスを指定できます。 +
+*型*: `class name` +
+*必須*: いいえ +
+*デフォルト*: なし
+|`event` |配信する通知イベント。 +
+*型*: `notificationTypes` +
+*必須*: いいえ +
+*デフォルト*: なし
+|`interface-class` |通知イベントを受信するインターフェースのクラス名。 +
+*型*: `class name` +
+*必須*: いいえ +
+*デフォルト*: なし
+|`interface` |通知イベントを受信するインターフェースの名前。 +
+*型*: `notificationTypes` +
+*必須*: いいえ +
+*デフォルト*: なし
+|===
+
+`notification` の子要素はありません。
+
+== 通知の無効化
+
+特定のインターフェースとのイベントの関連付けをブロックします。これにより、インターフェースとの関連付けが行われた後にイベントを絞り込むため、`notification-listener` などの他の要素よりも優先されます。
+
+=== disable-notification の属性
+
+[%header%autowidth.spread]
+|===
+|Name (名前) |説明
+|`event-class` |インターフェースに配信されなくなったイベントのクラス名。この属性を `event` 属性の代わりに使用してカスタムクラスを指定できます。 +
+*型*: `class name` +
+*必須*: いいえ +
+*デフォルト*: なし
+|`event` |もう配信しないイベント。 +
+*型*: `notificationTypes` +
+*必須*: いいえ +
+*デフォルト*: なし
+|`interface-class` |イベントを受信しなくなったインターフェースのクラス名。 +
+*型*: `class name` +
+*必須*: いいえ +
+*デフォルト*: なし
+|`interface` |イベントを受信しなくなったインターフェースの名前。 +
+*型*: `notificationTypes` +
+*必須*: いいえ +
+*デフォルト*: なし
+|===
+
+`disable-notification` の子要素はありません。
+
+== 通知リスナ
+
+通知システムに対するリスナとして Bean を登録します。イベントは反映によってディスパッチされます。つまり、リスナは実装するインターフェースに関連付けられているすべてのイベントを受信します。
+
+== 通知種別
+
+`notification` 要素と `disable-notification` 要素の `event` 属性を使用して、次の種別の通知を指定できます。
+
+* ASYNC-MESSAGE
+* CONNECTION
+* CONNECTOR-MESSAGE
+* CONTEXT
+* CUSTOM
+* EXCEPTION
+* EXCEPTION-STRATEGY
+* EXTENSION
+* MANAGEMENT
+* MESSAGE-PROCESSOR
+* PIPELINE-MESSAGE
+* ROUTING
+* SECURITY
+* TRANSACTION

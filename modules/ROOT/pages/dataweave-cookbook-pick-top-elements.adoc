@@ -1,0 +1,103 @@
+= 上位要素の取得
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, 変換, トランスフォーマ, 形式, xml, json, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング
+
+この DataWeave の例では、テストのスコアで候補者の配列を並び替え、募集職種が埋まるまで最もスコアの高い候補者のみを選択します。
+
+
+この例では、以下を使用します。
+
+* 入力の各候補者を調べる `map`。
+* スコアに応じて一連の候補者を並び替える `orderBy`。
+* 候補者の全配列の一部のみを選択する `[n to n]`。配列は昇順に並んでいるため、上位の候補者は配列の最後に配置されます。そのため、負のインデックスを使用する必要があります。この入力では、-3 から -1 が選択されます。-1 は配列の最後のインデックスです。
+
+.DataWeave
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+    TopCandidateList: (payload.candidates map ((candidate) -> {
+        firstName: candidate.name,
+        rank: candidate.score
+    }) orderBy $.rank) [ -payload.availablePositions to -1]
+}
+----
+
+
+.入力
+[source,json,linenums]
+----
+{
+ "availablePositions": 3,
+ "candidates":
+    [
+      {
+        "name":"Gunther Govan",
+        "score":99
+      },
+       {
+        "name":"Michael Patrick",
+        "score":35
+      },
+      {
+        "name":"Amalia Silva",
+        "score":96
+      },
+       {
+        "name":"Tom Mathews",
+        "score":40
+      },
+      {
+        "name":"Simon Wilson",
+        "score":84
+      },
+      {
+        "name":"Janet Nguyen",
+        "score":52
+      }
+    ]
+}
+----
+
+
+
+.出力
+[source,json,linenums]
+----
+{
+  "TopCandidateList": [
+    {
+      "firstName": "Simon Wilson",
+      "rank": 84
+    },
+    {
+      "firstName": "Amalia Silva",
+      "rank": 96
+    },
+    {
+      "firstName": "Gunther Govan",
+      "rank": 99
+    }
+  ]
+}
+----
+
+
+
+
+== 関連する例
+
+* xref:dataweave-cookbook-output-self-closing-xml-tags.adoc[自己終了 XML タグの出力]
+
+* xref:dataweave-cookbook-remove-certain-xml-attributes.adoc[指定した XML 属性の削除]
+
+
+== 関連情報
+
+* xref:dataweave-selectors.adoc[DataWeave セレクタ]
+
+* xref:dataweave-cookbook.adoc[DataWeave の解説書]

@@ -1,0 +1,22 @@
+= Crypto (dw::Crypto)
+
+このモジュールは、MD5 や SHA1 などの一般的なアルゴリズムによって暗号化を実行する関数を提供します。
+
+
+このモジュールを使用するには、DataWeave コードにインポートする必要があります。その方法として、たとえば、行 `import * from dw::Crypto` を DataWeave スクリプトの
+ヘッダーに追加します。
+
+== 関数
+
+[%header, cols="1,3"]
+|===
+| Name (名前)  | 説明
+| xref:dw-crypto-functions-hmacbinary.adoc[HMACBinary] | 入力コンテンツの HMAC ハッシュを計算します (秘密暗号化キーを使用)。
+| xref:dw-crypto-functions-hmacwith.adoc[HMACWith] | 入力コンテンツの HMAC ハッシュを計算し (秘密暗号化キーを使用)、その結果を小文字の 16 進文字列に変換します。
+| xref:dw-crypto-functions-md5.adoc[MD5] | MD5 ハッシュを計算し、そのバイナリ結果を小文字の 16 進文字列に変換します。
+| xref:dw-crypto-functions-sha1.adoc[SHA1] | SHA1 ハッシュを計算し、その結果を小文字の 16 進文字列に変換します。
+| xref:dw-crypto-functions-hashwith.adoc[hashWith] | 指定されたアルゴリズムを使用してバイナリコンテンツのハッシュを計算します。
+|===
+
+
+

@@ -1,0 +1,31 @@
+= Mule アプリケーションの変数
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+変数は、Mule アプリケーションのフロー内で使用する各イベント値の保存に使用されます。保存されたデータは、オブジェクト、数値、文字列など、サポートされている任意のデータ型にすることができます。現在のメッセージ (`message` キーワードを使用)、現在のメッセージペイロード (`payload` キーワードを使用)、または現在のメッセージ属性のみ (`attributes` キーワードを使用) を保存することもできます。値として DataWeave 式を使用することさえもできます。ただし、キーワード `vars` (`vars.someOtherVar` など) は使用できません。
+
+次の方法で変数を作成または更新できます。
+
+* Set Variable コンポーネントを使用する。
+* ファイルコネクタに対する Read 操作やデータベースコネクタに対する Store 操作など、操作内から対象変数を使用する。
+* DataWeave Transform コンポーネント (EE のみ) を使用する。
+* Scripting コンポーネント (スクリプティングモジュール内) を使用する。
+
+削除することもできます。
+
+* Remove Variable コンポーネントを使用する。
+
+変数を作成したら、作成元の Mule フローのスコープ内でその変数にアクセスして使用できます。これには、Flow Ref コンポーネントを使用して結合されたフローも含まれます。
+
+* `vars`: 変数にアクセスするキーワード。たとえば、Mule コンポーネント (Logger など) の DataWeave 式、または操作の [Input (入力)] または [Output (出力)] パラメータからアクセスします。変数の名前が `myVar` の場合、`vars.myVar` のようにしてアクセスできます。
+
+Mule イベント内の変数は、DataWeave スクリプトで定義された変数 (スクリプトのローカルでありその外部からはアクセスできない変数) とは異なります。
+
+== 関連情報
+
+* xref:about-mule-event.adoc[Mule イベント]
+* xref:variable-transformer-reference.adoc[Set Variable トランスフォーマ]
+* xref:flowref-about.adoc[Flow Reference コンポーネント]
+* xref:target-variables.adoc[対象変数を使用したデータの強化]
+* xref:dataweave.adoc[DataWeave 言語]

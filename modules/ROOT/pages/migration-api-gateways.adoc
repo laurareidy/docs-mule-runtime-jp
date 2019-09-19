@@ -1,0 +1,21 @@
+= API ゲートウェイの移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+// authors: Federico Balbi and Nahuel Dalla Vecchia (assigned by Eva)
+
+////
+Here's an old Gateways migration guide example: https://docs.mulesoft.com/release-notes/api-gateway-runtime-to-mule-3.8.0-migration-guide
+////
+
+// Explain generally how and why things changed between Mule 3 and Mule 4.
+このセクションでは、API ゲートウェイに関連する機能の移行について説明します。以下のトピックを取り上げます。
+
+* xref:migration-api-gateways-autodiscovery.adoc[API ゲートウェイの移行: Autodiscovery]
+* xref:migration-api-gateways-policies.adoc[API ゲートウェイの移行: ポリシー]
+* xref:migration-api-gateways-runtime-config.adoc[API ゲートウェイの移行: Mule Runtime の設定]
+
+== 関連情報
+
+xref:migration-core.adoc[コアコンポーネントの移行]

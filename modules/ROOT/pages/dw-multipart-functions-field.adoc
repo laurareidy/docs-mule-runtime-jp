@@ -1,0 +1,210 @@
+= field
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[field1]]
+== field&#40;{&#124; name: String, value: Any, mime?: String, fileName?: String &#124;}&#41;: MultipartPart
+
+指定されたパート名、そのパートの入力コンテンツ、形式 (または MIME タイプ)、および省略可能なファイル名を使用して、`MultipartPart` データ構造を作成します。
+
+
+このバージョンの `field` 関数は、パラメータ名をキーとして使用するオブジェクトの配列として引数を受け入れます。例: `Multipart::field({name:"order",value: myOrder, mime: "application/json", fileName: "order.json"})`
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `opts` a| 以下を指定するオブジェクトの配列。
+
+* `name` (必須): パートの `Content-Disposition` ヘッダーの一意の名前。
+* `value` (必須): パートのコンテンツの値。
+* `mime` (文字列の場合は省略可能): パート内のコンテンツに適用する MIME タイプ (例: `application/json`)。この設定を使用して、JSON から XML など、入力の種別を変換できます。
+* `fileName` (省略可能): パートの `Content-Disposition` ヘッダー内の `filename` パラメータに指定できるファイル名の値。
+|===
+
+=== 例
+
+次の例では、2 つのパートを生成します。最初のパート (`order`) はコンテンツを JSON 形式で出力し、パートのファイル名 (`order.json`) を提供します。2 番目のパート (`clients`) はコンテンツを XML 形式で出力し、ファイル名を提供しません。また、この例では、関数の名前空間を関数名に追加する必要があります。例: `Multipart::field`
+
+==== 取得元
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+import dw::module::Multipart
+output multipart/form-data
+var myOrder = [
+  {
+    order: 1,
+    amount: 2
+  },
+  {
+    order: 32,
+    amount: 1
+  }
+]
+var myClients = {
+  clients: {
+    client: {
+      id: 1,
+      name: "Mariano"
+    },
+    client: {
+      id: 2,
+      name: "Shoki"
+    }
+  }
+}
+---
+{
+  parts: {
+    order: Multipart::field({name:"order",value: myOrder, mime: "application/json", fileName: "order.json"}),
+    clients: Multipart::field({name:"clients", value: myClients, mime: "application/xml"})
+  }
+}
+----
+
+==== 出力
+
+[source,txt,linenums]
+----
+------=_Part_8032_681891620.1542560124825
+Content-Type: application/json
+Content-Disposition: form-data; name="order"; filename="order.json"
+
+[
+  {
+    "order": 1,
+    "amount": 2
+  },
+  {
+    "order": 32,
+    "amount": 1
+  }
+]
+------=_Part_8032_681891620.1542560124825
+Content-Type: application/xml
+Content-Disposition: form-data; name="clients"
+
+<clients>
+  <client>
+    <id>1</id>
+    <name>Mariano</name>
+  </client>
+  <client>
+    <id>2</id>
+    <name>Shoki</name>
+  </client>
+</clients>
+------=_Part_8032_681891620.1542560124825--
+----
+
+
+[[field2]]
+== field&#40;String, Any, String, String&#41;: MultipartPart
+
+指定されたパート名、そのパートの入力コンテンツ、形式 (または MIME タイプ)、および省略可能なファイル名を使用して、`MultipartPart` データ構造を作成します。
+
+
+このバージョンの `field` 関数は、次のようにカンマ区切りリストで引数を受け入れます。
+
+[source,txt,linenums]
+----
+Multipart::field("order", myOrder,"application/json", "order.json")`
+----
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `opts` a| 以下を指定するパラメータのセット。
+
+* `name` (必須): パートの `Content-Disposition` ヘッダーの一意の名前。
+* `value` (必須): パートのコンテンツの値。
+* `mime` (文字列の場合は省略可能): パート内のコンテンツに適用する MIME タイプ (例: `application/json`)。この種別を使用して入力種別を変換できます。
+* `fileName` (省略可能): パートの `Content-Disposition` ヘッダー内の `filename` パラメータに指定できるファイル名の値。
+|===
+
+=== 例
+
+次の例では、2 つのパートを生成します。最初のパート (`order`) はコンテンツを JSON 形式で出力し、パートのファイル名 (`order.json`) を提供します。2 番目のパート (`clients`) はコンテンツを XML 形式で出力し、ファイル名を提供しません。この `field` の例と前述の `field` の例の唯一の違いは、メソッドに引数を渡す方法です。また、この例では、関数の名前空間を関数名に追加する必要があります。例: `Multipart::field`
+
+==== 取得元
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+import dw::module::Multipart
+output multipart/form-data
+var myOrder = [
+  {
+    order: 1,
+    amount: 2
+  },
+  {
+    order: 32,
+    amount: 1
+  }
+]
+var myClients = {
+  clients: {
+    client: {
+      id: 1,
+      name: "Mariano"
+    },
+    client: {
+      id: 2,
+      name: "Shoki"
+    }
+  }
+}
+---
+{
+  parts: {
+    order: Multipart::field("order", myOrder, "application/json", "order.json"),
+    clients: Multipart::field("clients", myClients, "application/xml")
+  }
+}
+----
+
+==== 出力
+
+[source,txt,linenums]
+----
+------=_Part_4846_2022598837.1542560230901
+Content-Type: application/json
+Content-Disposition: form-data; name="order"; filename="order.json"
+
+[
+  {
+    "order": 1,
+    "amount": 2
+  },
+  {
+    "order": 32,
+    "amount": 1
+  }
+]
+------=_Part_4846_2022598837.1542560230901
+Content-Type: application/xml
+Content-Disposition: form-data; name="clients"
+
+<clients>
+  <client>
+    <id>1</id>
+    <name>Mariano</name>
+  </client>
+  <client>
+    <id>2</id>
+    <name>Shoki</name>
+  </client>
+</clients>
+------=_Part_4846_2022598837.1542560230901--
+----
+

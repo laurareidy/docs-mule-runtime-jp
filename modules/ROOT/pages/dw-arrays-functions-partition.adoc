@@ -1,0 +1,58 @@
+= partition
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[partition1]]
+== partition&#40;Array<T&#62;, &#40;item: T&#41; &#45;&#62; Boolean&#41;: { success: Array<T&#62;, failure: Array<T&#62; }
+
+条件を満たす要素と条件を満たさない要素に配列を分割します。
+
+
+_DataWeave 2.2.0 で導入されました。Mule 4.2 以降でサポートされます。_
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `array` | 分割する要素の配列。
+| `condition` | 配列の要素の照合に使用される条件 (式)。
+|===
+
+=== 例
+
+次の例では、入力配列内で見つかった数字を分割します。偶数は、ラムダ式 `(item) -> isEven(item)` で設定された条件に一致します。奇数は一致しません。関数の出力オブジェクト内では `"success"` キーと `"failure"` キーが生成されます。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+import * from dw::core::Arrays
+output application/json
+var arr = [0,1,2,3,4,5]
+---
+arr partition (item) -> isEven(item)
+----
+
+==== 出力
+
+[source,json,linenums]
+----
+{
+  "success": [
+    0,
+    2,
+    4
+  ],
+  "failure": [
+    1,
+    3,
+    5
+  ]
+}
+----
+

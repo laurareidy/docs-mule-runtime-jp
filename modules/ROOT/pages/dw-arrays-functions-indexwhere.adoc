@@ -1,0 +1,47 @@
+= indexWhere
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[indexwhere1]]
+== indexWhere&#40;Array<T&#62;, &#40;item: T&#41; &#45;&#62; Boolean&#41;: Number
+
+配列内で条件に一致する最初に出現する要素のインデックスを返します。
+
+
+_DataWeave 2.2.0 で導入されました。Mule 4.2 以降でサポートされます。_
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `array` | 要素の配列。
+| `condition` | 配列の要素の照合に使用される条件 (式)。
+|===
+
+=== 例
+
+次の例では、入力配列からラムダ式の条件 (`(item) -> item startsWith "Jul"`) に一致する値のインデックスを返します。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+import * from dw::core::Arrays
+output application/json
+var users = ["Mariano", "Leandro", "Julian"]
+---
+users indexWhere (item) -> item startsWith "Jul"
+----
+
+==== 出力
+
+[source,json,linenums]
+----
+2
+----
+

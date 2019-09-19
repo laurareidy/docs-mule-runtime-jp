@@ -1,0 +1,78 @@
+= Scripting コンポーネントの移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Mule 3 の `<scripting>` コンポーネントは、新しい `<scripting>` モジュールに置き換わります。この新しいモジュールは、構文が少し変更されていますが、機能面ではかなり似ています。
+
+.Mule 3 の例: スクリプティング
+[source,xml,linenums]
+----
+ <flow name="greedy">
+    <choice>
+        <when expression="#[flowVars['currency'] == 'USD']">
+            <scripting:component>
+                <scripting:script file="greedy.groovy">
+                    <property key="currency" value="USD"/>
+                </scripting:script>
+            </scripting:component>
+            </when>
+        <when expression="#[flowVars['currency'] == 'GBP']">
+            <scripting:component>
+                <scripting:script file="greedy.py">
+                    <property key="currency" value="GBP"/>
+                </scripting:script>
+            </scripting:component>
+            </when>
+    </choice>
+</flow>
+----
++
+
+.Mule 4 の例: スクリプティング
+
+[source,xml,linenums]
+----
+ <flow name="greedy">
+    <scripting:execute engine="groovy">
+        <scripting:code>${file::greedy.groovy}</scripting:code>
+        <scripting:parameters>
+            #[{currency: vars.currency}]
+        </scripting:parameters>
+    </scripting:execute>
+</flow>
+----
+
+このように、主な違いは DataWeave を使用して入力パラメータを生成できるようになったことです。
+
+== スクリプトから変数へのアクセス
+
+前述の例は、変数を使用してスクリプトにパラメータを渡す方法を示しています。MuleSoft では、Mule アプリケーションの変更によりスクリプトを変更する必要がないように、ベストプラクティスとして、スクリプトをフローの残りの部分から分離しておくことをお勧めします。
+
+ただし、`vars` キーワードを使用して、引き続きスクリプトから変数にアクセスすることができます。例:
+
+.Mule 4 の例: 変数への直接アクセス
+[source,xml,linenums]
+----
+<flow name="greedy">
+    <scripting:execute engine="groovy">
+        <scripting:code>return "currency is " + vars.currency</scripting:code>
+    </scripting:execute>
+</flow>
+----
+
+スクリプティングモジュールを使用するには、Studio のパレットを使用してアプリケーションに追加するか、`pom.xml` ファイルで次の連動関係を追加します。
+
+[source,xml,linenums]
+----
+<dependency>
+  <groupId>org.mule.modules</groupId>
+  <artifactId>mule-scripting-module</artifactId>
+  <version>1.1.0</version> <!-- or newer -->
+  <classifier>mule-plugin</classifier>
+</dependency>
+----
+
+== 関連情報
+
+* xref:connectors::scripting/scripting-module.adoc[スクリプティングモジュールドキュメント]

@@ -1,0 +1,62 @@
+= dasherize
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[dasherize1]]
+== dasherize&#40;String&#41;: String
+
+文字列内のスペース、アンダースコア、キャメルケースをダッシュ (ハイフン) に置き換えます。
+
+
+スペース、アンダースコア、キャメルケースが存在しない場合、出力は入力と一致します。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `text` | 入力文字列。
+|===
+
+=== 例
+
+次の例では、入力のスペース、アンダースコア、キャメルケースを置き換えます。
+入力「customer」は、出力で変更されていません。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+import * from dw::core::Strings
+output application/json
+---
+{
+  "a" : dasherize("customer"),
+  "b" : dasherize("customer_first_name"),
+  "c" : dasherize("customer NAME"),
+  "d" : dasherize("customerName")
+}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "a": "customer",
+  "b": "customer-first-name",
+  "c": "customer-name",
+  "d": "customer-name"
+}
+----
+
+
+[[dasherize2]]
+== dasherize&#40;Null&#41;: Null
+
+*dasherize* を null 値に使用できるようにするヘルパー関数。
+

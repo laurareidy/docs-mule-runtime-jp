@@ -1,0 +1,25 @@
+= Diff 型 (dw::util::Diff)
+
+|===
+| 型 | 定義 | 説明
+
+| Diff (差分)
+| `type Diff = { matches: Boolean, diffs: Array<Difference&#62; }`
+| 2 つの値の間の違い全体を表します。
+
+*違いがない場合の例*:
+
+`{ "matches": true, "diffs": [ ] }`
+
+*違いがある場合の例*:
+
+`{ "matches": true, "diffs": [ "expected": "4", "actual": "2", "path": "(root).a.@.d" ] }`
+
+別の例については、`diff` 関数を参照してください。
+
+
+| Difference (差)
+| `type Difference = { expected: String, actual: String, path: String }`
+| 指定された構造の 2 つの値の間の 1 つの違いを表します。
+
+|===

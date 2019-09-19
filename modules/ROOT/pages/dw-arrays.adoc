@@ -1,0 +1,34 @@
+= Arrays (dw::core::Arrays)
+
+このモジュールには、配列を処理するためのヘルパー関数が含まれます。
+
+このモジュールを使用するには、DataWeave コードにインポートする必要があります。その方法として、たとえば、行 `import * from dw::core::Arrays` を DataWeave スクリプトの
+ヘッダーに追加します。
+
+== 関数
+
+[%header, cols="1,3"]
+|===
+| Name (名前)  | 説明
+| xref:dw-arrays-functions-countby.adoc[countBy] | 配列内の、関数の結果と一致する要素をカウントします。
+| xref:dw-arrays-functions-divideby.adoc[divideBy] | 配列を、指定数の要素が含まれるサブ配列に分割します。
+| xref:dw-arrays-functions-drop.adoc[drop] | 最初の `n` 個の要素をドロップします。`n &lt;= 0` の場合は元の配列を返し、`n > sizeOf(array)` の場合は空の配列を返します。
+| xref:dw-arrays-functions-dropwhile.adoc[dropWhile] | 条件を満たす場合、要素を配列からドロップします。
+| xref:dw-arrays-functions-every.adoc[every] | 配列内のすべての要素が条件に一致すると `true` を返します。
+| xref:dw-arrays-functions-indexof.adoc[indexOf] | 配列内で最初に出現する要素のインデックスを返します。
+| xref:dw-arrays-functions-indexwhere.adoc[indexWhere] | 配列内で条件に一致する最初に出現する要素のインデックスを返します。
+| xref:dw-arrays-functions-join.adoc[join] | オブジェクトの 2 つの配列を、指定された ID 条件で結合します。
+| xref:dw-arrays-functions-leftjoin.adoc[leftJoin] | オブジェクトの 2 つの配列を、指定された ID 条件で結合します。
+| xref:dw-arrays-functions-outerjoin.adoc[outerJoin] | オブジェクトの 2 つの配列を、指定された `ID` 条件で結合します。
+| xref:dw-arrays-functions-partition.adoc[partition] | 条件を満たす要素と条件を満たさない要素に配列を分割します。
+| xref:dw-arrays-functions-slice.adoc[slice] | 条件 (`from &lt;= indexOf(array) < until`) を満たす要素の間隔を選択します。
+| xref:dw-arrays-functions-some.adoc[some] | 配列内のある要素が指定された条件に一致すると `true` を返します。
+| xref:dw-arrays-functions-splitat.adoc[splitAt] | 配列を、指定された位置で 2 つに分割します。
+| xref:dw-arrays-functions-splitwhere.adoc[splitWhere] | 配列を、条件を満たす最初の位置で 2 つに分割します。
+| xref:dw-arrays-functions-sumby.adoc[sumBy] | 配列内の要素の値の合計を返します。
+| xref:dw-arrays-functions-take.adoc[take] | 最初の `n` 個の要素を選択します。`n &lt;= 0` の場合は空の配列を返し、`n > sizeOf(array)` の場合は元の配列を返します。
+| xref:dw-arrays-functions-takewhile.adoc[takeWhile] | 条件を満たす場合、要素を配列から選択します。
+|===
+
+
+

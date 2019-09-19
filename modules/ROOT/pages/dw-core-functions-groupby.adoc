@@ -1,0 +1,179 @@
+= groupBy
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[groupby1]]
+== groupBy&#40;Array<T&#62;, &#40;item: T, index: Number&#41; &#45;&#62; R&#41;: { &#40;R&#41;: Array<T&#62; }
+
+指定された条件 (式や一致セレクタなど) に基づいて配列の項目をグループ化するオブジェクトを返します。
+
+
+このバージョンの `groupBy` は、`criteria` 関数を使用して配列の要素をグループ化します。その他のバージョンは、オブジェクトで動作し、null 値を処理します。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `items` | グループ化する配列。
+| `criteria` | 配列の項目をグループ化するための条件を提供する式。
+|===
+
+=== 例
+
+次の例では、入力配列 `["a","b","c"]` の項目をインデックスでグループ化します。数値インデックスが文字列として返され、配列の項目 (または値) が配列 (この場合はそれぞれに 1 つの項目を含む) として返されます。配列の項目は、名前付きパラメータ (`item` および `index`) を使用する匿名関数 `(item, index) -> index` に基づいてグループ化されます。
+`["a","b","c"] groupBy &#36;&#36;` のように、匿名パラメータ `&#36;&#36;` を使用して同じ結果を生成し、配列のインデックスを特定できます。
+
+==== 取得元
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+output application/json
+---
+["a","b","c"] groupBy (item, index) -> index
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "2": [ "c" ], "1": [ "b" ], "0": [ "a" ] }
+----
+
+=== 例
+
+次の例では、言語項目に基づいて配列の要素をグループ化します。
+グループ化条件を指定するために `item.language` セレクタが使用されています。このため、結果のオブジェクトでは、入力からの「language」値 (`"Scala"` と `"Java"`) を使用して出力をグループ化します。また、出力の配列には各入力オブジェクトが配置されています。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+var myArray = [
+   { "name": "Foo", "language": "Java" },
+   { "name": "Bar", "language": "Scala" },
+   { "name": "FooBar", "language": "Java" }
+]
+output application/json
+---
+myArray groupBy (item) -> item.language
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "Scala": [
+    { "name": "Bar", "language": "Scala" }
+  ],
+  "Java": [
+    { "name": "Foo", "language": "Java" },
+    { "name": "FooBar", "language": "Java" }
+  ]
+}
+----
+
+
+=== 例
+
+次の例では、`groupBy "myLabels"` を使用して、`"mylabels"` をキーとして、選択された値の配列 (`["Open New", "Zoom In", "Zoom Out", "Original View" ]`) を値とするオブジェクトを返します。配列の作成にはセレクタ (`myVar.menu.items.*label`) が使用されています。このセレクタは、`"label"` をキーとするすべての値を保持しますが、`"id"` をキーとする値を除外します。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+var myVar = { menu: {
+    header: "Move Items",
+    items: [
+        {"id": "internal"},
+        {"id": "left", "label": "Move Left"},
+        {"id": "right", "label": "Move Right"},
+        {"id": "up", "label": "Move Up"},
+        {"id": "down", "label": "Move Down"}
+    ]
+}}
+output application/json
+---
+(myVar.menu.items.*label groupBy "myLabels")
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "myLabels": [ "Move Left", "Move Right", "Move Up", "Move Down" ] }
+----
+
+
+[[groupby2]]
+== groupBy&#40;{ &#40;K&#41;?: V }, &#40;value: V, key: K&#41; &#45;&#62; R&#41;: { &#40;R&#41;: { &#40;K&#41;?: V } }
+
+入力内の要素を反復処理するために `groupBy` で使用する条件に基づいて、オブジェクトの要素をグループ化します。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `object` | グループ化するオブジェクトを含むオブジェクト。
+| `criteria` | グループ化に使用するオブジェクトの `key` や `value` など、入力オブジェクト内の要素に適用するグループ化条件。
+|===
+
+=== 例
+
+次の例では、入力オブジェクト内の各キーの値の代わりに匿名パラメータ `&#36;` を使用して、オブジェクトの配列内のオブジェクトをグループ化します。この値には DataWeave `upper` 関数が適用されます。出力では、この値は大文字のキーになります。`{ "a" : "b", "c" : "d"} groupBy (value) -> upper(value)` にように、匿名関数の代わりに名前付きパラメータを使用して、同じ例を記述することもできます。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{ "a" : "b", "c" : "d"} groupBy upper($)
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "D": { "c": "d" }, "B": { "a": "b" } }
+----
+
+=== 例
+
+次の例では、`groupBy "costs"` を使用して XML オブジェクトから JSON オブジェクトを生成します。JSON オブジェクトでは、`"costs"` がキーになり、XML 要素 `prices` の選択された値が JSON 値 (`{ "price": "9.99", "price": "10.99" }`) になります。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+var myRead =
+read("<prices><price>9.99</price><price>10.99</price></prices>","application/xml")
+output application/json
+---
+myRead.prices groupBy "costs"
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "costs" : { "price": "9.99", "price": "10.99" } }
+----
+
+
+[[groupby3]]
+== groupBy&#40;Null, &#40;Nothing, Nothing&#41; &#45;&#62; Any&#41;: Null
+
+*groupBy* を null 値に使用できるようにするヘルパー関数。
+

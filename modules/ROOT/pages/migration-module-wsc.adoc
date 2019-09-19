@@ -1,0 +1,248 @@
+= WSC の移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Web サービスコンシューマを使用するいくつかの一般的なケースを、Mule 3 での行われていた方法と新しい Mule 4 リリースではどのように行うのかについて説明します。
+
+== Web サービスとの接続
+
+Mule 4 では、接続パラメータをその他の設定パラメータから分離する概念が導入されました。そのため、以下の説明では、設定に新しい <wsc:connection> タグが含まれています。Web サービスコンシューマのすべての必須パラメータは接続を作成するために使用されているので、それらはすべて <wsc:connection> グループに移動されました。
+
+=== 単純な Web サービス設定
+
+パラメータは同じですが、唯一の違いは、操作内にあった設定に `mtomEnabled` という新しいパラメータが追加されたことです。
+
+Mule 3.x では、次のように設定内にすべての要素を定義しました。
+
+[source,xml,linenums]
+----
+<ws:consumer-config name="config" serviceAddress="http://company.com/Service" wsdlLocation="http://company.com/Service?wsdl" service="Service" port="Port"/>
+----
+
+パラメータはすべて接続内に定義されるようになりました。
+
+[source,xml,linenums]
+----
+<wsc:config name="config">
+    <wsc:connection wsdlLocation="http://company.com/Service?wsdl" service="Service" port="Port" soapVersion="SOAP_11" address="http://company.com/Service/endpoint"/>
+</wsc:config>
+----
+
+==== メッセージを送信するカスタム http 設定の定義
+
+Mule 3 では、カスタム設定 (TLS、さまざまな HTTP 認証種別など) を使用する HTTP プロトコル経由でメッセージを送信するために、Web サービスコンシューマが使用できるカスタム <http:requester> 設定を定義することが一般的でした。もちろん、これは Mule 4 でも行えます。
+
+`connector-ref` 設定パラメータは、メッセージを送信するコネクタを設定するために使用されていました (これは HTTP と JMS のみ可能)。
+
+[source,xml,linenums]
+----
+  <!-- this is the http configuration used to send the messages -->
+  <http:connector name="http-config"/>
+
+  <ws:consumer-config name="config" wsdlLocation="local.wsdl" service="Service" port="Port" connector-ref="http-config"/>
+----
+
+新しい WSC で同じことを行うには、`<wsc:custom-transport-configuration>` パラメータを接続に追加し、必要な http 設定を指定する必要があります。
+これが可能なのは HTTP リクエスタ設定​*のみ*​で、正しく設定されていなければ実行時に失敗します。
+
+[source,xml,linenums]
+----
+<wsc:config name="config">
+   <wsc:connection wsdlLocation="local.wsdl" service="Service" port="Port">
+     <wsc:custom-transport-configuration>
+       <wsc:http-transport-configuration requesterConfig="http-config"/>
+     </wsc:custom-transport-configuration>
+   </wsc:connection>
+ </wsc:config>
+
+ <!-- this is the http configuration used to send the messages -->
+ <http:request-config name="http-config">
+----
+
+== Web サービスのコンシューム
+
+Mule 3 の場合、WSC ではペイロードはすでに作成済みの XML 本文であることが期待されるので、ほとんどの場合、WSC コンポーネントは Transform コンポーネントの後に使用されていました。
+
+[source,xml,linenums]
+----
+<flow name="Mule3">
+  ...
+  <ee:transform>
+    <set-payload>
+      #[
+        %dw 1.0
+        output application/xml
+        ns con http://service.soap.service.mule.org/
+        ---
+        con#echo: {
+           text: "Hello!"
+        }
+      ]
+    </set-payload>
+  </ee:transform>
+  <ws:consumer operation="echo" />
+  ...
+</flow>
+----
+
+そのコンポーネントを追加する必要がなくなり、DataWeave を使用して、consume 操作で operataion パラメータとして本文 XML を直接ビルドできるようになりました。次に例を示します。
+
+[source,xml,linenums]
+----
+<flow name="Mule4">
+  ...
+  <wsc:consume config-ref="config" operation="echo">
+    <wsc:message>
+        <wsc:body>
+        #[
+          %dw 2.0
+          output application/xml
+          ns con http://service.soap.service.mule.org/
+          ---
+          con#echo: {
+             text: "Hello!"
+          }
+        ]
+        </wsc:body>
+    </wsc:message>
+  </wsc:consume>
+...
+</flow>
+----
+
+=== ヘッダーの送信
+
+Mule 3 では、WSC は `soap.` で始まるすべての outboundProperties を収集することで添付ファイルを操作します。たとえば、変数 `soap.CrazyHeader` を追加した場合、実行すると、変数のコンテンツが取得され、その変数コンテンツがエンベロープの SoapHeaders 要素に挿入されます。これは最適な動作ではありません。Mule 4 ではヘッダーが単なるパラメータであるのはそのためです (当然ですが、ヘッダーにはメタデータもあります)。
+
+Mule 3 のサンプル XML を見てみましょう。
+
+[source,xml,linenums]
+----
+<flow name="Mule3">
+  ...
+  <set-property propertyName="soap.aHeader" value="#[vars.headerContent]"/>
+  <ws:consumer operation="withHeaders" mtomEnabled="true"/>
+</flow>
+----
+
+次は Mule 4 の場合です。
+
+[source,xml,linenums]
+----
+<flow name="Mule4">
+  <wsc:consume config-ref="config" operation="echoWithHeaders">
+    <wsc:message>
+      <!-- here we assume there is not required body parameters -->
+      <wsc:headers>
+        #[
+        %dw 2.0
+        output application/xml
+        ns con http://service.soap.service.mule.org/
+        ---
+        "headers": {
+            con#aHeader: {
+              text: "Hello!"
+            },
+            con#anotherHeader: "Hello! says another header"
+        }]
+      </wsc:headers>
+    </wsc:message>
+  </wsc:consume>
+</flow>
+----
+
+ヘッダーは DataWeave スクリプトを使用した操作の内側で直接構築できます。このためのメタデータがあるので非常に簡単にできます。
+
+=== 添付ファイルの追加
+
+添付ファイルの追加がかなり容易になりました。Mule 3 で ​*MTOM 添付ファイル*​を操作する場合は、`set-attachment` コンポーネントを使用して新しいアウトバウンド添付ファイルを作成し、エンベロープ本文は、その追加される添付ファイルへの XOP 参照を追加して構築する必要がありました。
+
+NOTE: mtomEnabled パラメータは、操作から接続に移動されました。
+
+[source,xml,linenums]
+----
+<flow name="Mule3">
+  ...
+  <set-attachment attachmentName="attach" value="Hello!" contentType="text/plain"/>
+  <ee:transform>
+    <set-payload>
+      #[
+        %dw 1.0
+        output application/xml
+        ns con http://service.soap.service.mule.org/
+        ns xop http://www.w3.org/2004/08/xop/include
+        ---
+        con#echo: {
+           attachment: {
+            xop: "cid:attach"
+           }
+        }
+      ]
+    </set-payload>
+  </ee:transform>
+  <ws:consumer operation="uploadAttachment" mtomEnabled="true"/>
+  ...
+</flow>
+----
+
+MTOM ではなく、*添付ファイルを含む Soap* を操作する場合、Mule 開発者が、Base64 でエンコードされた添付ファイルを内側に含む本文をビルドする必要がありました (DataWeave ではこのための関数が提供されていました)。
+
+[source,xml,linenums]
+----
+<flow name="Mule3">
+  ...
+  <set-attachment attachmentName="attach" value="Hello!" contentType="text/plain"/>
+  <ee:transform>
+    <set-payload>
+      #[
+        %dw 1.0
+        output application/xml
+        ns con http://service.soap.service.mule.org/
+        ns xop http://www.w3.org/2004/08/xop/include
+        ---
+        con#echo: {
+           attachment: {
+            xop: "cid:attach"
+           }
+        }
+      ]
+    </set-payload>
+  </ee:transform>
+  <ws:consumer operation="uploadAttachment" mtomEnabled="true"/>
+  ...
+</flow>
+----
+
+Mule 4 では、MTOM か SWA かに関係なく、開発者は常に同じように添付ファイルを操作します。新しい添付ファイルを作成し、それにコンテンツを割り当てるだけです (mimetype は、コンテンツに関連付けられているものを使用します)。
+
+たとえば、次の場合は、ファイルコネクタを使用して JSON ファイルを読み取った後、ペイロードで file:read 操作によって返されたコンテンツを渡して新しい添付ファイルを作成します。
+
+[source,xml,linenums]
+----
+<flow name="Mule4">
+  ...
+  <file:read config-ref="file" path="#[vars.pathToAJsonFile]"/>
+  <wsc:consume config-ref="config" operation="uploadAttachment">
+    <wsc:message>
+      <!-- here we assume there is not required body parameters -->
+      <wsc:attachments>
+        #[{ attach: payload } ]
+      </wsc:attachments>
+    </wsc:message>
+  </wsc:consume>
+  ...
+</flow>
+----
+
+Web サービスコンシューマを使用するには、Studio のパレットを使用してアプリケーションに追加するか、`pom.xml` ファイルで次の連動関係を追加します。
+
+[source,xml,linenums]
+----
+<dependency>
+  <groupId>org.mule.connectors</groupId>
+  <artifactId>mule-wsc-connector</artifactId>
+  <version>1.1.0</version> <!-- or newer -->
+  <classifier>mule-plugin</classifier>
+</dependency>
+----

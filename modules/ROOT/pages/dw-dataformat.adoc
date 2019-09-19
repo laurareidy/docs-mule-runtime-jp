@@ -1,0 +1,13 @@
+= DataFormat (dw::extension::DataFormat)
+
+このモジュールには、DataWeave 言語の新しいデータ形式の登録に必要なリソースが含まれます。
+
+例については、&#8203;https://github.com/mulesoft-labs/data-weave-custom-data-format[「カスタムデータ形式の例」]を参照してください。
+
+
+== 型
+* xref:dw-dataformat-types.adoc[DataFormat 型]
+
+
+== アノテーション
+* xref:dw-dataformat-annotations.adoc[DataFormat アノテーション]

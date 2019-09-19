@@ -1,0 +1,1249 @@
+= 例: APIkit ベースのアプリケーションの移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+// Andres Alleva
+
+この例は、APIkit ベースのアプリケーションを Mule 3 から Mule 4 へ移行するために必要な手順を示しています。次の REST API は、MySQL データベースで CRUD (create、read、update、delete) 操作を実行します。
+
+image::m3-apikit-based-example-main.png[Studio 6 の api-main]
+
+image::m3-apikit-based-example-console.png[Studio 6 の api-console]
+
+image::m3-apikit-based-example-get-products.png[Studio 6 の get:/product:api-config フロー]
+
+image::m3-apikit-based-example-get-product-id.png[Studio 6 の get:/product/{id}:api-config フロー]
+
+image::m3-apikit-based-example-post-product.png[Studio 6 の post:/product:application/json:api-config フロー]
+
+image::m3-apikit-based-example-delete-product.png[Studio 6 の delete:/product/{id}:api-config フロー]
+
+image::m3-apikit-based-example-put-product.png[Studio 6 の put:/product/{id}:application/json:api-config フロー]
+
+image::m3-apikit-based-example-globalexceptionmapping.png[Studio 6 の api-apiKitGlobalExceptionMapping フロー]
+
+== プロパティプレースホルダの移行
+
+// Please replace this comment with an explanation
+// of how you migrated the feature, and show the Studio 6
+// vs. Studio 7 XML for the feature. Please provide any
+// extra info needed to understand the changes to this feature
+// in Mule 3 and Mule 4.
+Mule 4 では、プロパティプレースホルダは `.yaml` または `.properties` 設定ファイルのいずれかとしてサポートされています。
+
+. `/src/main/resources` プロジェクトディレクトリに `config` という名前のフォルダを作成します。
+. 新しく作成した config フォルダ内に `configuration.yaml` という名前の設定ファイルを作成します。
+. プロパティプレースホルダを `.properties` 形式から `.yaml` 形式に移行します。
++
+.configuration.properties
+----
+http.host=0.0.0.0
+http.port=8081
+
+mysql.password=pa$$w0rd
+mysql.port=3306
+mysql.user=admin
+mysql.database=products
+mysql.host=corp.services.com
+
+autodiscovery.api.version=1.0.0:1762946
+autodiscovery.api.name=groupId:com.mulesoft.retailer.manufacturingit.apis:assetId:product-api-database
+
+anypoint.platform.client_id=1f702j71hu9z2x88v9vd19v7h248s589
+anypoint.platform.client_secret=87v8V47668701Dd574B0531255d6287d
+----
++
+.configuration.yaml
+----
+http:
+  host: "0.0.0.0"
+  port: "8081"
+
+mysql:
+  password: "pa$$w0rd"
+  port: "3306"
+  user: "admin"
+  database: "products"
+  host: "corp.services.com"
+
+autodiscovery:
+  api:
+    name: "groupId:com.mulesoft.retailer.manufacturingit.apis:assetId:product-api-database"
+    version: "1.0.0:1762946"
+
+anypoint:
+  platform:
+    client_id: "1f702j71hu9z2x88v9vd19v7h248s589"
+    client_secret: "87v8V47668701Dd574B0531255d6287d"
+----
++
+. 標準の Spring 要素 `<context:property-placeholder>` を新しいグローバル要素 `configuration-properties` に置き換えます。
++
+.Studio 6 のプロパティプレースホルダの設定 XML。
+[source,xml,linenums]
+----
+<context:property-placeholder location="configuration.properties" />
+----
++
+// Explain what changed for Mule 4 in Studio 7, including any different modules, component you needed to use.
+`file` 属性は、`/src/main/resources/config` フォルダにある YAML 形式の新しい設定ファイルを参照しています。
++
+.Studio 7 のプロパティプレースホルダの設定 XML。
+[source,xml,linenums]
+----
+<configuration-properties file="config/configuration.yaml" doc:name="Configuration properties" />
+----
+
+== グローバル HTTP リスナ設定の移行
+
+// Now do the same for the next migrated feature, and so on.
+
+.Studio 6 のグローバル HTTP リスナ設定の設定 XML。
+[source,xml,linenums]
+----
+<http:listener-config name="HTTP_Listener_Configuration" host="${http.host}" port="${http.port}" doc:name="HTTP Listener Configuration"/>
+----
+
+// Explain what changed for Mule 4 in Studio 7, including any different modules, component you needed to use.
+最小限の設定では、内側の `http:listener-connection` 要素で `host` と `port` を指定する必要があります。前のステップで定義したプレースホルダを使用します。
+
+.Studio 7 のグローバル HTTP リスナ設定の設定 XML。
+[source,xml,linenums]
+----
+<http:listener-config name="httpListenerConfig">
+  <http:listener-connection host="${http.host}" port="${http.port}" />
+</http:listener-config>
+----
+
+== MySQL グローバル設定の移行
+
+// Now do the same for the next migrated feature, and so on.
+データベースコネクタにより、Mule アプリケーションで使用する  _Derby_、_MySQL_ 、 _Oracle_  デーベースのセットアップが容易になります。
+
+. [Mule Palette (Mule パレット)] で [`Add Module` (モジュールの追加)] をクリックし、使用可能なモジュールから [`Database Connector` (データベースコネクタ)] を選択します。
+. [`Database Config` (データベース設定)] グローバル設定要素を追加します。
+. [Database Config (データベース設定)] > [Connection (接続)] で、[MySQL Connection (MySQL 接続)] を選択します。
+. [MySQL JDBC Driver (MySQL JDBC ドライバ)] で [Add Dependency (連動関係を追加)] をクリックし、ドライバの Maven 情報を設定します。
++
+....
+<dependency>
+  <groupId>mysql</groupId>
+  <artifactId>mysql-connector-java</artifactId>
+  <version>5.1.6</version>
+</dependency>
+....
++
+. 前に定義したプレースホルダを使用して、`host`、`port`、`user`、`password`、`database` を含む MySQL グローバル設定を完了します。
++
+.Studio 6 の MySQL グローバル設定の設定 XML。
+[source,xml,linenums]
+----
+<db:mysql-config name="MySQL_Configuration" host="${mysql.host}" port="${mysql.port}" user="${mysql.user}" password="${mysql.password}" database="${mysql.database}" doc:name="MySQL Configuration" />
+----
++
+// Explain what changed for Mule 4 in Studio 7, including any different modules, component you needed to use.
++
+.Studio 7 の MySQL グローバル設定の設定 XML。
+[source,xml,linenums]
+----
+<db:config name="MySQL_Configuration" doc:name="Database Config">
+  <db:my-sql-connection host="${mysql.host}" port="${mysql.port}" user="${mysql.user}" password="${mysql.password}" database="${mysql.database}" />
+</db:config>
+----
+
+== API 自動検出設定の移行
+
+// Now do the same for the next migrated feature, and so on.
+Anypoint Platform で API を登録するには `api-platform-gw` グローバル要素が必要です。
+
+.Studio 6 の API 自動検出設定の設定 XML。
+[source,xml,linenums]
+----
+<api-platform-gw:api apiName="${autodiscovery.api.name}" version="${autodiscovery.api.version}" flowRef="api-main" create="true" doc:name="API Autodiscovery"/>
+----
+
+// Explain what changed for Mule 4 in Studio 7, including any different modules, component you needed to use.
+Mule Runtime 4.x では、`apiName`、`version`、`create` 属性が削除されました。必要なのは `apiId` 属性と `flowRef` 属性のみです。API Manager によって `apiId` が生成され、API インスタンスダッシュボードに表示されます。
+
+Mule Runtime 4.x の API 自動検出設定の場合は、次のようになります。
+
+. 以下の名前空間をスキーマの `global.xml` 設定ファイルに追加します。
++
+....
+xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd
+....
++
+.Studio 7 の API 自動検出設定の設定 XML。
+[source,xml,linenums]
+----
+<api-gateway:autodiscovery apiId="${autodiscovery.api.id}" flowRef="api-product-main" doc:name="API Autodiscovery"/>
+----
+
+== グローバル検証設定の移行
+
+// Now do the same for the next migrated feature, and so on.
+
+.Studio 6 のグローバル検証設定の設定 XML。
+[source,xml,linenums]
+----
+<validation:config name="Validation_Configuration" doc:name="Validation Configuration"/>
+----
+
+// Explain what changed for Mule 4 in Studio 7, including any different modules, component you needed to use.
+Mule Runtime 3.x とは逆に、設定を行うには、[Mule Palette (Mule パレット)] に検証モジュールを追加する必要があります。
+
+. [Mule Palette (Mule パレット)] で [`Add Module` (モジュールの追加)] をクリックし、使用可能なモジュールから [`Validation Module` (データベースコネクタ)] を選択します。
+. [`Validation Config` (データベース設定)] グローバル設定要素を追加します。
+
+.Studio 7 のグローバル検証設定の設定 XML。
+[source,xml,linenums]
+----
+<validation:config name="Validation_Config" doc:name="Validation Config" />
+----
+
+== _Get-products-flow_ の移行
+
+// Now do the same for the next migrated feature, and so on.
+`get-products-flow` は `Product Category` または `Product Name` あるいはその両方で絞り込み、データべースから商品を返します。また `offset` および `maxResults` パラメータを使用するページ分割クエリもサポートされています。
+
+.Studio 6 の get-products-flow
+image::m3-apikit-based-example-get-products-flow.png[Studio 6 の get-products-flow]
+
+.Studio 6 の get-products-flow の設定 XML。
+[source,xml,linenums]
+----
+<flow name="get-products-flow">
+  <message-properties-transformer doc:name="Get Query Params" scope="invocation">
+    <add-message-property key="queryOffset" value="#[Integer.valueOf(message.inboundProperties.'http.query.params'.offset)]" />
+    <add-message-property key="queryLimit" value="#[Integer.valueOf(message.inboundProperties.'http.query.params'.maxResults)]" />
+    <add-message-property key="queryName" value="#[ (message.inboundProperties.'http.query.params'.name != null) ? ('%'+message.inboundProperties.'http.query.params'.name+'%') : '%%']" />
+    <add-message-property key="queryCategory" value="#[ (message.inboundProperties.'http.query.params'.category != null) ? ('%'+message.inboundProperties.'http.query.params'.category+'%') : '%%']" />
+  </message-properties-transformer>
+  <db:select config-ref="MySQL_Configuration" doc:name="Query Products">
+    <db:parameterized-query><![CDATA[SELECT  p.id, p.name, p.description, p.product_number, p.manufactured, p.colors, p.categories, p.stock, p.safety_stock_level, p.standard_cost, p.list_price, p.size, p.size_unit_measure_code, p.weight, p.weight_unit_measure_code, p.days_to_manufacture, p.images,  p.modified_date, p.created_date
+FROM product p
+WHERE LOWER(p.name) like #[flowVars.queryName.toLowerCase()] AND LOWER(p.categories) like #[flowVars.queryCategory.toLowerCase()]
+LIMIT #[flowVars.queryLimit]
+OFFSET #[flowVars.queryOffset]]]>
+    </db:parameterized-query>
+  </db:select>
+  <dw:transform-message doc:name="Products to JSON">
+    <dw:set-payload resource="classpath:mappings/get-products-response.dwl"/>
+  </dw:transform-message>
+</flow>
+----
+
+// Explain what changed for Mule 4 in Studio 7, including any different modules, component you needed to use.
+. `get-products-flow` の定義に関する変更はありません。
++
+
+[source,xml,linenums]
+----
+<flow name="get-products-flow">
+----
+
+. `src/main/resources` フォルダに `variables` という名前のパッケージを作成します。
++
+
+. `src/main/resources/variables` フォルダに `set-queryCategory-variable.dwl` ファイルを作成し、`queryCategory` フロー変数を設定する DW スクリプトを記述します。
++
+....
+%dw 2.0
+output application/java
+var queryCategory = attributes.queryParams.category
+---
+if (queryCategory != null)
+	queryCategory
+else
+	'%%'
+....
+
+. `src/main/resources/variables` フォルダに `set-queryLimit-variable.dwl` ファイルを作成し、`queryLimit` フロー変数を設定する DW スクリプトを記述します。
++
+....
+%dw 2.0
+output application/java
+---
+attributes.queryParams.maxResults as Number
+....
+
+. `src/main/resources/variables` フォルダに `set-queryName-variable.dwl` ファイルを作成し、`queryName` フロー変数を設定する DW スクリプトを記述します。
++
+....
+%dw 2.0
+output application/java
+var queryName = attributes.queryParams.name
+---
+if (queryName != null)
+	queryName
+else
+	'%%'
+....
+
+. `src/main/resources/variables` フォルダに `set-queryOffset-variable.dwl` ファイルを作成し、`queryOffset` フロー変数を設定する DW スクリプトを記述します。
++
+....
+%dw 2.0
+output application/java
+---
+attributes.queryParams.offset as Number
+....
+
+. `Transform component` を追加し、`message-properties-transformer` の内側のロジックを置き換えて、その DW スクリプトを参照する変数 `queryOffset`、`queryLimit`、`queryName`、`queryCategory` を設定します。
++
+
+[source,xml,linenums]
+----
+<flow name="get-products-flow">
+  <ee:transform doc:name="Get Query Params" doc:id="ab756164-e1df-4fc5-8fbe-8f4f8cafc2f6">
+    <ee:message />
+    <ee:variables>
+     <ee:set-variable variableName="queryOffset" resource="variables/set-queryOffset-variable.dwl" />
+     <ee:set-variable variableName="queryLimit" resource="variables/set-queryLimit-variable.dwl" />
+     <ee:set-variable variableName="queryName" resource="variables/set-queryName-variable.dwl" />
+     <ee:set-variable variableName="queryCategory" resource="variables/set-queryCategory-variable.dwl" />
+   </ee:variables>
+ </ee:transform>
+</flow>
+----
+
+. `db:select` 要素を追加し、MySQL グローバル設定を参照します。パラメータ化クエリにはコロン (:) 構文を使用します。パラメータは、`db:input-parameters` 要素内のキー - 値ペアとして指定する必要があります。
++
+
+[source,xml,linenums]
+----
+<db:select config-ref="MySQL_Configuration" doc:name="Query Products">
+  <db:sql >SELECT  p.id, p.name, p.description, p.product_number, p.manufactured, p.colors, p.categories, p.stock, p.safety_stock_level, p.standard_cost, p.list_price, p.size, p.size_unit_measure_code, p.weight, p.weight_unit_measure_code, p.days_to_manufacture, p.images,  p.modified_date, p.created_date
+FROM product p
+WHERE LOWER(p.name) like :name AND LOWER(p.categories) like :category
+LIMIT :limit
+OFFSET :offset</db:sql>
+  <db:input-parameters ><![CDATA[#[{'name' : lower(vars.queryName), 'category': lower(vars.queryCategory), 'limit': vars.queryLimit, 'offset': vars.queryOffset}]]]></db:input-parameters>
+</db:select>
+----
+
+. `src/main/resources` フォルダに `mappings` という名前のパッケージを作成します。
++
+
+. `src/main/resources/mappings` フォルダに `get-products-response.dwl` ファイルを作成します。
++
+
+. `get-products-response.dwl` DW 1.0 スクリプトを DW 2.0 に移行します。
++
+.DW 1.0 の get-products-response の変換。
+----
+%dw 1.0
+%output application/json
+---
+payload map {
+	id: $.id,
+	categories: ($.categories default "") splitBy ",",
+	colors: ($.colors default "") splitBy ",",
+	images: ($.images default "") splitBy ",",
+	createdDate: $.created_date as :string {format: "yyyy-MM-dd"},
+	modifiedDate: $.modified_date as :string {format: "yyyy-MM-dd"},
+	safetyStockLevel: $.safety_stock_level as :number,
+	stock: $.stock as :number,
+	daysToManufacture: $.days_to_manufacture,
+	name: $.name,
+	description: $.description,
+	listPrice: $.list_price,
+	manufactured: $.manufactured,
+	productNumber: $.product_number,
+	size: $.size,
+	sizeUnitMeasureCode: $.size_unit_measure_code,
+	standardCost: $.standard_cost,
+	weightUnitMeasureCode: $.weight_unit_measure_code,
+	weight: $.weight
+}
+----
++
+.DW 2.0 の get-products-response の変換。
+----
+%dw 2.0
+output application/json
+---
+payload map {
+	id: $.id,
+	categories: ($.categories default "") splitBy ",",
+	colors: ($.colors default "") splitBy ",",
+	images: ($.images default "") splitBy ",",
+	createdDate: $.created_date as String {format: "yyyy-MM-dd"},
+	modifiedDate: $.modified_date as String {format: "yyyy-MM-dd"},
+	safetyStockLevel: $.safety_stock_level as Number,
+	stock: $.stock as Number,
+	daysToManufacture: $.days_to_manufacture,
+	name: $.name,
+	description: $.description,
+	listPrice: $.list_price,
+	manufactured: $.manufactured,
+	productNumber: $.product_number,
+	size: $.size,
+	sizeUnitMeasureCode: $.size_unit_measure_code,
+	standardCost: $.standard_cost,
+	weightUnitMeasureCode: $.weight_unit_measure_code,
+	weight: $.weight
+}
+----
++
+. 最後に、DW 2.0 変換を使用して、ペイロードを設定する `Transform component` を追加します。
++
+[source,xml,linenums]
+----
+<flow name="get-products-flow">
+	<!-- more logic here -->
+	<ee:transform doc:name="Products to JSON">
+		<ee:message>
+			<ee:set-payload resource="mappings/get-products-response.dwl" />
+		</ee:message>
+	</ee:transform>
+</flow>
+----
+
+.Studio 7 の get-products-flow の設定 XML。
+[source,xml,linenums]
+----
+<flow name="get-products-flow">
+  <ee:transform doc:name="Get Query Params" doc:id="ab756164-e1df-4fc5-8fbe-8f4f8cafc2f6">
+    <ee:message />
+    <ee:variables>
+      <ee:set-variable variableName="queryOffset" resource="variables/set-queryOffset-variable.dwl" />
+      <ee:set-variable variableName="queryLimit" resource="variables/set-queryLimit-variable.dwl" />
+      <ee:set-variable variableName="queryName" resource="variables/set-queryName-variable.dwl" />
+      <ee:set-variable variableName="queryCategory" resource="variables/set-queryCategory-variable.dwl" />
+    </ee:variables>
+  </ee:transform>
+  <db:select config-ref="MySQL_Configuration" doc:name="Query Products">
+    <db:sql>SELECT p.id, p.name, p.description, p.product_number,
+				p.manufactured, p.colors, p.categories, p.stock,
+				p.safety_stock_level, p.standard_cost, p.list_price, p.size,
+				p.size_unit_measure_code, p.weight, p.weight_unit_measure_code,
+				p.days_to_manufacture, p.images, p.modified_date, p.created_date
+				FROM product p
+				WHERE LOWER(p.name) like :name AND LOWER(p.categories) like :category
+				LIMIT :limit
+				OFFSET :offset</db:sql>
+    <db:input-parameters><![CDATA[#[{'name' : lower(vars.queryName), 'category': lower(vars.queryCategory), 'limit': vars.queryLimit, 'offset': vars.queryOffset}]]]></db:input-parameters>
+  </db:select>
+  <ee:transform doc:name="Products to JSON">
+    <ee:message>
+      <ee:set-payload resource="mappings/get-products-response.dwl" />
+    </ee:message>
+  </ee:transform>
+</flow>
+----
+
+.Studio 7 の get-products-flow
+image::m4-apikit-based-example-get-products-flow.png[Studio 7 の get-products-flow]
+
+== _Get-product-by-id-flow_ の移行
+
+// Now do the same for the next migrated feature, and so on.
+`get-product-by-id-flow` は、`id` で絞り込んでデータベースから商品を返します。必要な ID を持つ商品がない場合は、`HTTP 404 Not Found` エラーが返されます。
+
+.Studio 6 の get-product-by-id-flow
+image::m3-apikit-based-example-get-product-by-id-flow.png[Studio 6 の get-product-by-id-flow]
+
+.Studio 6 の get-product-by-id-flow の設定 XML。
+[source,xml,linenums]
+----
+<flow name="get-product-by-id-flow">
+  <db:select config-ref="MySQL_Configuration" doc:name="Get by Id">
+    <db:parameterized-query><![CDATA[SELECT p.id, p.name, p.description, p.product_number, p.manufactured, p.colors, p.categories, p.stock, p.safety_stock_level, p.standard_cost, p.list_price, p.size, p.size_unit_measure_code, p.weight, p.weight_unit_measure_code, p.days_to_manufacture, p.images,  p.modified_date, p.created_date FROM product p where p.id = #[id]]]></db:parameterized-query>
+  </db:select>
+  <validation:is-true config-ref="Validation_Configuration" doc:name="Is Not Empty" exceptionClass="org.mule.module.apikit.exception.NotFoundException" expression="#[payload.size() &gt; 0]"/>
+  <dw:transform-message doc:name="Product to JSON">
+    <dw:set-payload resource="classpath:mappings/get-product-by-id-response.dwl"/>
+  </dw:transform-message>
+</flow>
+----
+
+// Explain what changed for Mule 4 in Studio 7, including any different modules, component you needed to use.
+. `get-product-by-id-flow` の定義に関する変更はありません。
++
+[source,xml,linenums]
+----
+<flow name="get-product-by-id-flow" />
+----
+
+. `src/main/resources/variables` フォルダに `set-productId-variable.dwl` ファイルを作成します。`uriParams` から `id` を取得する次のロジックを追加します。
++
+....
+%dw 2.0
+output application/java
+---
+attributes.uriParams.id
+....
+. `productId` を `URI parameter` として受け取る変数を設定する DW スクリプトを参照する `Transform component` を追加します。
++
+[source,xml,linenums]
+----
+<flow name="get-product-by-id-flow">
+  <ee:transform doc:name="Get Uri Params">
+    <ee:message />
+    <ee:variables>
+      <ee:set-variable variableName="id" resource="variables/set-productId-variable.dwl" />
+    </ee:variables>
+  </ee:transform>
+</flow>
+----
+. `db:select` 要素を追加し、MySQL グローバル設定を参照します。パラメータ化クエリにはコロン (:) 構文を使用します。パラメータは、`db:input-parameters` 要素内のキー - 値ペアとして指定する必要があります。
++
+[source,xml,linenums]
+----
+<db:select config-ref="MySQL_Configuration" doc:name="Get by Id">
+  <db:sql>SELECT p.id, p.name, p.description, p.product_number, p.manufactured, p.colors, p.categories, p.stock, p.safety_stock_level, p.standard_cost, p.list_price, p.size, p.size_unit_measure_code, p.weight, p.weight_unit_measure_code, p.days_to_manufacture, p.images,  p.modified_date, p.created_date
+FROM product p
+where p.id = :id</db:sql>
+  <db:input-parameters><![CDATA[#[{'id' : vars.id}]]]></db:input-parameters>
+</db:select>
+----
+. `db:select` の後に、クエリから結果が返されたかどうかをチェックする `validation:is-true` 要素を追加します。返されなかった場合は `APP:NOT_FOUND` エラーをスローします。デフォルトの式言語として `MEL` が `DataWeave` に置き換わり、`#[payload.size() &gt; 0]` は `#[sizeOf(payload) &gt; 0]` として書き換えられています。
++
+[source,xml,linenums]
+----
+<validation:is-true doc:name="Is Not Empty" config-ref="Validation_Config" expression="#[sizeOf(payload) &gt; 0]">
+  <error-mapping sourceType="VALIDATION:INVALID_BOOLEAN" targetType="APP:NOT_FOUND" />
+</validation:is-true>
+----
+. `src/main/resources/mappings` フォルダに `get-product-by-id-response.dwl` ファイルを作成し、JSON 応答を構築する DataWeave スクリプトを 1.0 から 2.0 に移行します。
++
+.DW 1.0 の get-product-by-id-response の変換。
+----
+%dw 1.0
+%output application/json
+%var product = payload[0]
+---
+{
+	id: product.id,
+	name: product.name,
+	description: product.description,
+	manufactured: product.manufactured,
+	productNumber: product.product_number,
+	colors: (product.colors default "") splitBy "," ,
+	categories:(product.categories default "") splitBy "," ,
+	safetyStockLevel: product.safety_socket_level,
+	standardCost: (product.standard_cost default "0.0") as :string {format: "##.##"} as :number,
+	listPrice: (product.list_price default "0.0") as :string {format: "##.##"} as :number,
+	stock: product.stock,
+	safetyStockLevel: product.safety_stock_level,
+	daysToManufacture: product.days_to_manufacture,
+	size: product.size,
+	sizeUnitMeasureCode: product.size_unit_measure_code,
+	weight: product.weight,
+	weightUnitMeasureCode: product.weight_unit_measure_code,
+	daysToManufacture: product.days_to_manufacture,
+	images: (product.images splitBy "," default null),
+	modifiedDate: (product.modified_date default "") as :date {format: "yyyy-MM-dd"},
+	createdDate: (product.created_date default "") as :date {format: "yyyy-MM-dd"}
+
+}
+----
++
+.DW 2.0 の get-product-by-id-response.dwl の変換。
+----
+%dw 2.0
+output application/json
+var product = payload[0]
+---
+{
+	id: product.id,
+	name: product.name,
+	description: product.description,
+	manufactured: product.manufactured,
+	productNumber: product.product_number,
+	colors: (product.colors default "") splitBy "," ,
+	categories:(product.categories default "") splitBy "," ,
+	safetyStockLevel: product.safety_socket_level,
+	standardCost: (product.standard_cost default "0.0") as String {format: "##.##"} as Number,
+	listPrice: (product.list_price default "0.0") as String {format: "##.##"} as Number,
+	stock: product.stock,
+	safetyStockLevel: product.safety_stock_level,
+	daysToManufacture: product.days_to_manufacture,
+	size: product.size,
+	sizeUnitMeasureCode: product.size_unit_measure_code,
+	weight: product.weight,
+	weightUnitMeasureCode: product.weight_unit_measure_code,
+	daysToManufacture: product.days_to_manufacture,
+	images: (product.images splitBy "," default null),
+	modifiedDate: (product.modified_date default "") as Date {format: "yyyy-MM-dd"},
+	createdDate: (product.created_date default "") as Date {format: "yyyy-MM-dd"}
+}
+----
++
+. 最後に、DW 2.0 変換を使用して、ペイロードを設定する `Transform component` を追加します。
++
+[source,xml,linenums]
+----
+<ee:transform doc:name="Product to JSON">
+  <ee:message>
+    <ee:set-payload resource="mappings/get-product-by-id-response.dwl" />
+  </ee:message>
+</ee:transform>
+----
+
+.Studio 7 の get-product-by-id-flow の設定 XML。
+[source,xml,linenums]
+----
+<flow name="get-product-by-id-flow">
+  <ee:transform doc:name="Get Uri Params">
+    <ee:message />
+    <ee:variables>
+      <ee:set-variable variableName="id" resource="variables/set-productId-variable.dwl" />
+    </ee:variables>
+  </ee:transform>
+  <db:select config-ref="MySQL_Configuration" doc:name="Get by Id">
+    <db:sql>SELECT p.id, p.name, p.description, p.product_number, p.manufactured, p.colors, p.categories, p.stock, p.safety_stock_level, p.standard_cost, p.list_price, p.size, p.size_unit_measure_code, p.weight, p.weight_unit_measure_code, p.days_to_manufacture, p.images,  p.modified_date, p.created_date
+FROM product p
+where p.id = :id</db:sql>
+    <db:input-parameters><![CDATA[#[{'id' : vars.id}]]]></db:input-parameters>
+  </db:select>
+  <validation:is-true doc:name="Is Not Empty" config-ref="Validation_Config" expression="#[sizeOf(payload) &gt; 0]">
+    <error-mapping sourceType="VALIDATION:INVALID_BOOLEAN" targetType="APP:NOT_FOUND" />
+  </validation:is-true>
+  <ee:transform doc:name="Product to JSON">
+    <ee:message>
+      <ee:set-payload resource="mappings/get-product-by-id-response.dwl" />
+    </ee:message>
+  </ee:transform>
+</flow>
+----
+
+.Studio 7 の get-product-by-id-flow
+image::m4-apikit-based-example-get-product-by-id-flow.png[Studio 7 の get-product-by-id-flow]
+
+== _Post-product-flow_ の移行
+
+// Now do the same for the next migrated feature, and so on.
+`post-product-flow` はデータベースに商品を挿入します。
+
+.Studio 6 の post-product-flow
+image::m3-apikit-based-example-post-product-flow.png[Studio 6 の post-product-flow]
+
+.Studio 6 の post-product-flow の設定 XML。
+[source,xml,linenums]
+----
+<flow name="post-product-flow">
+  <set-variable variableName="originalPayload" value="#[payload:java.lang.String]" doc:name="Set Original Payload" />
+  <dw:transform-message doc:name="Json to Map">
+    <dw:set-payload resource="classpath:mappings/json-product-to-java.dwl"/>
+  </dw:transform-message>
+  <transactional action="ALWAYS_BEGIN" doc:name="Transactional">
+    <db:insert config-ref="MySQL_Configuration" doc:name="Insert Product" autoGeneratedKeys="true" autoGeneratedKeysColumnNames="id" target="#[payload]">
+      <db:parameterized-query><![CDATA[insert into product(name, description, product_number, manufactured, colors, categories, stock, safety_stock_level, standard_cost, list_price, size, size_unit_measure_code, weight, weight_unit_measure_code, days_to_manufacture, images, modified_date, created_date) values(#[payload.name],#[payload.description], #[payload.productNumber], #[payload.manufactured], #[payload.colors],  #[payload.categories], #[payload.stock], #[payload.safetyStockLevel], #[payload.standardCost], #[payload.listPrice], #[payload.size], #[payload.sizeUnitMeasureCode], #[payload.weight], #[payload.weightUnitMeasureCode], #[payload.daysToManufacture], #[payload.images], CURDATE(), CURDATE() );]]></db:parameterized-query>
+    </db:insert>
+  </transactional>
+  <dw:transform-message doc:name="Database to Json">
+    <dw:input-variable doc:sample="json.json" mimeType="application/json" variableName="originalPayload" />
+    <dw:set-payload resource="classpath:mappings/post-product-response.dwl"/>
+  </dw:transform-message>
+</flow>
+----
+
+// Explain what changed for Mule 4 in Studio 7, including any different modules, component you needed to use.
+. `post-product-flow` の定義に関する変更はありません。
++
+
+[source,xml,linenums]
+----
+<flow name="post-product-flow" />
+----
+
+. JSON 要求を JAVA マップに変換するために、`src/main/resources/mappings` フォルダに `json-to-java.dwl` ファイルを作成します。
++
+....
+%dw 2.0
+output application/java
+---
+payload
+....
+
+. `src/main/resources/mappings` に `json-product-to-java.dwl` ファイルを作成し、元のスクリプトを DW 1.0 から 2.0 に移行します。
++
+.DW 1.0 の json-product-to-java.dwl の変換。
+----
+%dw 1.0
+%output application/java
+---
+{
+	categories: payload.categories joinBy ",",
+	colors: payload.colors joinBy ",",
+	daysToManufacture: payload.daysToManufacture,
+	description: payload.description,
+	images: payload.images joinBy ",",
+	listPrice: payload.listPrice,
+	(manufactured: 1) when payload.manufactured == true,
+	(manufactured: 0) when payload.manufactured == false,
+	name: payload.name,
+	productNumber: payload.productNumber,
+	safetyStockLevel: payload.safetyStockLevel,
+	size: payload.size,
+	sizeUnitMeasureCode: payload.sizeUnitMeasureCode,
+	standardCost: payload.standardCost,
+	stock: payload.stock,
+	weight: payload.weight,
+	weightUnitMeasureCode: payload.weightUnitMeasureCode
+}
+----
++
+.DW 2.0 の json-product-to-java.dwl の変換。
+----
+%dw 2.0
+output application/java
+fun getManufacturedCode(value) =
+	if (value == true) 1
+	else 0
+---
+{
+	categories: payload.categories joinBy ",",
+	colors: payload.colors joinBy ",",
+	daysToManufacture: payload.daysToManufacture,
+	description: payload.description,
+	images: payload.images joinBy ",",
+	listPrice: payload.listPrice,
+	manufactured: getManufacturedCode(payload.manufactured),
+	name: payload.name,
+	productNumber: payload.productNumber,
+	safetyStockLevel: payload.safetyStockLevel,
+	size: payload.size,
+	sizeUnitMeasureCode: payload.sizeUnitMeasureCode,
+	standardCost: payload.standardCost,
+	stock: payload.stock,
+	weight: payload.weight,
+	weightUnitMeasureCode: payload.weightUnitMeasureCode
+}
+----
++
+. 前に作成した DataWeave 変換を使用して `originalPayload` と `newPayload` を設定する `Transform component` を追加します。
++
+[source,xml,linenums]
+----
+<flow name="post-product-flow">
+  <ee:transform doc:name="Json to Map">
+    <ee:message />
+    <ee:variables>
+      <ee:set-variable variableName="originalPayload" resource="mappings/json-to-java.dwl" />
+      <ee:set-variable variableName="newPayload" resource="mappings/json-product-to-java.dwl" />
+    </ee:variables>
+  </ee:transform>
+</flow>
+----
+
+. トランザクションの詳細を設定するために、Mule 3.x の `transactional` スコープを新しい `try` スコープに置き換え、`transactionalAction` 属性を `ALWAYS_BEGIN` に設定します。
++
+[source,xml,linenums]
+----
+<try doc:name="Try" transactionalAction="ALWAYS_BEGIN">
+</try>
+----
+
+. `Try scope` に `db:insert` 要素を追加し、MySQL グローバル設定を参照します。パラメータは、`db:input-parameters` 要素内のキー - 値ペアとして指定する必要があります。データベースエンジンによって自動生成された `ID` を持つペイロードを設定する `db:auto-generated-keys-column-name` タグも含まれています。
++
+[source,xml,linenums]
+----
+<try transactionalAction="ALWAYS_BEGIN" doc:name="Try">
+  <db:insert config-ref="MySQL_Configuration" doc:name="Insert Product" autoGenerateKeys="true">
+    <db:sql>insert into product(name, description, product_number,
+					manufactured, colors, categories, stock, safety_stock_level,
+					standard_cost, list_price, size, size_unit_measure_code, weight,
+					weight_unit_measure_code, days_to_manufacture, images,
+					modified_date, created_date)
+					values(:name, :description,
+					:product_number, :manufactured, :colors,
+					:categories, :stock,
+					:safety_stock_level, :standard_cost,
+					:list_price, :size,
+					:size_unit_measure_code, :weight,
+					:weight_unit_measure_code,
+					:days_to_manufacture, :images,
+					CURDATE(), CURDATE());
+				</db:sql>
+    <db:input-parameters><![CDATA[#[{'name': vars.newPayload.name, 'description': vars.newPayload.description, 'product_number': vars.newPayload.productNumber, 'manufactured': vars.newPayload.manufactured, 'colors': vars.newPayload.colors, 'categories': vars.newPayload.categories, 'stock': vars.newPayload.stock, 'safety_stock_level': vars.newPayload.safetyStockLevel, 'standard_cost': vars.newPayload.standardCost, 'list_price': vars.newPayload.listPrice, 'size': vars.newPayload.size, 'size_unit_measure_code': vars.newPayload.sizeUnitMeasureCode, 'weight': vars.newPayload.weight, 'weight_unit_measure_code': vars.newPayload.weightUnitMeasureCode, 'days_to_manufacture': vars.newPayload.daysToManufacture, 'images': vars.newPayload.images}]]]></db:input-parameters>
+    <db:auto-generated-keys-column-names>
+      <db:auto-generated-keys-column-name value="id" />
+    </db:auto-generated-keys-column-names>
+  </db:insert>
+</try>
+----
+
+. `src/main/resources/mappings` に `post-product-response.dwl` ファイルを作成し、応答変換を DataWeave 1.0 から 2.0 に移行します。式 `payload.generatedKeys.GENERATED_KEY`.を使用してペイロードから生成された `id` を取得するという違いがあります。
++
+.DW 1.0 の post-product-response.dwl の変換。
+----
+%dw 1.0
+%output application/json
+---
+flowVars.originalPayload ++
+id: payload[0].GENERATED_KEY
+----
++
+.DW 2.0 の post-product-response.dwl の変換。
+----
+%dw 2.0
+output application/json
+---
+vars.originalPayload ++
+id: payload.generatedKeys.GENERATED_KEY
+----
++
+. `Transform component` を追加し、ペイロードを DataWeave スクリプトで設定します。
++
+[source,xml,linenums]
+----
+<ee:transform doc:name="Database to Json">
+  <ee:message>
+    <ee:set-payload resource="mappings/post-product-response.dwl" />
+  </ee:message>
+</ee:transform>
+----
+
+.Studio 7 の post-product-flow の設定 XML。
+[source,xml,linenums]
+----
+<flow name="post-product-flow">
+  <ee:transform doc:name="Json to Map">
+    <ee:message />
+    <ee:variables>
+      <ee:set-variable variableName="originalPayload" resource="mappings/json-to-java.dwl" />
+      <ee:set-variable variableName="newPayload" resource="mappings/json-product-to-java.dwl" />
+    </ee:variables>
+  </ee:transform>
+  <try transactionalAction="ALWAYS_BEGIN" doc:name="Try">
+    <db:insert config-ref="MySQL_Configuration" doc:name="Insert Product" autoGenerateKeys="true">
+      <db:sql>insert into product(name, description, product_number,
+					manufactured, colors, categories, stock, safety_stock_level,
+					standard_cost, list_price, size, size_unit_measure_code, weight,
+					weight_unit_measure_code, days_to_manufacture, images,
+					modified_date, created_date)
+					values(:name, :description,
+					:product_number, :manufactured, :colors,
+					:categories, :stock,
+					:safety_stock_level, :standard_cost,
+					:list_price, :size,
+					:size_unit_measure_code, :weight,
+					:weight_unit_measure_code,
+					:days_to_manufacture, :images,
+					CURDATE(), CURDATE());
+				</db:sql>
+      <db:input-parameters><![CDATA[#[{'name': vars.newPayload.name, 'description': vars.newPayload.description, 'product_number': vars.newPayload.productNumber, 'manufactured': vars.newPayload.manufactured, 'colors': vars.newPayload.colors, 'categories': vars.newPayload.categories, 'stock': vars.newPayload.stock, 'safety_stock_level': vars.newPayload.safetyStockLevel, 'standard_cost': vars.newPayload.standardCost, 'list_price': vars.newPayload.listPrice, 'size': vars.newPayload.size, 'size_unit_measure_code': vars.newPayload.sizeUnitMeasureCode, 'weight': vars.newPayload.weight, 'weight_unit_measure_code': vars.newPayload.weightUnitMeasureCode, 'days_to_manufacture': vars.newPayload.daysToManufacture, 'images': vars.newPayload.images}]]]></db:input-parameters>
+      <db:auto-generated-keys-column-names>
+        <db:auto-generated-keys-column-name value="id" />
+      </db:auto-generated-keys-column-names>
+    </db:insert>
+  </try>
+  <ee:transform doc:name="Database to Json">
+    <ee:message>
+      <ee:set-payload resource="mappings/post-product-response.dwl" />
+    </ee:message>
+  </ee:transform>
+</flow>
+----
+
+.Studio 7 の post-product-flow
+image::m4-apikit-based-example-post-product-flow.png[Studio 7 の post-product-flow]
+
+== _Put-product-flow_ の移行
+
+// Now do the same for the next migrated feature, and so on.
+`put-product-flow` は指定された `id` に基づいてデータベース内の商品を更新します。
+
+.Studio 6 の put-product-flow
+image::m3-apikit-based-example-put-product-flow.png[Studio 6 の put-product-flow]
+
+.Studio 6 の put-product-flow の設定 XML。
+[source,xml,linenums]
+----
+<flow name="put-product-flow">
+  <dw:transform-message doc:name="JSon to Product">
+    <dw:set-payload resource="classpath:mappings/put-json-product-to-java.dwl"/>
+  </dw:transform-message>
+  <transactional action="ALWAYS_BEGIN" doc:name="Transactional">
+    <db:update config-ref="MySQL_Configuration" doc:name="Update Product">
+      <db:parameterized-query><![CDATA[update product set name = #[payload.name], description = #[payload.description], product_number = #[payload.productNumber], manufactured = #[payload.manufactured], colors = #[payload.colors], categories= #[payload.categories], stock = #[payload.stock], safety_stock_level = #[payload.safetyStockLevel], standard_cost = #[payload.standardCost], list_price = #[payload.listPrice], size = #[payload.size], size_unit_measure_code = #[payload.sizeUnitMeasureCode], weight = #[payload.weight], weight_unit_measure_code = #[payload.weightUnitMeasureCode], days_to_manufacture = #[payload.daysToManufacture], images = #[payload.images],  modified_date = CURDATE() where id = #[id]]]></db:parameterized-query>
+    </db:update>
+  </transactional>
+  <set-payload value="#[NullPayload.getInstance()]" doc:name="Set Payload" />
+  <set-property propertyName="http.status" value="204" doc:name="Set Status" />
+</flow>
+----
+
+// Explain what changed for Mule 4 in Studio 7, including any different modules, component you needed to use.
+. `put-product-flow` の定義に関する変更はありません。
++
+[source,xml,linenums]
+----
+<flow name="put-product-flow" />
+----
+
+. `src/main/resources/mappings` フォルダに `put-json-product-to-java.dwl` ファイルを作成し、元のスクリプトを DW 1.0 から 2.0 に移行します。
++
+.DW 1.0 の put-json-product-to-java.dwl の変換。
+----
+%dw 1.0
+%output application/java
+---
+{
+	categories: payload.categories joinBy ",",
+	colors: payload.colors joinBy ",",
+	daysToManufacture: payload.daysToManufacture,
+	description: payload.description,
+	images: payload.images joinBy ",",
+	listPrice: payload.listPrice,
+	manufactured: payload.manufactured,
+	name: payload.name,
+	productNumber: payload.productNumber,
+	safetyStockLevel: payload.safetyStockLevel,
+	size: payload.size,
+	sizeUnitMeasureCode: payload.sizeUnitMeasureCode,
+	standardCost: payload.standardCost,
+	stock: payload.stock,
+	weight: payload.weight,
+	weightUnitMeasureCode: payload.weightUnitMeasureCode
+}
+----
++
+.DW 2.0 の put-json-product-to-java.dwl の変換。
+----
+%dw 2.0
+output application/java
+---
+{
+	categories: payload.categories joinBy ",",
+	colors: payload.colors joinBy ",",
+	daysToManufacture: payload.daysToManufacture,
+	description: payload.description,
+	images: payload.images joinBy ",",
+	listPrice: payload.listPrice,
+	manufactured: payload.manufactured,
+	name: payload.name,
+	productNumber: payload.productNumber,
+	safetyStockLevel: payload.safetyStockLevel,
+	size: payload.size,
+	sizeUnitMeasureCode: payload.sizeUnitMeasureCode,
+	standardCost: payload.standardCost,
+	stock: payload.stock,
+	weight: payload.weight,
+	weightUnitMeasureCode: payload.weightUnitMeasureCode
+}
+----
++
+. 前に作成した DataWeave 変換を使用する `updatePayload` と、`variables/set-productId-variable.dwl` スクリプトを使用する `id` を設定する `Transform component` を追加します。
++
+[source,xml,linenums]
+----
+<flow name="put-product-flow">
+  <ee:transform doc:name="JSon to Product">
+    <ee:message />
+    <ee:variables >
+      <ee:set-variable variableName="updatePayload" resource="mappings/put-json-product-to-java.dwl" />
+      <ee:set-variable variableName="id" resource="variables/set-productId-variable.dwl" />
+    </ee:variables>
+  </ee:transform>
+</flow>
+----
+. トランザクションの詳細を設定するために、Mule 3.x の `transactional` スコープを新しい `try` スコープに置き換え、`transactionalAction` 属性を `ALWAYS_BEGIN` に設定します。
++
+[source,xml,linenums]
+----
+<try doc:name="Try" transactionalAction="ALWAYS_BEGIN">
+</try>
+----
+. `Try scope` に `db:update` 要素を追加し、MySQL グローバル設定を参照します。パラメータは、`db:input-parameters` 要素内のキー - 値ペアとして指定する必要があります。
++
+[source,xml,linenums]
+----
+<try doc:name="Try" transactionalAction="ALWAYS_BEGIN">
+  <db:update config-ref="MySQL_Configuration" doc:name="Update Product">
+    <db:sql >update product
+set name = :name, description = :description, product_number = :product_number, manufactured = :manufactured, colors = :colors, categories= :categories, stock = :stock, safety_stock_level = :safety_stock_level, standard_cost = :standard_cost, list_price = :list_price, size = :size, size_unit_measure_code = :size_unit_measure_code, weight = :weight, weight_unit_measure_code = :weight_unit_measure_code, days_to_manufacture = :days_to_manufacture, images = :images,  modified_date = CURDATE()
+where id = :id</db:sql>
+    <db:input-parameters ><![CDATA[#[{'name': vars.updatePayload.name, 'description': vars.updatePayload.description, 'product_number': vars.updatePayload.productNumber, 'manufactured': vars.updatePayload.manufactured, 'colors': vars.updatePayload.colors, 'categories': vars.updatePayload.categories, 'stock': vars.updatePayload.stock, 'safety_stock_level': vars.updatePayload.safetyStockLevel, 'standard_cost': vars.updatePayload.standardCost, 'list_price': vars.updatePayload.listPrice, 'size': vars.updatePayload.size, 'size_unit_measure_code': vars.updatePayload.sizeUnitMeasureCode, 'weight': vars.updatePayload.weight, 'weight_unit_measure_code': vars.updatePayload.weightUnitMeasureCode, 'days_to_manufacture': vars.updatePayload.daysToManufacture, 'images': vars.updatePayload.images, 'id': vars.id}]]]></db:input-parameters>
+  </db:update>
+</try>
+----
+. `Transform component` を追加し、`src/main/resources/variables` にある `set-httpStatus-with-204.dwl` ファイルを使用して `httpStatus` 変数に `204` を設定します。
++
+[source,xml,linenums]
+----
+<ee:transform doc:name="Set Status">
+  <ee:message />
+  <ee:variables >
+    <ee:set-variable variableName="httpStatus" resource="variables/set-httpStatus-with-204.dwl" />
+  </ee:variables>
+</ee:transform>
+----
+
+.Studio 7 の put-product-flow の設定 XML。
+[source,xml,linenums]
+----
+<flow name="put-product-flow">
+  <ee:transform doc:name="JSon to Product">
+    <ee:message />
+    <ee:variables >
+      <ee:set-variable variableName="updatePayload" resource="mappings/put-json-product-to-java.dwl" />
+      <ee:set-variable variableName="id" resource="variables/set-productId-variable.dwl" />
+    </ee:variables>
+  </ee:transform>
+  <try doc:name="Try" transactionalAction="ALWAYS_BEGIN">
+    <db:update config-ref="MySQL_Configuration" doc:name="Update Product">
+      <db:sql >update product
+set name = :name, description = :description, product_number = :product_number, manufactured = :manufactured, colors = :colors, categories= :categories, stock = :stock, safety_stock_level = :safety_stock_level, standard_cost = :standard_cost, list_price = :list_price, size = :size, size_unit_measure_code = :size_unit_measure_code, weight = :weight, weight_unit_measure_code = :weight_unit_measure_code, days_to_manufacture = :days_to_manufacture, images = :images,  modified_date = CURDATE()
+where id = :id</db:sql>
+      <db:input-parameters ><![CDATA[#[{'name': vars.updatePayload.name, 'description': vars.updatePayload.description, 'product_number': vars.updatePayload.productNumber, 'manufactured': vars.updatePayload.manufactured, 'colors': vars.updatePayload.colors, 'categories': vars.updatePayload.categories, 'stock': vars.updatePayload.stock, 'safety_stock_level': vars.updatePayload.safetyStockLevel, 'standard_cost': vars.updatePayload.standardCost, 'list_price': vars.updatePayload.listPrice, 'size': vars.updatePayload.size, 'size_unit_measure_code': vars.updatePayload.sizeUnitMeasureCode, 'weight': vars.updatePayload.weight, 'weight_unit_measure_code': vars.updatePayload.weightUnitMeasureCode, 'days_to_manufacture': vars.updatePayload.daysToManufacture, 'images': vars.updatePayload.images, 'id': vars.id}]]]></db:input-parameters>
+    </db:update>
+  </try>
+  <ee:transform doc:name="Set Status">
+    <ee:message />
+    <ee:variables >
+      <ee:set-variable variableName="httpStatus" resource="variables/set-httpStatus-with-204.dwl" />
+    </ee:variables>
+  </ee:transform>
+</flow>
+----
+
+.Studio 7 の put-product-flow
+image::m4-apikit-based-example-put-product-flow.png[Studio 7 の put-product-flow]
+
+== _Delete-product-flow_ の移行
+
+// Now do the same for the next migrated feature, and so on.
+`delete-product-flow` は `URI parameter` として指定された `id` を持つ商品レコードを MySQL データベースから削除し、HTTP 204 状況コードを返します。
+
+.Studio 6 の delete-product-flow
+image::m3-apikit-based-example-delete-product-flow.png[Studio 6 の delete-product-flow]
+
+.Studio 6 の delete-product-flow の設定 XML。
+[source,xml,linenums]
+----
+<flow name="delete-product-flow">
+  <transactional action="ALWAYS_BEGIN" doc:name="Transactional">
+    <db:delete config-ref="MySQL_Configuration" doc:name="Delete Product">
+      <db:parameterized-query><![CDATA[delete from product where id=#[id]]]></db:parameterized-query>
+    </db:delete>
+  </transactional>
+  <set-payload value="#[NullPayload.getInstance()]" doc:name="Set Payload"/>
+  <set-property propertyName="http.status" value="204" doc:name="Set Status"/>
+</flow>
+----
+
+// Explain what changed for Mule 4 in Studio 7, including any different modules, component you needed to use.
+. `delete-product-flow` の定義に関する変更はありません。
++
+
+[source,xml,linenums]
+----
+<flow name="delete-product-flow" />
+----
+
+. `productId` を `URI parameter` として受け取る変数を設定する DW スクリプトを参照する `Transform component` を追加します。
++
+
+[source,xml,linenums]
+----
+<flow name="delete-product-flow">
+  <ee:transform doc:name="Set productId variable">
+    <ee:message />
+    <ee:variables>
+      <ee:set-variable variableName="productId" resource="variables/set-productId-variable.dwl" />
+    </ee:variables>
+  </ee:transform>
+</flow>
+----
+
+. トランザクションの詳細を設定するために、Mule 3.x の `transactional` スコープを新しい `try` スコープに置き換え、`transactionalAction` 属性を `ALWAYS_BEGIN` に設定します。
++
+
+[source,xml,linenums]
+----
+<try doc:name="Try" transactionalAction="ALWAYS_BEGIN">
+</try>
+----
+
+. `Try scope` に `db:delete` 要素を追加し、MySQL グローバル設定を参照します。パラメータは、`db:input-parameters` 要素内のキー - 値ペアとして指定する必要があります。Mule 3.x とは逆に、前に定義した `productId` フロー変数には、`flowVars.productId` ではなく `vars.productId` としてアクセスする必要があります。
++
+
+[source,xml,linenums]
+----
+<try doc:name="Try" transactionalAction="ALWAYS_BEGIN">
+  <db:delete config-ref="MySQL_Configuration" doc:name="Delete Product">
+    <db:sql>delete from product where id=:productId</db:sql>
+    <db:input-parameters><![CDATA[#[{'productId' : vars.productId}]]]></db:input-parameters>
+  </db:delete>
+</try>
+----
+
+. 次のように `src/main/resources/variables` に `set-httpStatus-with-204.dwl` ファイルを作成します。
++
+
+....
+%dw 2.0
+output application/java
+---
+204
+....
+
+. `NO CONTENT` 応答コードを定義するために、`Transform Component` を使用して 値 `204` を持つ `httpStatus` 変数を設定します。
++
+
+[source,xml,linenums]
+----
+<ee:transform doc:name="Set 204 HTTP Status code">
+  <ee:message />
+  <ee:variables>
+    <ee:set-variable variableName="httpStatus" resource="variables/set-httpStatus-with-204.dwl" />
+  </ee:variables>
+</ee:transform>
+----
+
+特定の HTTP 状況コードを返すには、`http.status` プロパティを設定する代わりに、Mule 4 の APIkit で `httpStatus` という名前の変数を設定する必要があります。
+
+.Studio 7 の delete-product-flow の設定 XML。
+[source,xml,linenums]
+----
+<flow name="delete-product-flow">
+  <ee:transform doc:name="Set productId variable">
+    <ee:message />
+    <ee:variables>
+      <ee:set-variable variableName="productId" resource="variables/set-productId-variable.dwl" />
+    </ee:variables>
+  </ee:transform>
+  <try doc:name="Try" transactionalAction="ALWAYS_BEGIN">
+    <db:delete config-ref="MySQL_Configuration" doc:name="Delete Product">
+      <db:sql>delete from product where id=:productId</db:sql>
+      <db:input-parameters><![CDATA[#[{'productId' : vars.productId}]]]></db:input-parameters>
+    </db:delete>
+  </try>
+  <ee:transform doc:name="Set 204 HTTP Status code">
+    <ee:message />
+    <ee:variables>
+      <ee:set-variable variableName="httpStatus" resource="variables/set-httpStatus-with-204.dwl" />
+    </ee:variables>
+  </ee:transform>
+</flow>
+----
+
+.Studio 7 の delete-product-flow
+image::m4-apikit-based-example-delete-product-flow.png[Studio 7 の delete-product-flow]
+
+== バックエンドフローの移行
+
+// Now do the same for the next migrated feature, and so on.
+バックエンドフローの移行方法
+
+APIkit によって生成された各バックエンドフローの実装に `flow-ref` を追加します。
++
+.Studio 6 のバックエンドフローの設定 XML。
+[source,xml,linenums]
+----
+<flow name="get:/product:api-config">
+  <flow-ref name="get-products-flow" doc:name="get-products-flow" />
+</flow>
+<flow name="get:/product/{id}:api-config">
+  <flow-ref name="get-product-by-id-flow" doc:name="get-product-by-id-flow" />
+</flow>
+<flow name="post:/product:application/json:api-config">
+  <flow-ref name="post-product-flow" doc:name="post-product-flow" />
+</flow>
+<flow name="delete:/product/{id}:api-config">
+  <flow-ref name="delete-product-flow" doc:name="delete-product-flow" />
+</flow>
+<flow name="put:/product/{id}:application/json:api-config">
+  <flow-ref name="put-product-flow" doc:name="put-product-flow" />
+</flow>
+----
++
+// Explain what changed for Mule 4 in Studio 7, including any different modules, component you needed to use.
++
+.Studio 7 のバックエンドフローの設定 XML。
+[source,xml,linenums]
+----
+<flow name="get:\product:api-product-config">
+  <flow-ref name="get-products-flow" doc:name="get-products-flow" />
+</flow>
+<flow name="get:\product\(id):api-product-config">
+  <flow-ref doc:name="get-product-by-id-flow" name="get-product-by-id-flow"/>
+</flow>
+<flow name="post:\product:application\json:api-product-config">
+  <flow-ref name="post-product-flow" doc:name="post-product-flow" />
+</flow>
+<flow name="delete:\product\(id):application\json:api-product-config">
+  <flow-ref doc:name="delete-product-flow" doc:id="38894873-9a01-4e59-8362-5eefce5ea043" name="delete-product-flow"/>
+</flow>
+<flow name="put:\product\(id):application\json:api-product-config">
+  <flow-ref doc:name="put-product-flow" doc:id="e64cf378-26a2-4435-8d0d-269c50282b3c" name="put-product-flow"/>
+</flow>
+----
+
+== デフォルトの APIkit グローバル例外戦略の拡張
+
+// Now do the same for the next migrated feature, and so on.
+
+. `APP:NOT_FOUND` 例外種別を ApiKit で生成された 404 マッピングに追加し、`get-product-by-id-flow` の `validation:is-true` 要素によってスローされた例外を処理します。特定の状況コードにマップするその他のエラーに対してこのプロセスを繰り返すことができます。
++
+.Studio 6 の ApiKit による 404 へのマッピングの設定 XML。
+[source,xml,linenums]
+----
+<apikit:mapping statusCode="404">
+  <apikit:exception value="org.mule.module.apikit.exception.NotFoundException" />
+  <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+  <set-payload value="{ &quot;message&quot;: &quot;Resource not found&quot; }" doc:name="Set Payload" />
+</apikit:mapping>
+----
++
+.Studio 7 の ApiKit による 404 へのマッピングの設定 XML。
+[source,xml,linenums]
+----
+<on-error-propagate type="APIKIT:NOT_FOUND, APP:NOT_FOUND" doc:name="On Error Propagate" enableNotifications="true" logException="true">
+  <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd" doc:id="70f893cb-6106-42d9-9a95-e201e9349159">
+    <ee:message>
+      <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+    </ee:message>
+    <ee:variables>
+      <ee:set-variable variableName="httpStatus"><![CDATA[404]]></ee:set-variable>
+    </ee:variables>
+  </ee:transform>
+</on-error-propagate>
+----
++
+. まだ管理されていないすべての例外に、汎用の ApiKit による 500 へのマッピングを追加します。
++
+.Studio 6 の汎用の ApiKit による 500 へのマッピングの設定 XML。
+[source,xml,linenums]
+----
+<apikit:mapping-exception-strategy name="api-apiKitGlobalExceptionMapping">
+  <!-- other exception strategies here -->
+  <apikit:mapping statusCode="500">
+    <apikit:exception value="java.lang.Exception" />
+    <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+    <set-payload value="{ &quot;message&quot;: &quot;Internal Server Error&quot; }" doc:name="Set Payload" />
+  </apikit:mapping>
+</apikit:mapping-exception-strategy>
+----
++
+// Explain what changed for Mule 4 in Studio 7, including any different modules, component you needed to use.
++
+.Studio 7 の汎用の ApiKit による 500 へのマッピングの設定 XML。
+[source,xml,linenums]
+----
+<error-handler>
+  <!-- other exception strategies here -->
+  <on-error-propagate doc:name="On Error Propagate" enableNotifications="true" logException="true">
+    <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd" doc:id="7e8049ff-cae6-4937-8569-c36bb7f06dad">
+      <ee:message>
+        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Internal Server Error"}]]></ee:set-payload>
+      </ee:message>
+      <ee:variables>
+        <ee:set-variable variableName="httpStatus"><![CDATA[500]]></ee:set-variable>
+      </ee:variables>
+    </ee:transform>
+  </on-error-propagate>
+</error-handler>
+----

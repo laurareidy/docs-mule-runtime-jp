@@ -1,0 +1,91 @@
+= Mule を使用したエンタープライズインテグレーションパターンの理解
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+エンタープライズインテグレーションパターンとは、特定のコンテキストで繰り返し発生する問題に対して効果が認められているソリューションです。このパターンは、メッセージングシステムやインテグレーションシステムの設計とビルドのフレームワークと、ソリューションのアーキテクト設計時のチームの共通言語を提供します。
+
+Mule では、Gregor Hohpe と Bobby Woolf が執筆した『Enterprise Integration Patterns (エンタープライズインテグレーションパターン)』に示されているパターンのほとんどをサポートします。
+
+これらのパターンを実装することで、インテグレーションの構築に必要な労力を軽減します。これらのよく知られたパターンを使用してソリューションを設計し、Mule でも同じパターンを使用するように設定することができます。
+
+
+== エンタープライズインテグレーションパターンと Mule オブジェクトとのマッピング
+
+Mule オブジェクトに直接マッピングできるパターンがあります。Mule オブジェクトにマッピングされるエンタープライズインテグレーションパターンを下表に示します。
+
+=== インテグレーションスタイル
+
+[%header,cols="2*"]
+|===
+|パターン |Mule オブジェクトへのマッピング
+|ファイル転送 |xref:connectors::file/file-connector.adoc[ファイルコネクタ]
+|共有データベース |xref:connectors::db/db-connector-index.adoc[データベースコネクタ]
+|リモートプロシージャ呼び出し | Mule API が同様に機能します (または外部 API に要求を出します)。
+|メッセージング |Mule はメッセージングを完全にサポートします。
+|===
+
+
+=== メッセージングシステム
+
+[%header,cols="2*"]
+|===
+|パターン |Mule オブジェクトへのマッピング
+|メッセージチャネル |Mule は、フロー内のメッセージプロセッサを接続するメッセージチャネルを提供しています。
+|パイプとフィルタ |フローでは、パイプおよびフィルタアーキテクチャを実装しています。
+|メッセージルータ |xref:about-components.adoc#flow-control-routers[メッセージルータ]。
+|メッセージトランスレータ |xref:transform-component-about.adoc[メッセージトランスフォーマ]。
+|メッセージエンドポイント | xref:mule-sdk::sources.adoc[メッセージソース]とxref:mule-sdk::operations.adoc[操作]。
+|===
+
+=== メッセージングチャネル
+
+[%header,cols="2*"]
+|===
+|パターン |Mule オブジェクトへのマッピング
+|ポイントツーポイントチャネル |フロー内のデフォルトチャネル。
+|メッセージバス |Mule はメッセージバスです。
+|保証された配信 | xref:reliability-patterns.adoc[信頼性パターン]を使用。
+|===
+
+=== メッセージ構築
+
+[%header,cols="2*"]
+|===
+|パターン |Mule オブジェクトへのマッピング
+|イベントメッセージ | Mule は、他のアプリケーションやプロセッサからのイベント送信を行います。
+|要求応答 | 要求-応答操作を実行できるコネクタ、またはxref:reliability-patterns.adoc[信頼性パターン]を使用。
+|===
+
+=== メッセージルーティング
+
+[%header,cols="2*"]
+|===
+|パターン |Mule オブジェクトへのマッピング
+|クライアントベースルータ |xref:choice-router-concept.adoc[Choice ルータ]。
+|メッセージ検索条件 |  xref:connectors::validation/validation-connector.adoc[検証モジュール]。
+|動的ルーティング| xref:about-components.adoc#flow-control-routers[メッセージルータ]。
+|Scatter Gather | xref:scatter-gather-concept.adoc[Scatter-Gather ルータ]。
+|スプリッタ | xref:for-each-scope-concept.adoc[foreach スコープ]、xref:parallel-foreach-scope.adoc[parape]、およびxref:batch-processing-concept.adoc[バッチ]。
+|集約 | xref:connectors::aggregator/aggregators-module.adoc[アグリゲータモジュール]。
+|===
+
+=== メッセージトランスフォーメーション
+
+[%header,cols="2*"]
+|===
+|パターン |Mule オブジェクトへのマッピング
+|コンテンツエンリッチャー |xref:target-variables.adoc[対象変数]。
+|===
+
+=== メッセージングエンドポイント
+
+必要に応じてエンドポイントをトランザクションとして宣言できます。
+
+[%header,cols="2*"]
+|===
+|パターン |Mule オブジェクトへのマッピング
+|ポーリングコンシューマ | xref:mule-sdk::sources.adoc[メッセージソース]。
+|トランザクションクライアント | xref:transaction-management.adoc[トランザクションの管理]。
+|羃等性レシーバ | xref:sources-reference.adoc#redelivery-policy[再配信ポリシー]。
+|===

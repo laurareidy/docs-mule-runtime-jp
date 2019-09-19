@@ -1,0 +1,136 @@
+= DataWeave を使用した型の強制
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, esb, 変換, トランスフォーマ, 形式, 集約, 名前変更, 分割, 変換の絞り込み, xml, json, csv, pojo, java オブジェクト, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング
+
+DataWeave では、`as` 演算子を使用して、型を別の型に強制的に変換できます。型強制は実行時に適用されます。
+
+期待される型に一致しないプロパティを演算子に提供した場合、DataWeave は、自動的に、提供されたプロパティを必須の型に強制的に変換しようとします。
+
+== 型強制のための DataWeave 型の定義
+
+この DataWeave 例では、`String` 型を使用して型 `Currency` を定義し、Java DecimalFormat パターン (`##`) を使用して値を書式設定し、`as` を使用して `price` 値を `Currency` 型に強制的に変換します。
+
+.入力
+[source,xml,linenums]
+----
+<items>
+    <item>
+        <price>22.30</price>
+    </item>
+    <item>
+        <price>20.31</price>
+    </item>
+</items>
+----
+
+.DataWeave
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+type Currency = String { format: "\$#,###.00"}
+---
+books: payload.items.*item map
+    book:
+        price: $.price as Currency
+----
+
+.出力
+[source,json,linenums]
+----
+{
+  "books": [
+    {
+      "book": {
+        "price": "22.44"
+      }
+    },
+    {
+      "book": {
+        "price": "20.31"
+      }
+    }
+  ]
+}
+----
+
+//TODO: PROB RELATES TO R
+// In Anypoint Studio, you can define several more values, like separators, quotation marks, and escape characters.
+
+== 型強制表
+
+次の表は、可能な組み合わせと、変換で使用するスキーマからのプロパティを示しています。
+
+[cols="1,1,2", options="header"]
+|===
+|変換元           |変換先           | プロパティ
+|`Range`          |`Array`          |
+|`Number`         |`Binary`         |
+|`String`         |`Binary`         |
+|`String`         |`Boolean`        |
+|`Number`         |`DateTime`       | `unit`
+|`LocalDateTime`  |`DateTime`       |
+|`String`         |`DateTime`       | `format` / `locale`
+|`DateTime`       |`LocalDate`      |
+|`LocalDateTime`  |`LocalDate`      |
+|`String`         |`LocalDate`      | `format` / `locale`
+|`DateTime`       |`LocalDateTime`  |
+|`String`         |`LocalDateTime`  | `format` / `locale`
+|`DateTime`       |`LocalTime`      |
+|`LocalDateTime`  |`LocalTime`      |
+|`Time`           |`LocalTime`      |
+|`String`         |`LocalTime`      | `format` / `locale`
+|`DateTime`       |`Number`         | `unit`
+|`String`         |`Number`         | `format` / `locale`
+|`String`         |`Period`         |
+|`String`         |`Regex`          |
+|`DateTime`       |`String`         | `format` / `locale`
+|`LocalDateTime`  |`String`         | `format` / `locale`
+|`LocalTime`      |`String`         | `format` / `locale`
+|`LocalDate`      |`String`         | `format` / `locale`
+|`Time`           |`String`         | `format` / `locale`
+|`Period`         |`String`         |
+|`TimeZone`       |`String`         |
+|`Number`         |`String`         | `format` / `locale`
+|`Boolean`        |`String`         |
+
+|`Range`
+|`String`
+| `,` を区切り文字として使用して、範囲のすべての値を含む文字列を返します。
+
+|`Type`          |`String`         |
+|`DateTime`      |`Time`           |
+|`LocalDateTime` |`Time`           |
+|`LocalTime`     |`Time`           |
+|`String`        |`Time`           | `format`
+|`DateTime`      |`TimeZone`       |
+|`Time`          |`TimeZone``      |
+|`String`        |`TimeZone`       |
+|===
+
+
+=== 型強制のプロパティ
+
+[cols="1,1,2", options="header"]
+|===
+|プロパティ | 説明
+| `class`
+| Object (オブジェクト) 型の Java クラスを受け入れます。
+
+|`format`
+| 数値と日付を書式設定するための Java `DecimalFormat` パターンを受け入れます。
+
+| `locale`
+| Java ロケールを受け入れます。Java `Locale` オブジェクトは地域 (地理的、政治的、または文化的) を表します。
+
+| `unit`
+| 値には `milliseconds` または `seconds` を使用できます。これは、Number (数値) から DateTime (日時) への変換で使用されます。
+|===
+
+// (1) Returns an array with all the values of the object.
+
+== 関連情報
+
+xref:dataweave-formats.adoc[DataWeave の出力形式とライタープロパティ]

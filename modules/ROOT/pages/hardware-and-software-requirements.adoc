@@ -1,0 +1,46 @@
+= ハードウェアおよびソフトウェアの要件
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Mule, 要件, jdk, インストール
+
+Mule をオンプレミスでインストールして実行する場合は、インストール前にハードウェアとソフトウェアの最小要件を確認します。
+
+== 最小ハードウェア要件
+
+* 2 GHz の CPU または仮想環境の 1 仮想 CPU。
+* 1 GB の RAM。
+* 4 GB のストレージ。
+
+レイテンシ要件と、アプリケーションで処理する同時メッセージのサイズおよび数に合わせて、RAM を調整します。
+
+== 必須ソフトウェア
+
+Mule をインストールする前に、サポートされているバージョンの Java を使用していることを確認してください。
+
+[%header,cols="15a,85a"]
+|===
+|ソフトウェア |バージョン
+| JDK | JDK 1.8.0 (1.8.0_202 推奨)
+|===
+
+== サポート対象のソフトウェア
+
+Mule は、サポート対象の Java Runtime Environment (JRE) を実行するすべてのオペレーティングシステムで動作します。Mule Runtime Engine は、次のソフトウェアおよびオペレーティングシステムに対する機能テストに合格しました。
+
+|===
+|ソフトウェア |バージョン
+| OS | MacOS 10.11.x、HP-UX 11i V3、AIX 7.2、Windows 2016 Server (推奨)、Windows 2012 R2 Server、Windows 10 (推奨)、Windows 8.1、Solaris 11.3、RHEL 7、Ubuntu Server 18.04、Linux Kernel 3.13+
+| JDK | JDK 1.8.0、JDK 11
+|===
+
+[NOTE]
+Mule は他のソフトウェアおよびオペレーティングシステムと連携できますが、それらはテストされていません。MuleSoft は、テストされたソフトウェアおよびオペレーティングシステムのバージョンで Mule を実行することをお勧めします。
+
+このバージョンの Mule Runtime は Runtime Manager エージェントプラグインバージョン 2.1.9 にバンドルされています。
+
+
+== 関連情報
+
+* xref:1.5@private-cloud::system-requirements.adoc[Anypoint Private Cloud の最小システム要件について]
+//* http://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html[Java Cryptography Extension (JCE) 8]

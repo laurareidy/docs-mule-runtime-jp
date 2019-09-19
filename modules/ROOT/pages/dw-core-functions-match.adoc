@@ -1,0 +1,69 @@
+= match
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[match1]]
+== match&#40;String, Regex&#41;: Array<String&#62;
+
+Java 正規表現 (regex) を使用して文字列を照合して各キャプチャグループに分割します。結果を配列で返します。
+
+
+`match` は、&#8203;https://docs.mulesoft.com/mule-runtime/4.2/dataweave-pattern-matching[case ステートメント]を含むパターン一致式で使用できます。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `text` | 文字列。
+| `matcher` | `text` 内の文字を照合する Java 正規表現。
+|===
+
+=== 例
+
+次の例の正規表現は入力のメールアドレスを照合し、括弧内に 2 つのキャプチャグループ (`@` の前と後) を含みます。結果は要素の配列です。1 つ目は正規表現全体と一致し、2 つ目は正規表現内の最初のキャプチャグループ (`[a-z]*`) と一致し、3 つ目は最後のキャプチャグループ (`[a-z]*`) と一致します。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+(upper("me@mulesoft.com") match /([a-z]*)@([a-z]*).com/)
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+[ "me@mulesoft.com", "me", "mulesoft" ]
+----
+
+=== 例
+
+次の例では、末尾が `4` である配列内の値への一致を出力します。これは `flatMap` を使用して、リストを反復処理し、フラット化します。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+var a = '192.88.99.0/24'
+var b = '192.168.0.0/16'
+var c = '192.175.48.0/24'
+output application/json
+---
+[ a, b, c ] flatMap ( $ match(/.*[$4]/) )
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+[  "192.88.99.0/24", "192.175.48.0/24" ]
+----
+

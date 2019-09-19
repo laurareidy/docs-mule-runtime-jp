@@ -1,0 +1,149 @@
+= Transform Message コンポーネント XML リファレンス
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, esb, 変換, トランスフォーマ, 形式, 集約, 名前変更, 分割, 変換の絞り込み, xml, json, csv, pojo, java オブジェクト, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング
+
+Studio UI を使用して Mule プロジェクトに DataWeave 言語を取り込むだけではなく、Studio の [XML] タブまたは外部エディタで、Transform Message コンポーネントをすべて XML で作成して設定することができます。
+
+UI を使用して要素を作成および設定すると、対応する XML 設定が XML エディタで自動的に作成されます。
+
+== 名前空間とスキーマの場所
+
+Mule プロジェクトの最初に、次の連動関係を取り込む必要があります。
+
+[source,xml,linenums]
+----
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      ...
+      xsi:schemaLocation="
+      ...
+      http://www.mulesoft.org/schema/mule/ee/core
+      http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+</mule>
+----
+
+Transform コンポーネントをキャンバスにドラッグアンドドロップすると、Studio はこれらの連動関係を自動的に追加します。
+
+== &#60;ee:transform/&#62;
+
+`<ee:transform>` 要素は、Transform コンポーネントのトップレベル XML タグです。
+
+[%header,cols="30a,70a"]
+|===
+| `<ee:transform>` 属性 | 説明
+| `doc:name` | Studio キャンバスに表示される要素の名前を定義します。
+| `mode` | xref:dataweave-memory-management.adoc#deferred-execution[遅延実行]を参照します。指定できる値: `immediate` または `deferred`。xref:dataweave-memory-management.adoc[DataWeave のメモリ管理]を参照してください。
+|===
+
+== Transform コンポーネントへの DataWeave スクリプトの追加
+
+<<transformation,変換>>要素内で `CDATA` を使用して DataWeave コードを入力するか、または外部の `.dwl` ファイルを参照できます。
+
+この例では、`<dw:set-payload>` 変換要素内で DataWeave スクリプトを作成しています。
+
+[source,xml,linenums]
+----
+<ee:transform doc:id="747f74d4-cb66-4f8e-8222-24784e6863ae"
+  doc:name="Transform" doc:timestamp="1510861248434">
+    <ee:message>
+        <ee:set-payload>
+          <![CDATA[%dw 2.0
+            output application/json
+            ---
+            {
+              // YOUR DW SCRIPT
+            }
+          ]]>
+       </ee:set-payload>
+    </ee:message>
+</ee:transform>
+----
+
+次の例では、外部の `.dwl` ファイルを呼び出して同じ設定を行っています。
+
+[source,xml,linenums]
+----
+<ee:transform doc:id="747f74d4-cb66-4f8e-8222-24784e6863ae"
+  doc:name="Transform" doc:timestamp="1510861248434" doc:mode="immediate">
+    <ee:message>
+      <ee:set-payload resource="transform.dwl" />
+    </ee:message>
+</ee:transform>
+----
+
+これらのファイルは、デフォルトではプロジェクトの `src/main/resources` フォルダにあります。
+
+[[transformations]]
+== 変換
+
+単一の Transform コンポーネント要素 (`<ee:transform/>`) で、Mule イベントのすべての部分の内容を指定できます。
+
+* `<ee:message/>` には、`<ee:set-payload/>` と `<ee:set-attributes/>` を定義できます。
+* `<ee:variables/>` には、1 つまたは複数の `<ee:set-variable/>` 要素を定義できます。
+
+.例
+[source,xml,linenums]
+----
+<ee:transform doc:id="747f74d4-cb66-4f8e-8222-24784e6863ae"
+  doc:name="Transform" doc:timestamp="1510861248434">
+    <ee:message>
+        <ee:set-payload resource="transform.dwl" />
+        <ee:set-attributes resource="myattributes.dwl" />
+    </ee:message>
+    <ee:variables>
+        <ee:set-variable variableName="myVar" resource="myvar.dwl"/>
+    </ee:variables>
+</ee:transform>
+----
+
+子要素には、同じ属性の一部を定義できます。
+
+[%header,cols="30a,70a"]
+|===
+| 属性 | 説明
+| `resource` | DataWeave 変換スクリプトが格納された `.dwl` ファイルを参照します。これらの値は静的に解決されます。たとえば、`<ee:set-payload resource="myscript-${env}.dwl"/>` を使用すると Transform Message UI で `Unexpected end of input, expected header or content` というエラーが発生します。
+|	`variableName` | 出力変数専用で、変数の名前を定義します。
+|===
+
+
+== 完全な XML の例
+
+ペイロード、属性、および変数の変換を作成する例です。
+
+[source,xml,linenums]
+----
+<ee:transform doc:id="747f74d4-cb66-4f8e-8222-24784e6863ae"
+  doc:name="Transform" doc:timestamp="1510861248434">
+    <ee:message>
+        <ee:set-payload><![CDATA[%dw 2.0
+
+output application/json
+---
+(payload map (value0, index0) -> {
+id: value0.id,
+username: value0.username,
+address: {
+street: value0.address.street
+},
+website: value0.website
+})]]></ee:set-payload>
+        <ee:set-attributes><![CDATA[%dw 2.0
+
+output application/json
+---
+{
+reasonPhrase: attributes.reasonPhrase
+}]]></ee:set-attributes>
+    </ee:message>
+    <ee:variables>
+        <ee:set-variable variableName="myVar"><![CDATA[%dw 2.0
+
+output application/json
+---
+{
+a: payload[0].phone
+}]]></ee:set-variable>
+    </ee:variables>
+</ee:transform>
+----

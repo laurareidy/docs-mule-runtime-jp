@@ -1,0 +1,46 @@
+= wait
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[wait1]]
+== wait&#40;T, Number&#41;: T
+
+指定されたタイムアウト (ミリ秒) の間、実行を停止します。
+
+
+WARNING: 実行を停止すると、使用されているスレッドがブロックされるため、遅延が発生したり、パフォーマンスが低下したり、ランタイム全体がフリーズしたりする可能性があります。この操作は、制限された機能テストを目的とするものであり、本番アプリケーションやパフォーマンステストで使用したり、デプロイされた複数のアプリケーションで使用したりしないでください。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `value` | 任意の型の入力。
+| `timeout` | 待機する時間 (ミリ秒)。
+|===
+
+=== 例
+
+次の例では、2000 ミリ秒 (2 秒) の間、実行を待機します。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+import * from dw::Runtime
+output application/json
+---
+{ "user" : 1 } wait 2000
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "user": 1 }
+----
+

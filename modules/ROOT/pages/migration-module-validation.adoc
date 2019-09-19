@@ -1,0 +1,225 @@
+= 検証モジュールの移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+// sme: MG, author: ndinu
+
+// Explain generally how and why things changed between Mule 3 and Mule 4.
+Mule 4 の検証モジュールは、Mule 3 の検証モジュールと非常に似ています。これらのメジャーバージョン間で最も大きな影響を受けたのは、エラー処理と式のサポートでした。
+Mule 4 拡張機能では、別の方法でエラー種別を使用してエラーを宣言するので、エラー処理が異なります。式に関しては、Mule 4 では MEL 式がサポートされるのは互換性のあるモジュール内のみで、それ以外の式はすべて DataWeave 式にする必要があります。
+
+このセクションの内容
+
+* <<errors>>
+* <<functions>>
+* <<all_scope>>
+* <<custom_validator>>
+
+[[errors]]
+== エラーの種類
+Mule 3 の検証モジュールは、検証中に失敗すると同じ例外または設定された例外をスローします。ユーザはエラーに応じたメッセージをカスタマイズできます。一方、Mule 4 では、モジュールが独自のエラー種別を宣言します。このモジュールの場合、検証操作には、失敗した検証の種別を暗黙に示すさまざまなエラー種別があります。`all` スコープの場合、`all` スコープの内側で失敗した検証に関係なく、種別は *VALIDATION:MULTIPLE* です。エラーメッセージをカスタマイズするか、デフォルトのエラーメッセージを使用できます。
+
+以下の例は、変数 email が有効なメールでない場合に失敗するバリデータを示しています。
+
+.Mule 3 の例
+[source,xml,linenums]
+----
+<validation:is-email email="#[flowVars.email]" message="The value is not a valid email"/>
+----
+
+この検証が失敗すると、*ValidationException* がスローされます。
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<validation:is-email email="#[vars.email]" message="The value is not a valid email"/>
+----
+
+この検証が失敗すると、エラーの種別は *VALIDATION:INVALID_EMAIL* になります。
+
+[[functions]]
+== MEL 式の関数から DataWeave の関数へ
+
+式で検証を実行できた Mule 3 と同じように、Mule 4 でも検証を行うことができます。
+相違点は、Mule 4 の場合、これらの検証は MEL 式ではなく DataWeave 式内でコールされることです。
+Mule 4 でサポートされている関数は `isEmail`、`matchesRegex`、`isTime`、`isNumber`、`isIp`、`isUrl` です。
+
+以下の例は、unknownVariable という変数のコンテンツが有効なメールか、有効な URL か、またはどちらでもない場合に応じて、異なる操作を実行する方法を示しています。
+
+.Mule 3 の例
+[source,xml,linenums]
+----
+<choice>
+  <when expression="#[validator.validateEmail(flowVars.unknownVariable)]">
+    <set-payload value="#[flowVars.unknownVariable + &quot; is a valid email.&quot;]"/>
+  </when>
+  <when expression="#[validator.validateUrl(flowVars.unknownVariable)]">
+    <set-payload value="#[flowVars.unknownVariable+ &quot; is a valid URL.&quot;]"/>
+  </when>
+  <otherwise>
+    <set-payload value="#[flowVars.unknownVariable + &quot; is a not a valid email or a valid url.&quot;]"/>
+  </otherwise>
+</choice>
+----
+
+MEL 式の内側でバリデータを使用して検証メソッドにアクセスしました。
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<choice>
+  <when expression="#[Validation::isEmail(vars.unknownVariable)]" >
+    <set-payload value='#[vars.unknownVariable ++ " is a valid email."]'/>
+  </when>
+  <when expression="#[Validation::isUrl(vars.unknownVariable)]" >
+    <set-payload value='#[vars.unknownVariable ++ " is a valid URL."]'/>
+  </when>
+  <otherwise >
+    <set-payload value='#[vars.unknownVariable ++ " is a not a valid email or a valid url."]'/>
+  </otherwise>
+</choice>
+----
+
+検証モジュールには、DataWeave 式内からコールされるよう宣言された関数があります。
+Mule 4 のその他の関数と同じく、これらは ExtensionName::functionName、この場合は `Validation::isEmail(vars.email)` を使用して呼び出されます。
+
+[[all_scope]]
+== All スコープの使用
+
+Mule 4 では、dsl の一部が若干変更されただけで、Mule 3 と同じように一連の検証をグループ化することができます。
+
+.Mule 3 の例
+[source,xml,linenums]
+----
+<validation:all>
+  <validation:validations>
+    <validation:is-email email="#[flowVars.email]"/>
+    <validation:matches-regex value="#[flowVars.email]" regex="^.*\.com$"/>
+    <validation:validate-size value="#[flowVars.email]" min="5" max="20"/>
+  </validation:validations>
+</validation:all>
+----
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<validation:all>
+  <validation:is-email email="#[vars.email]"/>
+  <validation:matches-regex value="#[vars.email]" regex="^.*\.com$"/>
+  <validation:validate-size value="#[vars.email]" min="5" max="20"/>
+</validation:all>
+----
+
+[[custom_validator]]
+== カスタムバリデータのビルド
+
+カスタムバリデータは、拡張機能バリデータに置き換わりました。これらのバリデータは、操作のようなものですが、常に void を返すという相違点があります。検証が失敗したことを示すために、Java メソッドは `ModuleException` とそれぞれのエラー種別をスローする必要があります。これらのバリデータを使用することで、失敗した検証をより適切に説明する独自のエラー種別を作成できます。これらを使用するユーザエクスペリエンスは、その他の操作を使用する場合と同じです。拡張機能バリデータについての詳細は、拡張機能バリデータに関するドキュメントを参照してください。
+//TODO: Redirect to Validators Documentation when ready
+
+*注意:* これらのバリデータは、`all` 検証スコープの内側でも使用できます。
+
+Mule 3 のカスタムバリデータを Mule 4 に移行する方法を見てみましょう。以下の例から、以前はイベント全体を取得し、そこから検証に必要な情報を取得していたことがわかります。
+Mule 4 の例では、バリデータに必要なパラメータのみを提供しています。
+
+.Mule 3 の例
+
+これは、dsl でカスタムバリデータがどのように記述されていたかを示しています。
+
+[source,xml,linenums]
+----
+<validation:custom-validator class="BalanceValidator"/>
+----
+
+これは、バリデータインターフェースがどのように実行されたかを示しています。検証のために取得した情報は、メッセージの特定の部分に関するものである必要がありました。この場合は、フロー変数である price と balance です。
+
+[source,java,linenums]
+----
+public class BalanceValidator implements Validator {
+  @Override
+  public ValidationResult validate(MuleEvent event) {
+    Integer price = new Integer((String) event.getMessage().getInvocationProperty("price"));
+    Integer balance = new Integer((String) event.getMessage().getInvocationProperty("balance"));
+    return new ValidationResult() {
+      @Override
+      public boolean isError() {
+        return price > balance;
+      }
+      @Override
+      public String getMessage() {
+        return "There is not enough money to make the transaction";
+      }
+    };
+  }
+}
+----
+
+.Mule 4 の例
+
+これは、Mule 4 で拡張機能バリデータを使用する方法を示しています。名前空間とタグ名から、何を検証しているのかがわかりやすくなっています。また、ここにあるパラメータは dsl の一部です。変数に設定する代わりに、ここに式を入力することができます。
+
+[source,xml,linenums]
+----
+<balance:has-sufficient-funds balance="#[vars.balance]" price="#[vars.price]"/>
+----
+
+これを実行するために、`balance` という簡単な拡張機能を作成します。
+
+[source,java,linenums]
+----
+@Operations({BalanceOperations.class})
+@Extension(name = "balance")
+@ErrorTypes(BalanceError.class)
+public class BalanceExtension {
+
+}
+----
+
+`BalanceOperations` クラスに検証メソッドを追加し、`@Validator` で注釈を付けます。このメソッドは、汎用的な検証エラー種別から取得するエラー種別をスローする必要があります。
+
+[source,java,linenums]
+----
+public class BalanceOperations {
+  @Validator
+  @Throws(BalanceErrorsProvider.class)
+  public void hasSufficientFunds(Integer balance, Integer price) throws Exception {
+    if (price > balance){
+      throw new ModuleException(BalanceError.INSUFFICIENT_FUNDS, new IllegalArgumentException("There is not enough money to make the transaction"));
+    }
+  }
+}
+----
+
+次に、検証が失敗した場合にスローされるエラーを作成します。これには検証の失敗に応じた名前が付いています。
+
+[source,java,linenums]
+----
+public enum BalanceError implements ErrorTypeDefinition<BalanceError> {
+  INSUFFICIENT_FUNDS(MuleErrors.VALIDATION);
+
+  private ErrorTypeDefinition<? extends Enum<?>> parent;
+
+  BalanceError(ErrorTypeDefinition<? extends Enum<?>> parent) {
+    this.parent = parent;
+  }
+
+  @Override
+  public Optional<ErrorTypeDefinition<? extends Enum<?>>> getParent() {
+    return Optional.ofNullable(parent);
+  }
+}
+----
+
+バリデータのメソッドには、検証がスローできるすべてのエラー種別を認識する `ErrorTypeProvider` が必要です。この場合、メソッドがスローできるエラーの種別は *BALANCE:INSUFFICIENT_FUNDS* のみであることを指定する `ErrorTypeProvider` を作成します。
+
+[source,java,linenums]
+----
+public class BalanceErrorsProvider implements ErrorTypeProvider {
+  @Override
+  public Set<ErrorTypeDefinition> getErrorTypes() {
+    HashSet<ErrorTypeDefinition> errors = new HashSet<>();
+    errors.add(BalanceError.INSUFFICIENT_FUNDS);
+    return errors;
+  }
+}
+----

@@ -1,0 +1,47 @@
+= matches
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[matches1]]
+== matches&#40;String, Regex&#41;: Boolean
+
+式が入力文字列全体に一致するかどうかを確認します。
+
+
+一致した値を出力するか、条件付きで処理する必要があるユースケースの場合は、&#8203;https://docs.mulesoft.com/mule-runtime/4.2/dataweave-pattern-matching[「DataWeave のパターンマッチング」]を参照してください。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `text` | 入力文字列。
+| `matcher` | 文字列内の文字を照合する Java 正規表現。
+|===
+
+=== 例
+
+次の例は、正規表現が入力文字列と一致するかどうかを示します。
+`matches(text,matcher)` 表記 (`matches("admin123", /a.*\d+/)` など) を使用することも
+できます。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+[ ("admin123" matches /a.*\d+/), ("admin123" matches /^b.+/) ]
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+[ true, false ]
+----
+

@@ -1,0 +1,186 @@
+= Try スコープ
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Try スコープを使用すると、Try スコープ内のコンポーネントの実行時に発生するエラーを処理できます。トランザクションもサポートします。Try スコープは、1 つまたは複数の操作をラップし、内部の操作がスローする例外をキャッチして処理します。まるで、エラー処理戦略が設定された別のフローにこれらのイベントコンポーネントを抽出したような動作となりますが、実際には新しいフローは定義せず、すべてインラインで処理を実行します。
+
+== Try スコープでのエラー処理
+
+フローを設計するときは、Try スコープの内部でエラーが発生しやすい操作をグループ化するようにしてください。Try スコープにより、フローで問題を起こす可能性のある操作を隔離して、エラー処理メソッドに割り当てることができます。また、Try スコープ内の操作をトランザクションとして処理するように設定することもできます。
+
+Try スコープはエラー処理戦略を持ち、フローのエラー処理を設定するのと同じように設定できます。
+
+Try スコープは、さまざまなエラー種別の条件を見極めて、異なる動作を適用します。Try スコープ内のコンポーネントでエラーが発生すると、Try スコープのエラーハンドラが実行されます。この時点で、エラーを調査することができ、ハンドラは状況に応じて実行および動作できます。
+
+* On Error Continue
++
+実行後に結果をコンテナ Try スコープに送信します。コンテナ Try スコープは、渡された結果を使用して実行を正常に完了します。この時点でのトランザクションはすべてコミットされます。
+* On Error Propagate
++
+すべてのトランザクションをロールバックし、実行後に結果を使用して既存のエラーを再びスローします。これにより、コンテナ Try スコープの実行は失敗します。
+
+Try スコープの設定例
+
+image::error-handling-try-scope.png[Try スコープでのエラー処理]
+
+前の例では、On Error Propagate (エラー時伝播) (`on-error-propagate`) エラーハンドラによってデータベース接続エラー (`DB:CONNECTIVITY`) が伝播されます。このエラーの伝播により、Try スコープの実行は失敗し、フローのエラーハンドラが実行されます。他のエラーは On Error Continue (エラー時続行) (`on-error-continue`) エラーハンドラによって処理されるため、これらのエラーの発生時には Try スコープの実行は成功したように扱われ、次の操作である HTTP 要求が実行を続行します。
+
+Try スコープに複数のコンポーネントがある場合、1 つのコンポーネントが例外をスローすると、例外をキャッチしたエラーハンドラの種別には関係なく、Try スコープ内の以降のコンポーネントは実行されません。On Error Propagate (エラー時伝播) の場合、まるで Try スコープが存在しないかのように、エラーがフローのエラーハンドラに伝播されます。On Error Continue (エラー時続行) の場合は、まるで Try スコープが例外をスローしなかったかのように、Try スコープ外部の次のフローコンポーネントから処理が続行します。
+
+== トランザクションの処理
+
+トランザクションとは、絶対に部分的には実行されない一連のアクションです。エラーが伝播されてトランザクションがロールバックされるか、またはエラーが処理されてトランザクションがコミットされるかによって 1 つの単位として成功または失敗を判断する複数の操作が 1 つのセットになるように Try スコープを設定します。どちらの場合でも、Try スコープが存在するプロセスフローは処理を続行します。
+
+image::error-handling-try-scope-config.png[Try スコープの設定]
+
+トランザクションアクション (`transactionalAction`) が `ALWAYS_BEGIN` または `BEGIN_OR_JOIN` に設定されている場合、Try スコープは、子操作をトランザクションとして扱います。次のように設定できます。
+
+* Ignore (無視) (`INDIFFERENT`)
++
+デフォルト。トランザクションが有効であれば、スコープがトランザクションに結合します。そうでない場合は、スコープはトランザクションを作成しません。
+
+* Always Begin (常に開始) (`ALWAYS_BEGIN`)
++
+スコープを実行する度に、新しいトランザクションが開始されます。
+
+* Begin or Join (開始または結合) (`BEGIN_OR_JOIN`)
++
+実行順序が (フロー外で発生する非同期アクションなどによって) 変化する場合にのみ適用されます。
+フローの現在の処理ですでにトランザクションが開始されている場合は、スコープはそのトランザクションに結合します。そうでない場合は、スコープは新しいトランザクションを開始します。
+
+=== Try スコープでの異なるトランザクションアクションの分析
+
+次の例は、フローレベルでトランザクションを開始するように設定された `jms:listener` 操作、トランザクションを (設定に従って) 開始または結合しようとする Try スコープ、そしてトランザクションの外部で実行するように設定された `jms:publish` 操作を示しています。
+
+[source,xml,linenums]
+----
+<flow name="someFlow">
+	<jms:listener config-ref="JMS_Config" destination="test.in" transactionalAction="ALWAYS_BEGIN"/>
+	<!-- Processors -->
+	<try transactionalAction="${action}">
+		<!-- Processors -->
+		<!-- Join if possible is the default value for jms:publish operation -->
+		<jms:publish config-ref="JMS_Config" destination="test.out" transactionalAction="NOT_SUPPORTED"/>
+		<raise-error type="APP:SOME"/>
+		<!-- More Processors -->
+	</try>
+	<!-- Processors -->
+</flow>
+----
+
+Try スコープ内の操作でエラーが発生しなければ、設定されている `transactionalAction` 値には関係なく、スコープは実行を完了してトランザクションをコミットします。
+
+`<raise-error/>` コンポーネントが追加されると、Try スコープの `transactionalAction` によってトランザクションとメッセージの処理方法が変わります。
+
+* Ignore (無視) (`INDIFFERENT`)
++
+この場合は、Try スコープ内で操作を実行しながらトランザクションが継続します。エラーが発生すると、ソースに伝播されます (`<on-error-continue>` エラーハンドラでは処理しません)。トランザクションがロールバックされ、メッセージが JMS キューで再び使用できるようになります。このロールバックは、すでに完了している `jms:publish` 操作には影響しません。`transactionAction` が デフォルトの `NOT_SUPPORTED` に設定されているため、この操作はトランザクションスコープの外部となります。
++
+`transactionAction` が `JOIN_IF_POSSIBLE` に設定されていれば、`jms:publish` 操作もロールバックされます。
++
+* Always Begin (常に開始) (`ALWAYS_BEGIN`)
++
+有効なトランザクションがすでに存在するため、エラーが発生します。
+* Begin or Join (開始または結合) (`BEGIN_OR_JOIN`)
++
+この場合は、すでにトランザクションが開始されているため、スコープは有効なトランザクションに結合します。結果は `INDIFFERENT` の場合と同じです。
+
+==== フローレベルでのエラーハンドラ
+
+次の例では、エラーハンドラをフローレベルで追加しています。
+
+[source,xml,linenums]
+----
+<flow name="someFlow">
+	<jms:listener config-ref="JMS_Config" destination="test.in" transactionalAction="ALWAYS_BEGIN"/>
+	<!-- Processors -->
+	<try transactionalAction="${action}">
+		<!-- Processors -->
+		<!-- Join if possible is the default value for jms:publish operation -->
+		<jms:publish config-ref="JMS_Config" destination="test.out"/>
+		<raise-error type="APP:SOME"/>
+		<!-- More Processors -->
+	</try>
+	<!-- Processors -->
+	<error-handler>
+		<on-error-continue/>
+	</error-handler>
+</flow>
+----
+
+この例の動作は次のようになります。
+
+* Ignore (無視) (`INDIFFERENT`)
++
+トランザクションは続行します。エラーは `on-error-continue` エラーハンドラで処理されるため、トランザクションはコミットされます。`jms:listener` ソースから読み出されたメッセージはコンシュームされ、`jms:publish` 操作で処理されたメッセージが実際に送信されます。
+* Always Begin (常に開始) (`ALWAYS_BEGIN`)
++
+有効なトランザクションがすでに存在するため、エラーが発生します。
+* Begin or Join (開始または結合) (`BEGIN_OR_JOIN`)
++
+`INDIFFERENT` と同じ動作となります。
+
+==== Try スコープ内のエラーハンドラ
+
+この場合は、エラーハンドラが Try スコープ内にあり、スコープの実行後にエラーが発生します。
+
+[source,xml,linenums]
+----
+<flow name="someFlow">
+	<jms:listener config-ref="JMS_Config" destination="test.in" transactionalAction="ALWAYS_BEGIN"/>
+	<!-- Processors -->
+	<try transactionalAction="${action}">
+		<!-- Processors -->
+		<!-- Join if possible is the default value for jms:publish operation -->
+		<jms:publish config-ref="JMS_Config" destination="test.out"/>
+		<!-- More Processors -->
+		<!-- There could be a component that raises an error, it will be handled by the error handler -->
+		<error-handler>
+			<on-error-continue/>
+		</error-handler>
+	</try>
+	<!-- Processors -->
+	<raise-error type="APP:SOME"/>
+</flow>
+----
+
+設定されている `transactionalAction` に従って、Try スコープ内の動作は次のいずれかになります。
+
+* Ignore (無視) (`INDIFFERENT`)
++
+トランザクションは続行しますが、エラーはフローレベルの `on-error-continue` では処理されないため、トランザクションがロールバックされ、メッセージは送信されません。
+* Always Begin (常に開始) (`ALWAYS_BEGIN`)
++
+有効なトランザクションがすでに存在するため、エラーが発生します。
+* Begin or Join (開始または結合) (`BEGIN_OR_JOIN`)
++
+`INDIFFERENT` と同じ動作となります。
+
+=== ローカルまたは XA トランザクションの設定
+
+トランザクションアクションの設定に加えて、トランザクション種別をローカル (単一リソース) または XA トランザクションに設定できます。
+
+トランザクション種別を設定するときは、トランザクションの実行中は種別を変更できないという点を考慮する必要があります。つまり、Try スコープは、新しいトランザクションが作成された時点でのトランザクション種別のみを使用します。
+
+動作はトランザクションアクションごとに変わります。
+
+* Ignore (無視) (`INDIFFERENT`)
++
+すでに作成されているトランザクションを使用します (存在する場合)。このトランザクションアクションでは、トランザクション種別を設定しても何も変わりません。
+* Always Begin (常に開始) (`ALWAYS_BEGIN`)
++
+トランザクションは、トランザクション種別設定で指定されている種別で作成されます。単一リソーストランザクション内での実行中は、`ALWAYS_BEGIN` は無効な設定になることを忘れないでください。
+* Begin or Join (開始または結合) (`BEGIN_OR_JOIN`)
++
+トランザクションがすでに作成されていれば、`INDIFFERENT` の場合と同じように、トランザクション種別を設定しても何も変わりません。トランザクションが存在しない場合は、`ALWAYS_BEGIN` の場合と同じように、トランザクション種別で指定されている種別のトランザクションが作成されます。
+
+== 変数とペイロードの伝播
+
+ペイロードを変更したり、変数を追加、変更、または削除したりすると、実行の残りの部分に伝播されます。エラーハンドラ内での変更も伝播されます。
+
+== 関連情報
+
+* xref:try-scope-xml-reference.adoc[Try スコープ XML リファレンス]
+* xref:error-handling.adoc[エラー処理]
+* xref:transaction-management.adoc[トランザクションの管理]

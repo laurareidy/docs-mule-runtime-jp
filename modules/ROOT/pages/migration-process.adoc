@@ -1,0 +1,39 @@
+= 移行プロセスについて
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+// Contacts/SMEs: Andres Alleva
+
+//TODO: LINK TO MULE 4 SECTIONS FOR ALL THESE STEPS.
+移行のための準備方法がわかったら、次に移行ステップの概要を理解することが重要です。
+
+. データベースコネクタなどの必要なすべてのモジュールを Anypoint Studio 7 パレットに追加します。
++
+注意:
++
+* モジュールは Studio 7 パレットから追加できます。他に、Anypoint Exchange で入手できるモジュールもあります。
++
+* モジュールをプロジェクトに追加する場合、すべての Mule プロジェクトはデフォルトで Maven に対応しています。
++
+. すべてのグローバル設定を移行します。
+. 設定プロパティを移行します。
++
+// .yaml or .properties. Include link to properties config in Mule 4.
++
+. Mule 4 でこのコンポーネントがどのように機能するかを把握し、Mule 3 から何が変更されたかを確認します。
+. Mule メッセージ構造 (属性、ペイロード、変数) に対する変更が自分の設定にどのような影響を与えるかを理解します。xref:intro-mule-message.adoc[「Mule 4 入門: Mule メッセージ」]を参照してください。
+. 式およびスクリプトを DataWeave バージョン 2 に更新します。
+** 特定の関数モジュールのインポートなど、DataWeave 1 と DataWeave 2 の違いに注意して、構文の変更を理解します。xref:migration-dataweave.adoc[「DataWeave 1.0 から 2.x への移行」]を参照してください。
++
+// TODO: ASK ABOUT MIGRATION TOOL, TASK TO MIGRATE SCRIPTS FROM 1.0 TO 2.
++
+** たとえばコネクタや Choice コンポーネントで MEL 式を DataWeave 2 に変更します。xref:migration-mel.adoc[「MEL の DataWeave への移行」]を参照してください。
+. 使用可能な新しい例外種別で処理するすべての例外を Mule 4 に更新します。
+. API を使用している場合は、HTTP ステータスコードの設定方法を理解します。
+
+== 関連情報
+
+xref:migration-prep.adoc[移行の準備]
+
+xref:intro-overview.adoc[Mule 4 の概要]

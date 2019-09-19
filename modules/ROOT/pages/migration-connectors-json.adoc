@@ -1,0 +1,134 @@
+= JSON モジュールの移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+スキーマ検証用に Mule 3 にバンドルされていた JSON モジュールが、Mule 4 で新しい JSON モジュールに置き換わります。
+
+JSON を使用する変換を移行するには、DataWeave を使用することをお勧めします。
+
+[[transformers]]
+== トランスフォーマの移行
+
+Mule 3 の場合、多くのコンポーネントでは、項目にアクセスできるようペイロードは POJO である必要がありました。Mule 4 では、JSON ペイロードで直接 DataWeave をクエリ言語として使用し、ペイロードを中間ステップとして POJO に変換する必要性を完全に回避できます。
+
+`json:json-to-object-transformer` に設定されるマッピングルールの場合は、DataWeave でルールを記述できます。
+
+Mule 3 の場合:
+
+.Mule 3 の例: マッパー設定で使用される Mixin
+[source,java,linenums]
+----
+public abstract class AppleMixin
+{
+    AppleMixin(@JsonProperty("bitten") boolean wasBitten)
+    {
+        super();
+    }
+
+}
+----
+
+.Mule 3 の例: マッパーを参照するトランスフォーマ
+[source,xml,linenums]
+----
+<json:mapper name="myMapper">
+    <json:mixin mixinClass="org.mule.module.json.transformers.AppleMixin"
+                    targetClass="org.mule.tck.testmodels.fruit.Apple"/>
+</json:mapper>
+
+<flow name="flow">
+    <json:json-to-object-transformer returnClass="org.mule.tck.testmodels.fruit.Apple"
+                                     mapper-ref="myMapper"/>
+</flow>
+----
+
+Mule 4 の場合:
+
+.Mule 4 の例: DataWeave をマッパーとして使用
+[source,xml,linenums]
+----
+<flow name="flow">
+    <ee:transform>
+        <ee:message>
+            <ee:set-payload>
+                <![CDATA[%dw 2.0
+                    type apple = Object { class: "org.mule.tck.testmodels.fruit.Apple"}
+                    output application/java
+                    ---
+                    {
+                        wasBitten = bitten
+                    } as apple
+                ]]>
+            </ee:set-payload>
+        </ee:message>
+    </ee:transform>
+</flow>
+----
+
+`json:object-to-json-transformer` に同じパターンが適用されます。
+
+Mule 3 の場合:
+
+.Mule 3 の例: Mixin を使用したトランスフォーマ
+[source,xml,linenums]
+----
+<flow name="flow">
+    <json:object-to-json-transformer returnClass="org.mule.tck.testmodels.fruit.Apple">
+        <json:serialization-mixin mixinClass="org.mule.module.json.transformers.AppleMixin"
+                                  targetClass="org.mule.tck.testmodels.fruit.Apple"/>
+    
+    </json:object-to-json-transformer>
+</flow>
+----
+
+Mule 4 の場合:
+
+.Mule 4 の例: DataWeave をマッパーとして使用
+[source,xml,linenums]
+----
+<flow name="flow">
+    <ee:transform>
+        <ee:message>
+            <ee:set-payload>
+                <![CDATA[%dw 2.0
+                    output application/json
+                    ---
+                    {
+                        bitten = wasBitten 
+                    }
+                ]]>
+            </ee:set-payload>
+        </ee:message>
+    </ee:transform>
+</flow>
+----
+
+[[xslt]]
+== XSLT 操作の移行
+
+Mule 4 の JSON モジュールは、XSLT マッピングに基づいて JSON を変換するコンポーネントは提供されていません。この場合には、次のような対処法があります。
+
+* XSLT を DataWeave 変換に移行する (推奨)。
+* XML モジュールの XSLT サポートを使用して最初にペイロードを XML に変換する。
+
+.Mule 4 の例: XSLT を使用した JSON の変換
+[source,xml,linenums]
+----
+<flow name="flow">
+    ...
+	<xml-module:xslt-transform>
+	    <xml-module:content>#[output application/xml --- payload]</xml-module:content>
+	    <xml-module:xslt>
+	        (the XSLT transformation) ...
+	    </xml-module:xslt>
+	</xml-module:xslt-transform>
+	...
+</flow>
+----
+
+== 関連情報
+
+* xref:connectors::json/json-module.adoc[JSON モジュール]
+* xref:dataweave.adoc[DataWeave 言語]
+* xref:connectors::xml/xml-module.adoc[XML モジュール]

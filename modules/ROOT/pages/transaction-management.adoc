@@ -1,0 +1,268 @@
+= トランザクションの管理
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: トランザクション, 管理, 区分, jms, jdbc, vm, データベース, resource (リソース), xa, tx
+
+トランザクションとは、結果が不確定になることができない Mule アプリケーションの操作です。フローの一連のステップが 1 つの単位として成功または失敗する必要がある場合、Mule はトランザクションを使用して、それらのステップを単位として区分します。
+
+たとえば、トランザクションを使用して、データベースに情報をコミットするためのフロー内の複数のステップをカプセル化することができます。このようなシナリオでは、コミット (トランザクション) は、全体が完了 (成功) するか、不完全に終了 (失敗) するかのどちらかとなります。部分的に完了しても、コミットは失敗となります。トランザクションが失敗すると、一部だけで部分的な完了とならないように Mule は操作をトランザクション内でロールバックします。
+
+アプリケーションが非トランザクションコネクタからメッセージを受信する場合であっても、信頼性の高いメッセージングができるようにxref:reliability-patterns.adoc[信頼性パターン]を実装してアプリケーションをデザインすることをお勧めします。
+
+== トランザクション種別
+
+Mule は、単一リソース (ローカル、デフォルト) および拡張アーキテクチャ (`XA`) トランザクション種別 (`transactionType`) をサポートします。トランザクション種別を定義できるコンポーネントはメッセージソース (たとえば、`jms:listener` や `vm:listener`) と Try スコープのみです。
+
+次の表で、各トランザクション種別の特性とトランザクションを結合するための操作の要件について説明します。
+
+[%header,cols="20a,35a,45a"]
+|===
+| トランザクション種別 | 特性 | トランザクションを結合するための要件
+| xref:single-resource-transaction.adoc[単一リソース (ローカル)]
+|
+* XA トランザクションよりパフォーマンスが高くなります。
+* ネストされたトランザクションをサポートしていません。
+|
+* 操作がトランザクションをサポートする必要があります。
+* トランザクション内のすべての操作が同じコネクタに属している必要があります。(たとえば、`jms:listener`、`jms:consume`、`jms:publish`)。
+* すべての操作で同じグローバル設定 (`config-ref`) を使用する必要があります。
+| xref:xa-transactions.adoc[拡張アーキテクチャ (XA)]
+|
+* 2 段階のコミットプロトコル (2PC) を使用します。
+* 単一リソーストランザクションより遅くなりますが、信頼性は高くなります。
+* ネストされたトランザクションをサポートしています。
+|
+* 操作がトランザクションをサポートする必要があります。
+
+|===
+
+== トランザクションのアクション
+
+トランザクションアクション (`transactionalAction`) は、トランザクションに関して操作で実行できるアクションの種別を定義します。次の表で、使用可能なすべてのトランザクションアクションについて説明します。
+
+[%header,cols="20a,40a,40a"]
+|===
+| アクション | 動作 | 使用可能な場所
+
+| `ALWAYS_BEGIN`
+| メッセージの受信時に常に新しいトランザクションを開始します。単一リソーストランザクションが存在する場合、エラーが発生します。XA トランザクションが存在する場合、ネストされたトランザクションが作成されます。
+|
+* トランザクションをサポートするリスナ
+* Try スコープ
+
+| `ALWAYS_JOIN`
+| メッセージの受信時に常にトランザクションが進行中であると想定します。トランザクションがない場合、エラーが発生します。
+|
+* トランザクションをサポートする操作
+
+| `BEGIN_OR_JOIN`
+| メッセージの受信時にトランザクションが進行中である場合、可能であればトランザクションを結合します。可能でなければ新しいトランザクションを開始します。
+|
+* Try スコープ
+
+| `JOIN_IF_POSSIBLE`
+| 現在のトランザクションが使用可能な場合、そのトランザクションを結合します。可能でなければトランザクションは作成されません。
+|
+* トランザクションをサポートする操作
+
+| `INDIFFERENT`
+| アクションをトランザクションとして扱いません。
+|
+* Try スコープ
+
+| `NONE`
+| トランザクションを開始しません。
+|
+* トランザクションをサポートするリスナ
+
+| `NOT_SUPPORTED`
+| 存在するトランザクションの外部で実行します。
+|
+* トランザクションをサポートする操作
+|===
+
+== メッセージソースでのトランザクションの設定
+
+トランザクションをメッセージソースから開始できます。この場合は、フロー全体が 1 つのトランザクションとなります。この方法は、メッセージングコネクタを使用して、メッセージングの処理中に問題が発生した場合にはメッセージをコンシュームしないようにして、後で (ロールバックによって) 再試行できるようにしたいときに便利です。
+
+トランザクションをメッセージソースから開始するには、そのトランザクション種別とトランザクションアクションを設定します。
+
+* Anypoint Studio では、次の手順を実行します。
++
+リスナの *[Advanced (詳細)]* タブで、*[Transaction type (トランザクション種別)]* と *[Transactional action (トランザクションアクション)]* の値を設定します。
++
+image::transaction-config-studio-vm.png[transaction-config-studio-vm]
+
+* [Configuration XML (設定 XML)] では、次の手順を実行します。
++
+`transactionalAction` 要素と `transactionType` 要素 (必要な場合) を追加し、その値を設定します。
++
+次の XML 例は、単一リソース (ローカル) トランザクションを開始するように設定された `vm:listener` メッセージソースを示しています。
++
+[source,xml,linenums]
+----
+include::{examplesdir}/transaction-management_2.xml[]
+----
+
+== Try スコープでのトランザクションの設定
+
+Mule フローは、フロー内のトランザクションを必要とする非トランザクションコネクタ (HTTP など) で開始する場合もあります。たとえば、Mule フローで外部 Web サービスから情報を受け入れ、クレジットカードに請求してインボイス情報をデータベースに保存する前にデータを変換するとします。この場合は Try スコープを使用して、クレジットカードへの請求操作とデータベースへのコミット操作をラップすることでトランザクションをセットアップすれば、常に完全な成功または完全な失敗とロールバックのどちらかの結果になることを保証できます。
+
+トランザクション種別とトランザクションアクションを設定して、Try スコープコンポーネントでトランザクションを設定できます。
+
+* Anypoint Studio では、次の手順を実行します。
++
+Try スコープの *[General (一般)]* タブで、*[Transaction type (トランザクション種別)]* と *[Transactional action (トランザクションアクション)]* の値を設定します。
++
+image::transaction-config-studio.png[transaction-config-studio]
+
+* [Configuration XML (設定 XML)] では、次の手順を実行します。
++
+`transactionalAction` 要素と `transactionType` 要素 (必要な場合) を追加し、その値を設定します。
++
+次の XML 例では、Try スコープによってデータベース操作 (`db:insert`) と VM 操作 (`vm:publish`) を含むトランザクションを区分しています。プロセス全体が成功した場合は両方が適用され、Try スコープ内でエラーが発生した場合はどちらも適用されません。
++
+[source,xml,linenums]
+----
+include::{examplesdir}/transaction-management_1.xml[]
+----
+
+[[tx_scopes_routers]]
+== トランザクションによるスコープとルータへの影響
+
+トランザクションスコープで実行する場合は、プロセス全体を同じスレッドで実行する必要があります。これにより、スコープの実行方法、またはトランザクションの処理方法を変更できます。以下で、トランザクションスコープで実行するときに考慮する必要があるスコープおよびルータの動作について詳しく説明します。
+
+=== スコープ
+
+* xref:async-scope-reference.adoc[Async]: トランザクション内で実行した場合、Async スコープは引き続き別のスレッドで実行されます (非同期のまま)。ただし、これはこのスコープ内のプロセッサの実行全体がトランザクションスコープ外で行われることを意味します。そのため、Async スコープ内でエラーが発生してもロールバックにはなりません。
+* xref:until-successful-scope.adoc[Until Successful]: トランザクション内で実行した場合、Until Successful スコープはスレッドをブロックします。つまり、Until Successful スコープが再試行間の遅延を実行している間、この実行によって使用されるスレッドを使用して他の要求を処理することはできません。
+* xref:parallel-foreach-scope.adoc[Parallel Foreach]: トランザクション内で実行した場合、Parallel Foreach スコープは並列で実行されません。つまり、Foreach スコープとして実行することになります。コレクションの 2 番目の要素は最初の要素が完了した後に処理されます。これは、このスコープによるエラーの処理に影響を及ぼしません。
+* xref:batch-processing-concept.adoc[Batch Processing]: Batch Processing は Async スコープとして並列で機能するように設計されており、すべてのレコードはトランザクションとして扱われるため (内部 Batch トランザクションを含む)、Batch 実行はトランザクションの一部ではありません。
+
+=== ルータ
+
+* xref:scatter-gather-concept.adoc[Scatter Gather]: トランザクション内で実行した場合、Scatter Gather は並列で実行されません。つまり、2 番目のルータは最初のルータが処理された後で実行され、3 番目のルータは 2 番目のルータの後で実行される、といった具合になります。これは、このコンポーネントによるエラーの処理に影響を及ぼしません。
+* xref:flowref-about.adoc[Flow Reference]: 実行中のフロー (またはサブフロー) がトランザクション内で実行されている場合、Flow Reference コンポーネントによって参照先のフロー (またはサブフロー) の実行は同じトランザクションで続行されます。参照先のフローにトランザクションを開始するメッセージソースがある場合 (たとえば、`transactionalAction="ALWAYS_BEGIN"` の `jms:listener` ソース)、`transactionalAction` は無視されます。Flow Reference コンポーネントは、そのメッセージソースを除いて参照先のフローコンポーネントを実行します。
+
+その他のルータまたはスコープ (たとえば、Foreach) はトランザクションで続行され、その動作は変更されません。
+
+== エラー処理
+
+トランザクション中にエラーが発生した場合、アプリケーションはエラーを処理して続行するか、ロールバックを実行する必要があります。
+
+エラーハンドラには 2 つの種別があり、トランザクション中にエラーが発生したときの動作が異なります。
+
+* On Error Propagate
+** `on-error-propagate` エラーハンドラがトランザクションを開始したコンポーネントに対応する `error-handler` スコープ内にある場合:
++
+`on-error-propagate` スコープのプロセッサを実行する前にトランザクションがロールバックされます。つまり、エラーハンドラ内のプロセッサはトランザクション内で実行されません。
+
+** `on-error-propagate` エラーハンドラがトランザクションを開始しなかった要素内にある場合:
++
+トランザクションはロールバックされず、`on-error-propagate` エラーハンドラ内のプロセッサはトランザクション内で実行されます。一部のスコープやルータでは、トランザクション内で実行したときに動作が異なります。
+
+* On Error Continue
++
+エラーが処理され、トランザクションは有効なままになり、コミット可能です。`on-error-continue` 内のプロセッサはトランザクション内で実行されます。
+
+=== 例: Try スコープでのエラー発生
+
+メッセージソース (`jms:listener`) がトランザクションを開始し、このトランザクションが Try スコープによって続行される (`transactionalAction` はデフォルトの `INDIFFERENT` に設定) 例について考えてみます。
+
+エラーが発生すると、最初に Try スコープの `error-handler` によって処理されます。エラーは `on-error-propagate` エラーハンドラによって処理されますが、トランザクションを開始したのが Try スコープではないため、トランザクションはロールバックされません。トランザクションはフローレベルで (そのメッセージソースから) 開始されたため、トランザクションをロールバックできるのはフローエラーハンドラのみです。
+
+`on-error-propagate` エラーハンドラ内の `jms:publish` 操作はトランザクションを結合します。次にエラーはフロー `error-handler` に伝播され、このフローが `on-error-continue` エラーハンドラを使用してエラーを処理します。`on-error-continue` エラーハンドラ内の `jms:consume` 操作はトランザクション内で実行されます。最後に、トランザクションがコミットされます。
+
+[source,xml,linenums]
+----
+<flow name="someFlowWithTx">
+	<jms:listener config-ref="JMS_Config" destination="test.in" transactionalAction="ALWAYS_BEGIN"/>
+	<!-- Processors -->
+	<try>
+		<raise-error type="APP:SOME"/>
+		<error-handler>
+			<on-error-propagate>
+				<jms:publish config-ref="JMS_Config" destination="test.out" transactionalAction="ALWAYS_JOIN"/>
+			</on-error-propagate>
+		</error-handler>
+	</try>
+	<error-handler>
+		<on-error-continue>
+			<jms:consume config-ref="JMS_Config" destination="test.in2" transactionalAction="ALWAYS_JOIN"/>
+		</on-error-continue>
+	</error-handler>
+</flow>
+----
+
+前の例で `on-error-continue` エラーハンドラを `on-error-propagate` エラーハンドラに置き換えると、プロセッサの実行前にトランザクションがロールバックされます。このシナリオでは、`jms:consume` 操作はトランザクションを結合できないため、この設定は正しくありません。
+
+=== 例: 参照先のフローでのエラー発生
+
+次の例の動作は前の例と同じですが、Try スコープの代わりに Flow Reference を使用し、参照先のフローでエラーが発生します。
+
+[source,xml,linenums]
+----
+<flow name="someFlowWithTx">
+	<jms:listener config-ref="JMS_Config" destination="test.in" transactionalAction="ALWAYS_BEGIN"/>
+	<!-- Processors -->
+	<flow-ref name="someFlowContinuesTx"/>
+	<error-handler>
+		<on-error-continue>
+			<jms:consume config-ref="JMS_Config" destination="test.in2" transactionalAction="ALWAYS_JOIN"/>
+		</on-error-continue>
+	</error-handler>
+</flow>
+
+<flow name="someFlowContinuesTx">
+	<raise-error type="APP:SOME"/>
+	<error-handler>
+		<on-error-propagate>
+			<jms:publish config-ref="JMS_Config" destination="test.out" transactionalAction="ALWAYS_JOIN"/>
+		</on-error-propagate>
+	</error-handler>
+</flow>
+----
+
+`someFlowContinuesTx` フローがトランザクションを開始したのではないため、そのエラーハンドラはトランザクションをロールバックしません。
+
+=== 例: エラーハンドラの比較
+
+この例は、`on-error-continue` エラーハンドラと `on-error-propagate` エラーハンドラの違いを示しています。
+
+[source,xml,linenums]
+----
+<flow name="flow1">
+	<jms:listener config-ref="JMS_Config" destination="test.in" transactionalAction="ALWAYS_BEGIN"/>
+	<raise-error type="APP:SOME"/>
+	<error-handler>
+		<on-error-continue>
+			<try transactionalAction="ALWAYS_BEGIN">
+				<logger message="hello"/>
+			</try>
+		</on-error-continue>
+	</error-handler>
+</flow>
+
+<flow name="flow2">
+	<jms:listener config-ref="JMS_Config" destination="test.in" transactionalAction="ALWAYS_BEGIN"/>
+	<raise-error type="APP:SOME"/>
+	<error-handler>
+		<on-error-propagate>
+			<try transactionalAction="ALWAYS_BEGIN">
+				<logger message="hello"/>
+			</try>
+		</on-error-propagate>
+	</error-handler>
+</flow>
+----
+
+`flow1` で、`on-error-continue` エラーハンドラはトランザクションを有効に保ちますが、その中の Try スコープは新しいトランザクションを開始しようとします。この設定は有効ではなく、エラーが発生します。
+
+`flow2` で、`on-error-propagate` エラーハンドラがトランザクションをロールバックし、`on-error-propagate` エラーハンドラ内のプロセッサが実行され、トランザクションが新規作成されます。この設定は正しくなります。
+
+== 関連情報
+
+* xref:try-scope-concept.adoc[Try スコープ]
+* xref:reliability-patterns.adoc[信頼性パターン]
+* xref:on-error-scope-concept.adoc[On-Error スコープ]

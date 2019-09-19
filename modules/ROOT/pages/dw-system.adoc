@@ -1,0 +1,19 @@
+= System (dw::System)
+
+このモジュールには、基盤となるシステムを操作する関数が含まれています。
+
+
+このモジュールを使用するには、DataWeave コードにインポートする必要があります。その方法として、たとえば、行 `import * from dw::System` を DataWeave スクリプトの
+ヘッダーに追加します。
+
+== 関数
+
+[%header, cols="1,3"]
+|===
+| Name (名前)  | 説明
+| xref:dw-system-functions-envvar.adoc[envVar] | 指定された名前の環境変数を返すか、環境変数が定義されていない場合は `null` を返します。
+| xref:dw-system-functions-envvars.adoc[envVars] | ホストシステムで定義されているすべての環境変数を返します。
+|===
+
+
+

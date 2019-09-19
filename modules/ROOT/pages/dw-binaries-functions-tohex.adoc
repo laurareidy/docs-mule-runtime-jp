@@ -1,0 +1,47 @@
+= toHex
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[tohex1]]
+== toHex&#40;Binary&#41;: String
+
+バイナリ値を 16 進文字列に変換します。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `content` | 変換する `Binary` 値。
+|===
+
+=== 例
+
+次の例では、バイナリバージョンの「Mule」(変数 `myBinary` で定義) を 16 進値に変換します。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+import * from dw::core::Binaries
+output application/json
+var myBinary = "Mule" as Binary
+var testType = typeOf(myBinary)
+---
+{
+   "binaryToHex" : toHex(myBinary)
+}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "binaryToHex": "4D756C65" }
+----
+

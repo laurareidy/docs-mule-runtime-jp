@@ -1,0 +1,46 @@
+= Strings (dw::core::Strings)
+
+このモジュールには、文字列を操作するヘルパー関数が含まれます。
+
+このモジュールを使用するには、DataWeave コードにインポートする必要があります。その方法として、たとえば、行 `import * from dw::core::Strings` を DataWeave スクリプトの
+ヘッダーに追加します。
+
+== 関数
+
+[%header, cols="1,3"]
+|===
+| Name (名前)  | 説明
+| xref:dw-strings-functions-appendifmissing.adoc[appendIfMissing] | `text` が `suffix` で終了していない場合、`text` の末尾に `suffix` を追加します。
+| xref:dw-strings-functions-camelize.adoc[camelize] | 文字列内のアンダースコアに基づいて、キャメルケースの文字列を返します。
+| xref:dw-strings-functions-capitalize.adoc[capitalize] | 文字列内の各単語の先頭を大文字にします。
+| xref:dw-strings-functions-charcode.adoc[charCode] | 入力文字列の最初の文字の Unicode を返します。
+| xref:dw-strings-functions-charcodeat.adoc[charCodeAt] | 指定されたインデックスの文字の Unicode を返します。
+| xref:dw-strings-functions-dasherize.adoc[dasherize] | 文字列内のスペース、アンダースコア、キャメルケースをダッシュ (ハイフン) に置き換えます。
+| xref:dw-strings-functions-fromcharcode.adoc[fromCharCode] | 指定された Unicode に一致する文字を返します。
+| xref:dw-strings-functions-isalpha.adoc[isAlpha] | `text` に Unicode 数字のみが含まれるかどうかを確認します。小数点は Unicode 数字ではないため、`false` が返されます。
+| xref:dw-strings-functions-isalphanumeric.adoc[isAlphanumeric] | `text` に Unicode 文字または数字のみが含まれるかどうかを確認します。
+| xref:dw-strings-functions-islowercase.adoc[isLowerCase] | `text` に小文字のみが含まれるかどうかを確認します。
+| xref:dw-strings-functions-isnumeric.adoc[isNumeric] | `text` に Unicode 数字のみが含まれるかどうかを確認します。
+| xref:dw-strings-functions-isuppercase.adoc[isUpperCase] | `text` に大文字のみが含まれるかどうかを確認します。
+| xref:dw-strings-functions-iswhitespace.adoc[isWhitespace] | `text` に空白のみが含まれるかどうかを確認します。
+| xref:dw-strings-functions-leftpad.adoc[leftPad] | 目的のサイズ (`size`) になるように、指定された `text` の_左_側に `padText` を埋め込みます。
+デフォルトの `padText` は `" "` です。
+| xref:dw-strings-functions-ordinalize.adoc[ordinalize] | 数値を序数 (`1st` や `2nd` など) として返します。
+| xref:dw-strings-functions-pluralize.adoc[pluralize] | 単数形の文字列を複数形にします。
+| xref:dw-strings-functions-prependifmissing.adoc[prependIfMissing] | `text` が `prefix` で開始されていない場合、文字列の先頭にそのプレフィックスを追加します。
+| xref:dw-strings-functions-repeat.adoc[repeat] | `text` を、指定された回数 (`times`) 繰り返します。
+| xref:dw-strings-functions-rightpad.adoc[rightPad] | 目的のサイズ (`size`) になるように、指定された `text` の_右_側に `padText` を埋め込みます。
+デフォルトの `padText` は `" "` です。
+| xref:dw-strings-functions-singularize.adoc[singularize] | 複数形の文字列を単数形に変換します。
+| xref:dw-strings-functions-substringafter.adoc[substringAfter] | 区切り文字の最初の出現位置より後にあるサブ文字列を取得します。区切り文字は返されません。
+| xref:dw-strings-functions-substringafterlast.adoc[substringAfterLast] | 区切り文字の最後の出現位置より後にあるサブ文字列を取得します。区切り文字は返されません。
+| xref:dw-strings-functions-substringbefore.adoc[substringBefore] | 区切り文字の最初の出現位置より前にあるサブ文字列を取得します。区切り文字は返されません。
+| xref:dw-strings-functions-substringbeforelast.adoc[substringBeforeLast] | 区切り文字の最後の出現位置より前にあるサブ文字列を取得します。区切り文字は返されません。
+| xref:dw-strings-functions-underscore.adoc[underscore] | 文字列内のハイフン、スペース、キャメルケースをアンダースコアに置き換えます。
+| xref:dw-strings-functions-unwrap.adoc[unwrap] | 指定された `text` を `wrapper` テキストからラップ解除します。
+| xref:dw-strings-functions-wrapifmissing.adoc[wrapIfMissing] | 指定された文字列の先頭または末尾から `wrapper` が欠落している場合、`text` を `wrapper` でラップします。
+| xref:dw-strings-functions-wrapwith.adoc[wrapWith] | 指定された `text` を、指定された `wrapper` でラップします。
+|===
+
+
+

@@ -1,0 +1,208 @@
+= DataWeave を使用したデータのマップ
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, 変換, トランスフォーマ, 形式, 集約, 名前変更, 分割, 変換の絞り込み, json, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング, as
+
+この DataWeave の例では、DataWeave `map` 関数を使用して、本の配列を反復処理し、それぞれで一連のタスクを実行します。
+
+次の DataWeave 関数を使用します。
+
+* `books` 配列の各オブジェクトを調べる `map`。
+* 価格データを Number (数値) 型に強制変換する `as`。これにより、変換で各要素の正しい型が生成されます。
+
+
+.DataWeave
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+items: payload.books map ((item, index) -> {
+      category: "book",
+      price: item.price as Number,
+      id: index,
+      properties: {
+        title: item.title,
+        author: item.author,
+        year: item.year as Number
+      }
+   }
+)
+----
+
+
+
+
+.入力 JSON
+[source,json,linenums]
+----
+{
+    "books": [
+      {
+        "-category": "cooking",
+        "title": {
+          "-lang": "en",
+          "#text": "Everyday Italian"
+        },
+        "author": "Giada De Laurentiis",
+        "year": "2005",
+        "price": "30.00"
+      },
+      {
+        "-category": "children",
+        "title": {
+          "-lang": "en",
+          "#text": "Harry Potter"
+        },
+        "author": "J K. Rowling",
+        "year": "2005",
+        "price": "29.99"
+      },
+      {
+        "-category": "web",
+        "title": {
+          "-lang": "en",
+          "#text": "XQuery Kick Start"
+        },
+        "author": [
+          "James McGovern",
+          "Per Bothner",
+          "Kurt Cagle",
+          "James Linn",
+          "Vaidyanathan Nagarajan"
+        ],
+        "year": "2003",
+        "price": "49.99"
+      },
+      {
+        "-category": "web",
+        "-cover": "paperback",
+        "title": {
+          "-lang": "en",
+          "#text": "Learning XML"
+        },
+        "author": "Erik T. Ray",
+        "year": "2003",
+        "price": "39.95"
+      }
+    ]
+}
+----
+
+.出力 JSON
+[source,json,linenums]
+----
+{
+  "items": [
+    {
+      "category": "book",
+      "price": 30.00,
+      "id": 0,
+      "properties": {
+        "title": {
+          "-lang": "en",
+          "#text": "Everyday Italian"
+        },
+        "author": "Giada De Laurentiis",
+        "year": 2005
+      }
+    },
+    {
+      "category": "book",
+      "price": 29.99,
+      "id": 1,
+      "properties": {
+        "title": {
+          "-lang": "en",
+          "#text": "Harry Potter"
+        },
+        "author": "J K. Rowling",
+        "year": 2005
+      }
+    },
+    {
+      "category": "book",
+      "price": 49.99,
+      "id": 2,
+      "properties": {
+        "title": {
+          "-lang": "en",
+          "#text": "XQuery Kick Start"
+        },
+        "author": [
+          "James McGovern",
+          "Per Bothner",
+          "Kurt Cagle",
+          "James Linn",
+          "Vaidyanathan Nagarajan"
+        ],
+        "year": 2003
+      }
+    },
+    {
+      "category": "book",
+      "price": 39.95,
+      "id": 3,
+      "properties": {
+        "title": {
+          "-lang": "en",
+          "#text": "Learning XML"
+        },
+        "author": "Erik T. Ray",
+        "year": 2003
+      }
+    }
+  ]
+}
+----
+
+[TIP]
+本に複数の著者がいる場合、`item.author` は 1 つの名前ではなく著者の配列全体に評価されます。
+
+
+== デフォルト値の使用
+
+
+次の例では、上記と同じ変換を実行しますが、プロパティ「item」および「index」を明示的に定義しません。代わりに、それぞれのデフォルト名 (`$` および `$$`) でコールします。
+
+
+.DataWeave
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+items: (payload.books map {
+      category: "book",
+      price: $.price as Number,
+      id: $$,
+      properties: {
+        title: $.title,
+        author: $.author,
+        year: $.year as Number
+      }
+})
+----
+
+
+
+== 関連する例
+
+* xref:dataweave-cookbook-extract-data.adoc[データの抽出]
+
+* xref:dataweave-cookbook-perform-basic-transformation.adoc[XML から JSON への変換]
+
+* xref:dataweave-cookbook-rename-keys.adoc[キーの名前の変更]
+
+* xref:dataweave-cookbook-map-object-elements-as-an-array.adoc[オブジェクト要素の配列としてのマップ]
+
+* xref:dataweave-cookbook-map-an-object.adoc[オブジェクトのマップ]
+
+== 関連情報
+
+* xref:dataweave-types.adoc[DataWeave の型]
+
+* xref:dataweave-selectors.adoc[DataWeave セレクタ]
+
+* xref:dataweave-cookbook.adoc[DataWeave の解説書]

@@ -1,0 +1,127 @@
+= オブジェクト要素の配列としてのマップ
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, 変換, トランスフォーマ, 形式, 集約, 名前変更, 分割, 変換の絞り込み, json, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング, as
+
+この DataWeave の例では、DataWeave `map` 関数を使用して、キー `book` に一致するオブジェクト要素を反復処理します。入力には、無視されるキー `magazine` も含まれます。
+
+次の DataWeave 関数を使用します。
+
+* キー `"book"` に一致する要素が含まれる配列を返す複数値セレクタ `*book`
+* 複数値セレクタによって返される配列の各オブジェクトを調べる `map`
+
+
+.DataWeave
+[source,dataweave,linenums]
+----
+%dw 2.0
+var myInputExample = {
+  "inventory": {
+      "book" : {
+        "category": "cooking",
+        "title": "Everyday Italian",
+        "author": "Giada De Laurentiis",
+        "year": "2005",
+        "price": "30.00"
+      },
+      "book" :{
+        "category": "children",
+        "title": "Harry Potter",
+        "author": "J K. Rowling",
+        "year": "2005",
+        "price": "29.99"
+      },
+      "book" :{
+        "category": "web",
+        "title": "Learning XML",
+        "author": "Erik T. Ray",
+        "year": "2003",
+        "price": "39.95"
+      },
+      "magazine" :{
+        "category": "web",
+        "title": "Wired Magazine",
+        "edition": "03-2017",
+        "price": "15.95"
+      },
+        "magazine" :{
+        "category": "business",
+        "title": "Time Magazine",
+        "edition": "04-2017",
+        "price": "17.95"
+      }
+   }
+}
+output application/json
+---
+items: myInputExample.inventory.*book map (item, index) -> {
+      "theType": "book",
+      "theID": index,
+      "theCategory": item.category,
+      "theTitle": item.title,
+      "theAuthor": item.author,
+      "theYear": item.year,
+      "thePrice": item.price as Number
+}
+----
+
+.出力
+[source,json,linenums]
+----
+{
+  "items": [
+    {
+      "theType": "book",
+      "theID": 0,
+      "theCategory": "cooking",
+      "theTitle": "Everyday Italian",
+      "theAuthor": "Giada De Laurentiis",
+      "theYear": "2005",
+      "thePrice": 30.00
+    },
+    {
+      "theType": "book",
+      "theID": 1,
+      "theCategory": "children",
+      "theTitle": "Harry Potter",
+      "theAuthor": "J K. Rowling",
+      "theYear": "2005",
+      "thePrice": 29.99
+    },
+    {
+      "theType": "book",
+      "theID": 2,
+      "theCategory": "web",
+      "theTitle": "Learning XML",
+      "theAuthor": "Erik T. Ray",
+      "theYear": "2003",
+      "thePrice": 39.95
+    }
+  ]
+}
+----
+
+
+
+
+
+== 関連する例
+
+* xref:dataweave-cookbook-map.adoc[DataWeave を使用したデータのマップ]
+
+* xref:dataweave-cookbook-map-an-object.adoc[オブジェクトのマップ]
+
+* xref:dataweave-cookbook-exclude-field.adoc[項目の除外]
+
+* xref:dataweave-cookbook-rename-keys.adoc[キーの名前の変更]
+
+
+
+== 関連情報
+
+* xref:dataweave-types.adoc[DataWeave の型]
+
+* xref:dataweave-selectors.adoc[DataWeave セレクタ]
+
+* xref:dataweave-cookbook.adoc[DataWeave の解説書]

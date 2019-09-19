@@ -1,0 +1,189 @@
+= distinctBy
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[distinctby1]]
+== distinctBy&#40;Array<T&#62;, &#40;item: T, index: Number&#41; &#45;&#62; Any&#41;: Array<T&#62;
+
+配列を反復処理し、一意の要素を配列に返します。
+
+
+このバージョンの `distinctBy` 項目は、配列内の一意の値を検索します。その他のバージョンは、オブジェクトで動作し、null 値を処理します。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `items` | 評価する配列。
+| `criteria` | 配列から `item` または `index` を選択するために使用する条件。
+|===
+
+=== 例
+
+次の例では、重複する数値を含む配列を入力し、その入力からの一意の数値を含む配列を返します。値の代わりに匿名パラメータを使用して同じ式を記述することができます (`[0, 1, 2, 3, 3, 2, 1, 4] distinctBy &#36;`)。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+[0, 1, 2, 3, 3, 2, 1, 4] distinctBy (value) -> { "unique" : value }
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+[ 0, 1, 2, 3, 4]
+----
+
+=== 例
+
+次の例では、配列から `"Kurt Cagle"` の重複を削除します。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+var record =  {
+  "title": "XQuery Kick Start",
+  "author": [
+    "James McGovern",
+    "Per Bothner",
+    "Kurt Cagle",
+    "James Linn",
+    "Kurt Cagle",
+    "Kurt Cagle",
+    "Kurt Cagle",
+    "Vaidyanathan Nagarajan"
+  ],
+  "year":"2000"
+}
+---
+{
+    "book" : {
+      "title" : record.title,
+      "year" : record.year,
+      "authors" : record.author distinctBy $
+    }
+}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "book": {
+    "title": "XQuery Kick Start",
+    "year": "2000",
+    "authors": [
+      "James McGovern",
+      "Per Bothner",
+      "Kurt Cagle",
+      "James Linn",
+      "Vaidyanathan Nagarajan"
+    ]
+  }
+}
+----
+
+
+[[distinctby2]]
+== distinctBy&#40;Null, &#40;item: Nothing, index: Nothing&#41; &#45;&#62; Any&#41;: Null
+
+*distinctBy* を null 値に使用できるようにするヘルパー関数。
+
+
+[[distinctby3]]
+== distinctBy&#40;{ &#40;K&#41;?: V }, &#40;value: V, key: K&#41; &#45;&#62; Any&#41;: Object
+
+オブジェクトから重複するキー-値ペアを削除します。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `object` | キー-値ペアを削除する元のオブジェクト。
+| `criteria` | 削除するキー-値ペアを識別するために使用する `key` (キー) および/または `value` (値)。
+|===
+
+=== 例
+
+次の例では、重複するキー-値ペアを含むオブジェクトを入力し、その入力のキー-値ペアを含むオブジェクトを返します。キー (`a` と `A`) は大文字と小文字を区別して処理されませんが、値 (`b` と `B`) は大文字と小文字を区別して処理されます。値の代わりに匿名パラメータを使用して同じ式を記述することができます (`{a : "b", a : "b", A : "b", a : "B"} distinctBy &#36;`)。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{a : "b", a : "b", A : "b", a : "B"} distinctBy (value) -> { "unique" : value }
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "a": "b", "a": "B" }
+----
+
+=== 例
+
+次の例では、`<book/>` から重複 (`<author>James McGovern</author>`) 
+を削除します。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/xml
+---
+{
+   book : {
+     title : payload.book.title,
+     authors: payload.book.&author distinctBy $
+   }
+}
+----
+
+==== 入力
+
+[source,XML,linenums]
+----
+<book>
+  <title> "XQuery Kick Start"</title>
+  <author>James Linn</author>
+  <author>Per Bothner</author>
+  <author>James McGovern</author>
+  <author>James McGovern</author>
+  <author>James McGovern</author>
+</book>
+----
+
+==== 出力
+
+[source,XML,linenums]
+----
+<book>
+  <title> "XQuery Kick Start"</title>
+  <authors>
+      <author>James Linn</author>
+      <author>Per Bothner</author>
+      <author>James McGovern</author>
+  </authors>
+</book>
+----
+

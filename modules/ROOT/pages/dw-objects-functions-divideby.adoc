@@ -1,0 +1,60 @@
+= divideBy
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[divideby1]]
+== divideBy&#40;Object, Number&#41;: Array<Object&#62;
+
+オブジェクトを、指定された数のキー - 値ペアを含むサブオブジェクトに分割します。
+
+
+指定された数よりもオブジェクトに含まれるキー - 値ペアが少ない場合は、この関数はそれらのペアをオブジェクトに入れます。ペアが多すぎる場合は、余ったペアを別のオブジェクトに入れます。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `items` | 取得元オブジェクト内のキー - 値ペア。
+| `amount` | 1 つのオブジェクトに使用できるキー - 値ペアの数。
+|===
+
+=== 例
+
+次の例では、指定された `amount` に基づいてオブジェクトをサブオブジェクトに分割します。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+import divideBy from dw::core::Objects
+output application/json
+---
+{ "divideBy" : {"a": 1, "b" : true, "a" : 2, "b" : false, "c" : 3} divideBy 2 }
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "divideBy": [
+    {
+      "a": 1,
+      "b": true
+    },
+    {
+      "a": 2,
+      "b": false
+    },
+    {
+      "c": 3
+    }
+  ]
+}
+----
+

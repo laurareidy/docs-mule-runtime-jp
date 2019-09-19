@@ -1,0 +1,50 @@
+= Transform Message コンポーネント
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords:
+
+Transform (または Transform Message) コンポーネントは、入力データを新しい出力構造または形式に変換します。コンポーネントのビジュアルマッパーを使用して受信したデータ構造の要素をドラッグアンドドロップすることで変換を暗黙的にビルドするか、または DataWeave 式言語で変換スクリプトを明示的に作成できます。
+
+* グラフィカルビュー (ドラッグアンドドロップエディタ): 2 つのツリービューに、入力と出力の予想されるメタデータ構造が表示されます。これら 2 つのツリー間のマッピングは、入力項目を出力項目に接続するラインによって表されます。ラインを作成するには、要素を入力から出力の別の要素にドラッグアンドドロップします。
++
+// TODO: UPDATE IMAGE
++
+.Transform コンポーネントのドラッグアンドドロップエディタ
+image::transform-message-component-concept-design-center-b3dc0.png[]
+
+* スクリプトビュー: ヴィジュアルマッピングは DataWeave コードとして表現できます。ここでは、集約、正規化、グループ化、結合、パーティション、ピボット、および検索条件といった高度な変換をコーディングできます。
++
+.Transform コンポーネントの DataWeave スクリプト
+image::transform-message-component-concept-design-center-d3719.png[]
+
+1 つのビューで変更を行うと、他方のビューにリアルタイムで反映されます。
+
+== プレビュー
+
+出力のプレビューは、サンプルデータ (JSON スニペットなど) を使用して表示され、変換を編集するとリアルタイムで更新されます。
+
+.Anypoint Studio の Transform コンポーネント
+image::using-dataweave-in-studio-b504a.png[]
+
+== メタデータ
+
+Transform コンポーネントは、メッセージペイロード、変数、または属性の入力および出力ペイロードを受け入れます。xref:dataweave-formats.adoc[サポートされている MIME タイプ (形式)] に対して、形式特有のリソースと設定を提供できます。
+
+* CSV サンプルまたは RAML 定義
+* Copybook ファイルまたはスキーマ
+* 1 つまたは複数のシートの Excel 列名と型定義 (String、Number、Boolean、Date、および DateTime)
+* 固定幅の列名、型 (String、Integer、Decimal、Boolean、Date、および DateTime)、幅、形式の設定
+* フラットファイルスキーマ
+* JSON サンプルまたはスキーマ
+* オブジェクトクラスまたは RAML 定義
+* シンプルな型 (String、Number、Integer、Boolean、Date、または DateTime)
+* XML サンプルまたはスキーマ
+
+== 関連情報
+
+xref:transform-workflow-create-mapping-ui-studio.adoc[ワークフロー: マッピングの作成]
+
+xref:transform-tips-transform-message-ui-studio.adoc[ヒント: Transform Message UI]
+
+xref:dataweave.adoc[DataWeave 言語]

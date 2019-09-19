@@ -1,0 +1,51 @@
+= singularize
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[singularize1]]
+== singularize&#40;String&#41;: String
+
+複数形の文字列を単数形に変換します。
+
+
+入力がすでに単数形 (「box」など) の場合、出力は入力と一致します。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `text` | 単数形に変換する文字列。
+|===
+
+=== 例
+
+次の例では、入力文字列「boxes」を変換して「box」を返します。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+import * from dw::core::Strings
+output application/json
+---
+{ "singularize" : singularize("boxes") }
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "singularize" : "box" }
+----
+
+
+[[singularize2]]
+== singularize&#40;Null&#41;: Null
+
+*singularize* を null 値に使用できるようにするヘルパー関数。
+

@@ -1,0 +1,111 @@
+= コアコンポーネントの移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+// sme: Dan, writer: Mariano Gonzalez
+:keywords: Studio, サーバ, コンポーネント, コネクタ, 要素, パレット, グローバル要素, 設定要素
+
+以下の表は、Mule 3.x の各コンポーネントが Mule 4 では何に相当するのかを示しています。
+
+[%header,cols="30,70"]
+|===
+| Mule 3.x のコンポーネント | Mule 4.0 の代替法
+| すべての router  | 代わりに xref:scatter-gather-concept.adoc[Scatter Gather] を使用するか、異なる対象属性を使用して操作を次々と実行した後に DW を使用して結果をマージします。
+| async[‘processingStrategy’] | 非ブロック実行エンジンには async processing strategy (非同期処理戦略) が不要になりました。非同期の動作が必要な場合は、“async” スコープを使用してすべてのコンポーネントをラップします。
+| asynchronous-processing-strategy | 非ブロック実行エンジンには async processing strategy (非同期処理戦略) が不要になりました。非同期の動作が必要な場合は、“async” スコープを使用してすべてのコンポーネントをラップします。
+| bridge | 同等のフローをビルドします。
+| catch-exception-strategy | `on-error-continue` 戦略を使用する xref:on-error-scope-concept.adoc[error-handler] を使用します。
+| choice-exception-strategy| エラー種別選択または when 属性を使用して、内部に異なる戦略を含む xref:on-error-scope-concept.adoc[error-handler] を使用します。
+| combine-collections-transformer | 簡略化されたメッセージモデルでは不要になりました。MuleMessageCollections は Mule メッセージの配列に置き換わります。これは、DataWeave や foreach などの任意の Mule コンポーネントを使用してマージまたは反復できます。
+| コンポーネント | xref:connectors::java/java-module.adoc[Java モジュール]を使用します。
+| composite-source | 各取得元に 1 つのフローを作成し、共通機能の flow-ref を使用して非公開フローを呼び出します。
+| configuration[‘defaultExceptionStrategy-ref’] | 新しい名前は `defaultErrorHandler-ref` です。
+| configuration[‘flowEndingWithOneWayEndpointReturnsNull’] | 新しい実行エンジンでは不要になりました。
+| configuration[‘useExtendedTransformations’] | 排除されました。
+| configuration[enricherPropagatesSessionVariableChanges] | 排除されました。
+| copy-attachments | 新しいxref:about-mule-message.adoc[メッセージ構造]により、添付ファイルはメッセージの属性の一部になります。添付ファイルは DataWeave を使用して自由に操作できます。
+| copy-properties | 新しいxref:about-mule-message.adoc[メッセージ構造]により、プロパティはメッセージの属性の一部になります。添付ファイルは DataWeave を使用して自由に操作できます。
+| custom-agent | サポートされなくなりました。
+| custom-aggregator | xref:mule-sdk::index.adoc[Mule SDK] を使用して、カスタムアグリゲータをビルドします。
+| custom-connector | xref:mule-sdk::index.adoc[Mule SDK] を使用して、独自のコネクタをビルドします。
+| custom-exception-strategy | 不要になりました。xref:on-error-scope-concept.adoc[error-handler] を使用します。
+| custom-lifecycle-adapter-factory | サポートされなくなりました。
+| custom-object-store | xref:migration-connectors-objectstore.adoc[Object Store Connector] を使用してカスタムストアを作成します。
+| custom-processor | xref:mule-sdk::index.adoc[Mule SDK] を使用するか、xref:migration-module-scripting.adoc[Scripting モジュール]を使用します。
+| custom-queue-store | 新しい xref:migration-module-vm.adoc[VM コネクタ]を使用します。
+| custom-router-resolver | xref:mule-sdk::index.adoc[Mule SDK] を使用して、カスタムルータをビルドします。
+| custom-router | xref:mule-sdk::index.adoc[Mule SDK] を使用して、カスタムルータをビルドします。
+| custom-service | フローを使用します。
+| custom-source | xref:mule-sdk::index.adoc[Mule SDK] を使用して、新しいイベント取得元を記述します。
+| custom-splitter | DataWeave または xref:mule-sdk::index.adoc[Mule SDK] を使用します。
+| custom-transaction-manager | `<bti:transaction-manager/>` を使用します。
+| custom-transaction | サポートされなくなりました。
+| default-exception-strategy | `on-error-propagate` 戦略を使用する xref:on-error-scope-concept.adoc[error-handler] を使用します。
+| default-in-memory-queue-store | 新しい xref:migration-module-vm.adoc[VM コネクタ]を使用します。
+| default-persistent-queue-store | 新しい xref:migration-module-vm.adoc[VM コネクタ]を使用します。
+| default-service-exception-strategy | on-error-propagate 戦略を使用する xref:on-error-scope-concept.adoc[error-handler] を使用します。
+| endpoint | コネクタを使用します。
+| exception-strategy | xref:on-error-scope-concept.adoc[error-handler] を使用します。
+| expression-component | 式の機能に応じて、データアクセスの式には DataWeave を、アルゴリズムの式には xref:migration-module-scripting.adoc[Scripting モジュール]または xref:mule-sdk::index.adoc[Mule SDK] を、単に Java にアクセスする式には xref:connectors::java/java-module.adoc[Java モジュール]を使用できます。
+| file-queue-store | 新しい xref:migration-module-vm.adoc[VM コネクタ]を使用します。
+| flow[‘processingStrategy’] | 排除されました。非ブロック実行エンジンを使用すれば、ユーザはこれを調整する必要がありません。
+| idempotent-message-filter | xref:idempotent-message-validator.adoc[Idempotent-message-validator] に置き換わりました。
+| idempotent-redelivery-policy | 新しい名前は `redelivery-policy` です。
+| idempotent-secure-hash-message-filter | xref:idempotent-message-validator.adoc[Idempotent-message-validator] に置き換わりました。
+| in-memory-store | xref:migration-connectors-objectstore.adoc[Object Store Connector] を使用してxref:connectors::object-store/object-store-to-define-a-new-os.adoc[カスタムストア]を作成します。
+| inbound-endpoint | 各コネクタまたはモジュールで定義されたイベント取得元またはトリガを使用します。
+| include-entry-point | xref:connectors::java/java-module.adoc[Java モジュール]を使用します。
+| interceptor-stack | 排除されました。カスタムポリシーを使用します。
+| invoke | xref:connectors::java/java-module.adoc[Java モジュール]を使用します。
+| jndi-transaction-manager | `<bti:transaction-manager/>` を使用します。
+| jrun-transaction-manager | `<bti:transaction-manager/>` を使用します。
+| legacy-abstract-exception-strategy | 新しい xref:on-error-scope-concept.adoc[error-handler] を使用します。
+| managed-store | xref:migration-connectors-objectstore.adoc[Object Store Connector] を使用してxref:connectors::object-store/object-store-to-define-a-new-os.adoc[カスタムストア]を作成します。
+| message-properties-transformer | Transform コンポーネントと DataWeave を使用します。
+| model | 排除されました。代わりにフローを使用します。
+| mule[‘version’] |
+| outbound-endpoint | 要素はコアの名前空間から新しいトランスポートの名前空間に移動されました。
+| poll -> watermark | この機能は、Salesforce コネクタ、データベースコネクタ、SFTP コネクタ、ファイルコネクタなど、多数のコネクタのイベント取得元内に組み込まれました。Object Store Connector を使用して、xred:migration-patterns-watermark.adoc[手動で watermark (透かし) 値を設定することもできます]。
+| poll | xref:migration-core-poll.adoc[scheduler コンポーネント]に置き換わりました。
+| processor | 式の機能に応じて、データアクセスの式には DataWeave を、アルゴリズムの式には xref:migration-module-scripting.adoc[Scripting モジュール]または xref:mule-sdk::index.adoc[Mule SDK] を、単に Java にアクセスする式には xref:connectors::java/java-module.adoc[Java モジュール]を使用できます。
+| prototype-object | Java モジュールまたは Spring モジュールを使用します。
+| queue-profile | xref:migration-module-vm.adoc[VM コネクタ]を使用します。
+| queue-store | xref:migration-module-vm.adoc[VM コネクタ]。
+| recipient-list | 排除されました。
+| reconnect-custom-notifier | 排除されました。
+| reconnect-custom-strategy | 排除されました。
+| reconnect-notifier | 排除されました。
+| remove-attachment | 新しいxref:about-mule-message.adoc[メッセージ構造]により、添付ファイルは不要になりました。
+| remove-property | 新しいxref:about-mule-message.adoc[メッセージ構造]により、添付ファイルは不要になりました。
+| response |不要になりました。
+| request-reply | Mule 4 では、すべてのコネクタで request-reply がサポートされなくなります。“request-reply” 動作があったコネクタには、JMS の `publish-consume` 操作など、“request-reply” 操作が組み込まれます。
+| resin-transaction-manager | 排除されました。
+| rollback-exception-strategy | on-error-propagate 戦略を使用する error-handler を使用します。
+| scatter-gather[‘threading-profile’] | Mule 4 は非ブロックなので不要になりました。
+| seda-model | Mule 4 では SEDA キューがなくなりました。Mule 4 の実行エンジンは非ブロックです。
+| service | フローを使用します。
+| set-attachment | 不要になりました。添付ファイルを変数として保存できます。
+| set-property | 新しいメッセージモデルではプロパティが使用されなくなりました。Mule メッセージからの属性は変数に保存できます。
+| set-session-variable | セッション変数は削除されました。ユーザはトランスポートの境界を越えて明示的にヘッダーを渡す必要があります。
+| simple-in-memory-queue-store | 新しい VM コネクタを使用します。
+| simple-service | フローを使用します。
+| simple-text-file-store | オブジェクトストアモジュール拡張機能を使用してカスタムストアを作成します。
+| singleton-object | Java モジュールまたは Spring モジュールを使用します。
+| spring-object | Java モジュールまたは Spring モジュールを使用します。
+| synchronous-processing-strategy | フローコンポーネントの実行に関連する動作は、4.x のフローと同じですが、必ずしも 3.x と同じスレッドでは実行されません。
+| transactional scope | “try” スコープに置き換わりました。
+| username-password-filter | 排除されました。
+| validator | 排除されました。
+| weblogic-transaction-manager | `<bti:transaction-manager/>` を使用します。
+| websphere-transaction-manager | `<bti:transaction-manager/>` を使用します。
+| all-strategy | 排除されました。
+| entry-point-resolver | xref:connectors::java/java-module.adoc[Java モジュール]を使用します。
+| filter | filter はxref:migration-filters.adoc[検証モジュール]に置き換わります。
+| interceptor | interceptor はカスタムポリシーに置き換わります。
+| message-info-mapping | 不要になりました。
+| point-resolver-set | xref:connectors::java/java-module.adoc[Java モジュール]を使用します。
+| router | 排除されました。
+| threading-profile | 不要になりました。Runtime で自動調整されます。
+| トランスフォーマ | 排除されました。ほとんどの明示的な変換は不要になりました。コーナーケースには DataWeave を使用します。
+|===

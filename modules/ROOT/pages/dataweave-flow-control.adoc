@@ -1,0 +1,120 @@
+= DataWeave のフローコントロール
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+以下の制御フローステートメントを任意の DataWeave 式内で使用できます。
+
+* <<control_flow_do,`do`>>
+* <<control_flow_if_else,`if else`>>
+* <<control_flow_else_if,`else if`>>
+
+[[control_flow_do]]
+== `do`
+
+`do` ステートメントはスコープを作成します。このスコープ内で、新しい変数、関数、アノテーション、または名前空間を宣言し、使用できます。構文は、`&#45;&#45;&#45;` で区切られたヘッダーと本文で構成されるという点でマッピングに似ています。このヘッダーはすべての宣言を定義する場所であり、本文は式の結果です。
+
+この例では、スクリプトの本文から `myfun()` がコールされたときに、`do` を使用して文字列 `"DataWeave"` を返します。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+fun myfun() = do {
+    var name = "DataWeave"
+    ---
+    name
+}
+---
+{ result: myfun() }
+----
+
+この例では、スクリプトの本文から変数 `myVar` が参照されたときに、`do` を使用して文字列 `"DataWeave"` を返します。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+var myVar = do {
+    var name = "DataWeave"
+    ---
+    name
+}
+---
+{ result: myVar }
+----
+
+どちらのスクリプトも次の出力を生成します。
+
+.出力
+[source,json,linenums]
+----
+{
+  "result": "DataWeave"
+}
+----
+
+次の例では、`do` を使用して、`test(p: String)` 関数に渡す文字列 (`" Bar"`) の先頭に文字列 `"Foo"` を追加します。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+fun test(p: String) = do {
+    var a = "Foo" ++ p
+    ---
+    a
+}
+---
+{ result: test(" Bar") }
+----
+
+.出力
+[source,json,linenums]
+----
+{
+  "result": "Foo Bar"
+}
+----
+
+[[control_flow_if_else]]
+== `if else`
+
+`if` ステートメントは条件式を評価し、条件式が true の場合のみ、`if` の下の値を返します。それ以外の場合、`else` の下の式を返します。各 `if` 式に、対応する `else` 式が必要です。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+if (payload.country == "USA")
+  { currency: "USD" }
+else { currency: "EUR" }
+----
+
+[[control_flow_else_if]]
+== `else if`
+
+次の例のように、`else if` を組み込むことで、if-else 構造内で複数の `else` 式をまとめてチェーニングできます。
+
+.変換
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+---
+if (payload.country =="USA")
+	{ currency: "USD" }
+else if (payload.country =="UK")
+	{ currency: "GBP" }
+else { currency: "EUR" }
+----
+
+== 関連情報
+
+* xref:dataweave-types.adoc[DataWeave の型]
+* xref:dataweave-selectors.adoc[DataWeave セレクタ]

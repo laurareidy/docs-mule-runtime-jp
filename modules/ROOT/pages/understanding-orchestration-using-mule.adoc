@@ -1,0 +1,76 @@
+= Mule を使用したオーケストレション
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Anypoint Studio, Studio, Mule ESB, オーケストレーション
+
+オーケストレーションとは、フローに基づいて Mule 実装内でデータを移動するプロセスを容易にする手段です。オーケストレーションは、サービス呼び出しを組み合わせて、より抽象的で便利な複合サービスを作成する処理と考えることができ、いろいろなアプリケーションや情報システムに渡ってビジネス特有のサービスを組み合わせたビジネスレベルのプロセスを実装することを意味します。
+
+== オーケストレーションとフロー
+
+オーケストレーションでは、ポイントツーポイントのインテグレーションを分離して、システムニーズやビジネスニーズの変化に合わせて再利用したり変更したりできる操作のチェーンを使用します。具体的には、パターンには縛られずにサービスベースのフレームワークへの移動を行い、複数のコンポーネントをソースでラップすることで、プロトコルやルーティング要件から分離します。これにより、実装要件で必要であれば、複数のサービスを 1 つにまとめて機能させることができます。フローがサービスのオーケストレーションをよく行う一般的なユースケースを挙げます。
+
+* シンプルなインテグレーション
+* データ処理のスケジューリング
+* クラウドアプリケーションとオンプレミスアプリケーションの接続
+* 複数のサービスを構成して同時に動作させる必要があるイベント処理
+
+== フローによるオーケストレーション実装の実現
+
+フローは、サービス仲介の新しいオーケストレーション方法を提供しています。たとえば、任意の数のソース、ルータ、およびコンポーネントを一緒に機能するように組み合わせることで、実装の要件を達成することができます。また、フロー特有のルータに基づいた新しい形態のデータ移動のオーケストレーションも可能です。オーケストレーションによって、フローとコンポーネントチェーンを作成して再利用したり、複数のコンポーネントを 1 つのフローに連結したり、フローの任意の場所でソースやコネクタを統合したりできます。
+
+== オーケストレーションを使用する状況
+
+オーケストレーションは、既存のサービスを組み合わせることによってビジネス要件を満足させる必要がある場合に使用します。たとえば、給与システムと HR システムの両方に入力する必要のある新しい従業員を追加する場合などには、オーケストレーションを使用すると便利です。注文処理にもオーケストレーションを利用できます。この場合は、オーケストレーションを使用して注文を受け付け、注文が在庫システムに登録されていることを確認し、クレジットチェックシステムを使用して顧客のクレジットの信頼性を確認して、注文を請求システムと発送システムに入力します。
+
+== オーケストレーションの例
+
+このオーケストレーションの例では、フローを使用して以下の処理を行います。
+
+. ファイルの内容を、1 つまたは複数の特定の注文を含む標準形式に変換します。
+. 注文を別々の処理用に分割し、書籍以外の注文を除外します。
+. 2 つのサービスを呼び出します。1 つは注文された書籍の在庫があるかどうかを確認し、もう 1 つは顧客の注文を作成します。
+. 注文情報を顧客にメールで送信し、データベースに保存します。
+
+このプロセスのいずれかのステップが失敗した場合、メッセージは失敗した注文の JMS キューに登録されます。影響を受ける注文を表示、修正してから、再び送信できます。
+
+[source,xml,linenums]
+----
+<flow name="orderHandling">
+  <file:listener directory="/myDirectory">
+    <scheduling-strategy>
+      <fixed-frequency/>
+    </scheduling-strategy>
+    <file:matcher filenamePattern="*.xml"/>
+  </file:listener>
+  <ee:transform>
+    <ee:message>
+      <ee:set-payload resource="createBookOrdersTransformation.dwl"/>
+    </ee:message>
+  </ee:transform>
+  <foreach collection="#[payload.orders filterObject ((value, key, index) -> value.type == 'books')]">
+      <http:request method="POST" path="/book/inventory"/>
+      <http:request method="POST" path="/book/order"/>
+      <email:send toAddresses="#[payload.customer.email]">
+        <email:body >
+          <email:content ><![CDATA[#['Your order has been placed.']]]></email:content>
+        </email:body>
+      </email:send>
+      <db:insert>
+        <db:sql >INSERT INTO ORDERS(CUSTOMER, AMOUNT) VALUES (:id, :amount)</db:sql>
+        <db:input-parameters><![CDATA[#[{ id : payload.customer.id, amount: payload.order.total }]]]></db:input-parameters>
+      </db:insert>
+    </choice>
+  </foreach>
+  <error-handler >
+    <on-error-continue>
+      <jms:publish destination="failedOrders"/>
+    </on-error-continue>
+  </error-handler>
+</flow>
+----
+
+== 関連情報
+
+// * xref:using-flows-for-service-orchestration.adoc[Using Flows for Service Orchestration]
+* xref:about-flows.adoc[フローおよびサブフロー]

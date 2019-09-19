@@ -1,0 +1,136 @@
+= Mule エラー
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Mule の実行失敗により、Mule エラーが発生します。各 Mule エラーには次のようなコンポーネントがあります。
+
+[%header,cols=“10%,60%,30%”]
+|===
+|コンポーネント| 説明| 式
+
+|説明
+|問題に関する説明。
+|`#[error.description]`
+
+|型
+|問題の特徴を記述し、エラーハンドラ内のルーティングを可能にするために使用される種別。
+|`#[error.errorType]`
+
+|Cause
+|失敗の原因となった基になる Java Throwable。
+|`#[error.cause]`
+
+|Message (メッセージ)
+|問題に関する省略可能な Mule メッセージ。
+|`#[error.errorMessage]`
+
+|Child Errors
+|Scatter-Gather などの要素が集約されたルートエラーを提供するために使用する内部エラーの省略可能なコレクション。
+|`#[error.childErrors]`
+|===
+
+Mule アプリケーションの各コンポーネントはスローされたエラーの種別を宣言するため、Mule フローをデザインするときに発生する可能性のあるエラーを容易に識別できます。
+
+たとえば、HTTP 要求が失敗し、401 ステータスコードが表示された場合、Mule エラーは次のようになります。
+
+----
+Description: HTTP GET on resource ‘http://localhost:36682/testPath’ failed: unauthorized (401)
+Type: HTTP:UNAUTHORIZED
+Cause: a ResponseValidatorTypedException instance
+Error Message:  { "message" : "Could not authorize the user." }
+----
+
+== エラーの種類
+
+上記の例では、エラー種別は単純に `UNAUTHORIZED` ではなく `HTTP:UNAUTHORIZED` です。 +
+エラー種別は名前空間と識別子の両方で構成されるため、ドメインに従って種別を区別できます。
+たとえば、`HTTP:NOT_FOUND` および `FILE:NOT_FOUND` のエラー種別があります。 +
+コネクタが名前空間を定義するのに対して、コアランタイムエラーには暗黙的な `MULE` が 1 つあります。 +
+そのため、`MULE:EXPRESSION` および `EXPRESSION` は 1 つとして解釈されます。
+
+エラー種別のもう 1 つの重要な特徴は、親種別を持つ場合があることです。たとえば、`HTTP:UNAUTHORIZED` は親として `MULE:CLIENT_SECURITY` を持ち、さらにその親として `MULE:SECURITY` があります。これにより、エラー種別がよりグローバルなエラー種別の使用として確立されます。HTTP unauthorized エラーはクライアントセキュリティエラーの種別の 1 つですが、クライアントセキュリティエラーはより広範なセキュリティ上の問題の種別です。
+
+こうした階層により、ルーティングをより全般的にできます。たとえば、`MULE:SECURITY` のハンドラは HTTP unauthorized エラーおよび OAuth エラーをキャッチします。 +
+次に、コアランタイムの階層がどのようになるかを示します。
+
+image::error-hierarchy.png[エラー階層]
+
+すべてのエラーは `ANY` または `CRITICAL` の 2 つの主な種別に属します。`ANY` のすべての種別はその親によって照合され、処理できるのに対して、`CRITICAL` のエラー種別はきわめて厳密であるため、処理できず、ログ記録されるのみです。  +
+
+失敗の明確な理由がない場合、コンポーネントは `UNKNOWN` 種別を使用できます。このエラーは `ANY` 種別を介して処理する必要があり、アプリケーションの既存の動作を変更しなくても、将来の不明確なエラーを定義できます。
+
+コネクタに関しては、各コネクタがコアランタイム階層を考慮してそのエラー種別階層を定義しますが、`CONNECTIVITY` および `RETRY_EXHAUSTED` 種別はすべてのコネクタに共通であるため、常に存在します。
+
+以下に、すべてのエラー種別のリストを示します。
+
+* `ANY`: フローで発生する可能性があり、処理できるすべてのエラー種別に一致するエラー種別。これには、ソースで発生する可能性があるエラーは含まれません。
+** `TRANSFORMATION`: 値の変換中にエラーが発生したことを示す。これには、Mule Runtime 内部変換が含まれ、DataWeave 変換は含まれません。
+** `EXPRESSION`: 式の評価中にエラーが発生したことを示す。
+** `VALIDATION`: 検証エラーが発生したことを示す。
+*** `DUPLICATE_MESSAGE`: 2 回処理されたメッセージに関する検証エラーを示す。たとえば、xref:idempotent-message-validator.adoc[冪等性のあるメッセージ検証機能]の使用などです。
+** `REDELIVERY_EXHAUSTED`: ソースからのメッセージの再処理の最大試行回数に達したことを示す。
+** `CONNECTIVITY`: 接続の確立で問題が発生したことを示す。これは、たとえば HTTP リクエスタなど、コネクタの使用中に発生する可能性があります。
+*** `RETRY_EXHAUSTED`: 特定の実行ブロックの再試行回数がなくなったことを示す。たとえば、特定の操作や、xref:until-successful-scope.adoc[Until Successful スコープ]の使用などです。
+** `ROUTING`: メッセージのルーティング中にエラーが発生したことを示す。たとえば、xref:round-robin.adoc[Round Robin ルータ]の使用などです。
+*** `COMPOSITE_ROUTING`: メッセージのルーティング中に 1 つ以上のエラーが発生したことを示す。たとえば、xref:scatter-gather-concept.adoc[Scatter Gather ルータ]の使用などです。
+** `SECURITY`: 無効なログイン情報の受信や期限切れのトークンの使用など、セキュリティエラーが発生したことを示す。
+*** `CLIENT_SECURITY`: 外部エンティティ (たとえば、外部エンドポイントのコール) によってセキュリティエラーが発生したことを示す。
+*** `SERVER_SECURITY`: Mule Runtime によってセキュリティエラーが適用されたことを示す。
+**** `NOT_PERMITTED`: 検索条件によってセキュリティ制限が適用されたことを示す。たとえば、xref:connectors::spring/spring-module.adoc#_to_validate_authentication_using_the_spring_authorization_filter[Mule Spring モジュールの承認検索条件]の使用などです。
+** `STREAM_MAXIMUM_SIZE_EXCEEDED`: ストリームに許可された最大サイズを超えたことを示す。詳細については、xref:streaming-about.adoc[「Mule アプリケーションでのストリーミング」]を参照してください。
+** `TIMEOUT`: メッセージの処理中にタイムアウトが発生したことを示す。
+** `UNKNOWN`: 不明なエラーまたは予期しないエラーが発生したことを示す。このエラーは、将来のランタイムバージョンでエラー種別が追加された場合に備えて後方互換性を確保するため、直接処理することはできず、`ANY` を処理することで処理するしかありません。
+* `SOURCE`: フローの取得元でエラーが発生したことを示す。
+** `SOURCE_ERROR_RESPONSE_GENERATE`: エラー応答のパラメータの生成中にフローの取得元でエラーが発生したことを示す。取得元がすでに失敗したパスを実行しているため、このエラーは処理できません。
+** `SOURCE_ERROR_RESPONSE_SEND`: エラー応答の送信中にフローの取得元でエラーが発生したことを示す。取得元がすでに失敗したパスを実行しているため、このエラーは処理できません。
+* `SOURCE_RESPONSE`: 成功した応答の処理中にフローの取得元でエラーが発生したことを示す。取得元がすでに成功したパスを実行しているため、このエラーは伝播のみできます。
+** `SOURCE_RESPONSE_GENERATE`: 成功した応答のパラメータの生成中にフローの取得元でエラーが発生したことを示す。
+** `SOURCE_RESPONSE_SEND`: 成功した応答の送信中にフローの取得元でエラーが発生したことを示す。
+* `CRITICAL`: 重大なエラーが発生したことを示す。このエラーは処理できません。
+** `OVERLOAD`: オーバーロードの問題が発生し、実行が拒否されたことを示す。
+*** `FLOW_BACK_PRESSURE`: ソースレベルでオーバーロードの問題が発生したことを示す。たとえば、ソースとしての HTTP リスナの使用などです。
+** `FATAL_JVM_ERROR`: スタックのオーバーフローなど、重大なエラーが発生したことを示す。
+
+== カスタムエラー種別
+
+カスタムエラー種別を使用するには、マッピングするときまたはエラーを発生するときに定義する必要があります。
+このエラーは、アプリケーション内の既存の種別と区別するために特定のカスタム名前空間が
+必要です。つまり、HTTP および DB を使用するアプリケーションで、
+これら 2 つの名前空間を使用することはできません。特定の Mule アプリケーション名またはコンテキストに関連した名前空間を定義し、既存のコネクタ名前空間の使用を避ける必要があります。
+
+たとえば、カスタム集約 API は `CUSTOMER` 名前空間をその
+カスタムエラー種別に使用でき、受注処理 API は `ORDER` 名前空間を使用できます。
+
+== エラーのマッピング
+
+フローの各操作で、可能性のあるエラー種別を選択したカスタムエラー種別にマップできます。これらのカスタムエラー種別を使用して、フローのどこでエラーが発生したかを正確に識別できます。
+
+たとえば、フローに異なる REST サービスにアクセスする 2 つの HTTP Request 操作がある場合、一方での接続失敗によって同じエラーが発生します。ただし、それぞれを異なるカスタムエラー種別にマップすることで、各操作失敗のエラー処理を識別でき、Mule アプリケーションログでエラーの発生元をすばやく識別することもできます。
+
+次の例では、マッピングによって 2 つのカスタムエラー種別 `APP:CUSTOMER_API` および `APP:ORDER_API` を定義することで、きめ細かいエラー処理が可能になることがわかります。
+
+マッピングの XML 設定の例
+[source,xml,linenums]
+----
+<flow name="retrieveMatchingOrders">
+  <http:request config-ref="customersConfig" path="/customer">
+    <error-mapping sourceType="CONNECTIVITY" targetType="APP:CUSTOMER_API"/>
+  </http:request>
+  <http:request config-ref="ordersConfig" path="/order">
+    <error-mapping sourceType="CONNECTIVITY" targetType="APP:ORDER_API"/>
+  </http:request>
+  <error-handler>
+    <on-error-continue type="APP:CUSTOMER_API">
+      <logger message="#['Could not retrieve customer data.']"/>
+    </on-error-continue>
+    <on-error-continue type="APP:ORDER_API">
+      <logger message="#['Could not retrieve customer order data.']"/>
+    </on-error-continue>
+  </error-handler>
+</flow>
+----
+
+== 関連情報
+
+* xref:on-error-scope-concept.adoc[On-Error エラーハンドラ]

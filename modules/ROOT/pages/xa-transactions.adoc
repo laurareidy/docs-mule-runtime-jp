@@ -1,0 +1,145 @@
+= XA トランザクション
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: xa, トランザクション, jms, vms, db, ibmmq
+
+拡張アーキテクチャトランザクション (XA トランザクション) を使用すると、VM、JMS、データベースといった複数のトランザクションリソースから一連の操作を取り出して、単一の信頼できるグローバルトランザクションとしてグループ化できます。
+
+XA (eXtended Architecture: 拡張アーキテクチャ) 標準は、グローバルトランザクションマネージャとローカルトランザクションリソースマネージャとのインターフェースを定義する X/Open グループの標準です。XA プロトコルが定義する 2 フェーズコミットプロトコルを使用すると、種類の異なる複数のサーバにまたがる一連のアトミック操作を高い信頼性で調整して順序付けることができます。各ローカル XA リソースマネージャは、XA リソースマネージャが管理するリソース内での一連の操作の完了を保証するのに役立つ ACID (Atomicity: 不可分性、Consistency: 一貫性、Isolation: 独立性、Durability: 永続性) プロパティをサポートします。ローカル XA リソースマネージャをよく使うトランザクションシステムの例としては、データベース、アプリケーションサーバ、メッセージングキュー、トランザクションキャッシュなどがあります。
+
+グローバルトランザクションマネージャは、グローバルトランザクションに関与するすべてのローカル XA トランザクションマネージャ間で、グローバルトランザクションのトランザクションセマンティクスを調整する責任を持ちます。そのため、各ローカル XA リソースマネージャとの間で、2 フェーズコミットの準備フェーズとコミットフェーズがそれぞれグローバルに (通常はネットワークを介して) 調整されます。
+
+XA グローバルトランザクションのメリットは、1 つのグローバルトランザクションマネージャが、複数の異なるトランザクションリソースとの間で、共通した標準的な方法でコミュニケーションと調整を行えるという点です。グローバルトランザクションでいずれかのローカルリソースマネージャがエラーを報告すると、グローバルトランザクションマネージャは、他のそれぞれのローカルリソースマネージャですでに準備ができている操作のロールバックを調整します。
+たとえば、グローバルトランザクションに、1 つまたは複数のデータベースに対する複数の操作と、JMS サーバに送信される 1 つまたは複数のトピックに関連したメッセージが含まれるとします。トランザクションで何らかのエラーが発生すると、グローバルトランザクションマネージャは、すべてのリソースがグローバルトランザクションの開始前の状態にリセットされることを保証します。このため、開発者は複雑なロールバックロジックや復元ロジックをアプリケーションの外部で定義しなくても済みます。
+
+XA グローバルトランザクションのデメリットは、特に低速または信頼性の低いネットワーク接続経由でリソースが分散している場合には、トランザクションのレイテンシが大幅に増大するという点です。また、グローバルに分散されているトランザクションの途中のシステムで物理的な障害が発生した場合には、復元が困難になることがあります。
+
+== パフォーマンスに関する考慮事項
+
+グローバル XA トランザクションは、高い信頼性で複数の XA リソースを調整できますが、多くの場合はレイテンシが増大する上、外部トランザクションマネージャなどの追加リソースが必要になります。また、グローバルトランザクションの信頼性は、グローバルトランザクションマネージャ自身の信頼性と同じです。さらに信頼性を高めるには、グローバルトランザクション中にトランザクションマネージャがエラーとなったり、いずれかのローカル XA リソースマネージャとの接続が失われたりした場合に備えて、グローバルトランザクションが準備フェーズ、そしてコミットフェーズへと進むに従って各 XA リソースの状態を格納しておくためのトランザクションマネージャが必要です。
+
+== XA トランザクションを使用するためのリソースの設定
+
+XA トランザクションをサポートするメッセージソースの設定については、コネクタのドキュメントを参照してください。
+
+* JMS
+* IBMMQ
+* VM
+* データベース
+
+== XA トランザクションを使用するための Try スコープの設定
+
+XA トランザクションを使用するように Try スコープを設定するための手順は、次のとおりです。
+
+1. Mule パレットから Try スコープを追加します。
+2. [Try] 設定パネルで *[General (一般)]* タブに移動します。
+3. Try スコープの `Transactional Action` を `ALWAYS_BEGIN`、`Transaction Type` を `XA` に設定します。
+
+Try スコープがどのようにトランザクションを処理するかについての詳細は、xref:try-scope-concept.adoc[「Try スコープの概念」]を参照してください。
+
+== 異なるリソースでの XA トランザクションの使用
+
+トランザクションをどのように (トランザクションメッセージソースから、または Try スコープから) 開始するかには関係なく、トランザクションをサポートするコネクタ操作は、トランザクションアクションを `ALWAYS_JOIN` または `JOIN_IF_POSSIBLE` に設定することで、トランザクションを結合することができます。
+XA トランザクションは、異なるリソースでも動作するため、異なるリソースからの操作でもトランザクションを結合できます。例:
+
+[source,xml,linenums]
+----
+<flow name="exampleFlow" >
+	<try transactionalAction="ALWAYS_BEGIN" transactionType="XA">
+		<set-payload value="Hello World"/>
+		<vm:publish queueName="someVmQueue" config-ref="VM_Config"/>
+		<jms:consume config-ref="JMS_Config" destination="someQueue"/>
+		<db:insert config-ref="Database_Config">
+			<db:sql>${insertQuery}</db:sql>
+		</db:insert>
+	</try>
+	<error-handler>
+		<on-error-propagate enableNotifications="true" logException="true"/>
+	</error-handler>
+</flow>
+----
+
+`db:insert` 操作が失敗すると、トランザクションがロールバックされてからエラーハンドラ (`on-error-propagate`) が実行されます。そのため、`vm:publish` 経由で送信されるメッセージは送信されたかどうかが確定されず、`jms:consume` のメッセージは実際にはコンシュームされず、次回に再びコンシュームできるように使用できます。
+
+次の例では、エラーハンドラが `on-error-continue` に変更されています。
+
+[source,xml,linenums]
+----
+<flow name="exampleFlow" >
+	<try transactionalAction="ALWAYS_BEGIN" transactionType="XA">
+		<set-payload value="Hello World"/>
+		<vm:publish queueName="someVmQueue" config-ref="VM_Config"/>
+		<jms:consume config-ref="JMS_Config" destination="someQueue"/>
+		<db:insert config-ref="Database_Config">
+			<db:sql>${insertQuery}</db:sql>
+		</db:insert>
+	</try>
+	<error-handler>
+		<on-error-continue enableNotifications="true" logException="true">
+			<jms:publish config-ref="ANOTHER_JMS_Config" destination="someOtherQueue" transactionalAction="ALWAYS_JOIN"/>
+		</on-error-continue>
+	</error-handler>
+</flow>
+----
+
+`db:insert` 操作が失敗しても、トランザクションはロールバックされません。その代わりに、トランザクションは (XA トランザクション内で実行される) `jms:publish` の実行後にコミットされます。そのため、`vm:publish` を使用して送信されるメッセージはパブリッシュされ、`jms:consume` からのメッセージはコンシュームされ、`jms:publish` を使用して送信されるメッセージもパブリッシュされます。
+
+`on-error-continue` 内の `jms:publish` には、別のコネクタ設定もあります。これは必須ではありませんが可能です。ただし、単一のソース (ローカル) トランザクションでは、トランザクションを結合するすべての操作が同じ設定を使用しなければ設計通りには機能しないため、この設定は有効ではありません。
+
+== ネストされたトランザクション
+
+XA トランザクションは、ネストされたトランザクションをサポートします。Try スコープを使用して、すでに実行中のトランザクションの中に新しいトランザクションを作成することができます。新しいトランザクション内で実行される操作は、新しいトランザクションに属します。ネストされたトランザクションがロールバックされても、その親トランザクションもロールバックされるとは限りません。ネストされたトランザクションが (コミットまたはロールバックで) 完了すると、親トランザクションは実行を続行します。
+
+例:
+
+[source,xml,linenums]
+----
+<flow name="exampleFlow" >
+	<try transactionalAction="ALWAYS_BEGIN" transactionType="XA">
+		<vm:publish queueName="someVmQueue" config-ref="VM_Config"/>
+		<try transactionalAction="ALWAYS_BEGIN" transactionType="XA"/>
+			<jms:consume config-ref="JMS_Config" destination="someQueue"/>
+			<db:insert config-ref="Database_Config">
+				<db:sql>${insertQuery}</db:sql>
+			</db:insert>
+			<raise-error type="APP:SOME"/>
+		</try>
+		<error-handler>
+			<on-error-continue/>
+		</error-handler>
+	</try>
+</flow>
+----
+
+上の例では、最初の `try` スコープでトランザクションを作成しています。そして、2 番目の `try` スコープで 2 番目のトランザクションを作成しています。`vm:publish` 操作は最初のトランザクション内で実行され、`jms:consume` と `db:insert` は 2 番目のトランザクション内で実行されます。エラーが発生すると、2 番目のトランザクションが `jms:consume` および `db:insert` 操作と共にロールバックされます。一方で、最初の `try` が `on-error-continue` でエラーを処理するため、最初のトランザクションは `vm:publish` 操作と共にコミットされます。
+
+次の例を考えてみましょう。
+
+[source,xml,linenums]
+----
+<flow name="exampleFlow" >
+	<try transactionalAction="ALWAYS_BEGIN" transactionType="XA">
+		<vm:publish queueName="someVmQueue" config-ref="VM_Config"/>
+		<try>
+			<try transactionalAction="ALWAYS_BEGIN" transactionType="XA"/>
+				<jms:consume config-ref="JMS_Config" destination="someQueue"/>
+				<raise-error type="APP:SOME"/>
+			</try>
+			<error-handler>
+				<on-error-continue/>
+			</error-handler>
+		</try>
+		<db:insert config-ref="Database_Config">
+			<db:sql>${insertQuery}</db:sql>
+		</db:insert>
+	</try>
+</flow>
+----
+
+この例では、2 番目の `try` スコープはトランザクションを作成せず、以降の操作が継続できるようにエラーを処理するだけです。トランザクションを作成するのは 3 番目の `try` スコープです。`vm:publish` と `db:insert` はどちらも最初のトランザクションで実行され、`jms:consume` 操作は 2 番目のトランザクションで実行されます。エラーが発生すると、2 番目の操作がロールバックされます。エラーは、伝播されて 2 番目の `try` スコープの `on-error-continue` によって処理されます。その後、最初の `try` スコープが実行 (`db:insert` 操作) を続行し、最初のトランザクションがコミットされます。
+
+== 関連情報
+* xref:try-scope-concept.adoc[Try スコープ]
+* xref:using-bitronix-to-manage-transactions.adoc[Bitronix を使用したトランザクションの管理]
+* xref:transaction-management.adoc[トランザクションの管理]

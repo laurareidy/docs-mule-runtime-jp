@@ -1,0 +1,64 @@
+= Dynamic Evaluate コンポーネント
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Mule, ee, esb, Studio, 動的, 評価, 式
+
+*4.1 以降で使用可能*
+
+このコアコンポーネントは、結果が別のスクリプトになる式を評価し、次にそのスクリプトを評価して最終的な結果を得ます。この動作により、xref:transform-component-about.adoc[Transform Message コンポーネント]を使用してハードコード化する代わりに、動的にスクリプトを選択できます。
+
+スクリプトには、`message`、`payload`、`vars`、`attributes` などの通常のxref:dataweave-variables-context.adoc[コンテキスト変数]を使用できますが、キー - 値ペアのセットを指定することによってカスタム変数を追加することもできます。
+
+次の例では、`userId` クエリパラメータを使用してデータベースからスクリプトを選択し、そのスクリプトを `userScript` 変数に保存します。次に `dynamic-evaluate` コンポーネントは変数にアクセスしてスクリプトを起動し、`userName` クエリパラメータから `name` 変数を追加できるようにします。
+
+.例: フローの XML 設定
+[source,xml,linenums]
+----
+<flow name="raise-error-example-flow">
+  <http:listener config-ref="HTTP_Listener_Configuration" path="/"/>
+  <db:select config-ref="dbConfig" target="userScript">
+    <db:sql>#["SELECT script FROM SCRIPTS WHERE ID = $(attributes.queryParams.userId)"]</db:sql>
+  </db:select>
+  <ee:dynamic-evaluate expression="#[vars.userScript]">
+    <ee:parameters>#[{name: attributes.queryParams.userName}]</ee:parameters>
+  </ee:dynamic-evaluate>
+</flow>
+----
+
+次のスクリプトがデータベースのエントリ `lsalander` と `mblomkvist` にそれぞれ保存されているとします。
+
+.例: lsalander スクリプト
+----
+output application/json
+---
+{
+  message: "Order " ++ attributes.queryParams.orderId ++ " has been received from " ++ name,
+  items: payload.items
+}
+----
+
+.例: mblomkvist スクリプト
+----
+output application/x-www-form-urlencoded
+---
+{
+  message: "Order " ++ attributes.queryParams.orderId ++ " has been received from " ++ name,
+  items: payload.items
+}
+----
+
+`lsalander` を `userId` として送信すると JSON 応答が得られ、`mblomkvist` を送信すると `x-www-form-urlencoded` 応答が得られます。つまり、基本的に応答種別をユーザごとにパラメータ化できます。実際、応答全体を各ユーザのニーズに合わせてパラメータ化できます。
+
+== 動的評価の設定
+
+[%header,cols="1,1,2,2"]
+|===
+| 項目 | 値 | 説明 | 例
+
+| 式 | DataWeave 式 | 評価されて最終スクリプトになる式を指定します。 |
+`expression="#[vars.generateOrderScript]"`
+| パラメータ | DataWeave 式 | 最終スクリプトを評価するキー - 値ペアを指定します。 |
+`#[{joiner: ' and ', id: payload.user.id}]`
+
+|===

@@ -1,0 +1,26 @@
+= 変換コードの個別ファイルへの移動 (Anypoint Studio)
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+デフォルトでは、Transform Message コンポーネントの DataWeave コードは Mule XML ファイル内に記述されます。このコードを個別のファイル (`.dwl`) に記述して、XML から参照することもできます。これらのファイルは、ビルド時に Mule アプリケーションと一緒にバンドルされます。
+
+DataWeave コードを `.dwl` ファイルにエクスポートするには次の手順を実行します。
+
+
+. *[Edit Current Target (現在の対象を編集)]* ボタンをクリックします。
++
+image::dw-multiple-outputs-edit.png[対象の編集]
+. *[File (ファイル)]* ラジオボタンを選択します。
++
+image::dataweave-externalfile2.png[外部ファイル 2]
+* `.dwl` ファイルの名前を入力します。
+* *[OK]* をクリックします。
+
+DataWeave コードが格納されたファイルがプロジェクトの `src/main/resources` フォルダに作成されます。
+
+== 関連情報
+
+xref:dataweave.adoc[DataWeave 言語]
+
+xref:transform-component-about.adoc[Transform Message コンポーネント]

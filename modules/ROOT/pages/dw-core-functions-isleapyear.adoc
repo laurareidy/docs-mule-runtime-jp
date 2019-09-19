@@ -1,0 +1,116 @@
+= isLeapYear
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[isleapyear1]]
+== isLeapYear&#40;DateTime&#41;: Boolean
+
+うるう年の日付を受け取った場合は `true`、それ以外の場合は `false` を返します。
+
+
+このバージョンの `leapYear` は、`DateTime` (日時) 型で動作します。その他のバージョンは、DataWeave でサポートされる他の日付と時刻の形式で動作します。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `dateTime` | 評価する `DateTime` 値。
+|===
+
+=== 例
+
+次の例では、入力がうるう年かどうかを示します。
+
+==== 取得元
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+output application/json
+---
+[ isLeapYear(|2016-10-01T23:57:59|), isLeapYear(|2017-10-01T23:57:59|) ]
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+[ true, false ]
+----
+
+
+[[isleapyear2]]
+== isLeapYear&#40;Date&#41;: Boolean
+
+入力 `Date` (日付) がうるう年の場合は `true`、それ以外の場合は 'false' を返します。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `date` | 評価する `Date` 値。
+|===
+
+=== 例
+
+次の例では、入力がうるう年かどうかを示します。
+
+==== 取得元
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+output application/json
+---
+[ isLeapYear(|2016-10-01|), isLeapYear(|2017-10-01|) ]
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+[ true, false ]
+----
+
+
+[[isleapyear3]]
+== isLeapYear&#40;LocalDateTime&#41;: Boolean
+
+入力ローカル日時がうるう年の場合は `true`、それ以外の場合は 'false' を返します。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `datetime` | 評価する `LocalDateTime` 値。
+|===
+
+=== 例
+
+次の例では、入力がうるう年かどうかを示します。`map` 関数を使用して、その `LocalDateTime` 値の配列を反復処理し、値に `isLeapYear` を適用して結果を配列で返します。
+
+==== 取得元
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+output application/json
+---
+[ |2016-10-01T23:57:59-03:00|, |2016-10-01T23:57:59Z| ] map isLeapYear($)
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+[ true, true ]
+----
+

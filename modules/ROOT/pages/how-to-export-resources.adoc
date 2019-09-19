@@ -1,0 +1,56 @@
+= リソースのエクスポート
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Mule アプリケーション、Mule ドメイン、Mule ポリシーには、プロパティファイル、DataWeave 変換ファイル、Java クラスなどの一連のリソースが含まれています。デフォルトでは、これらのすべてのファイルは、それが定義されたアーティファクト内部のものであり、他のアーティファクトからはアクセスできません。たとえば、ドメインレベルで定義されたリソースが明示的にエクスポートされなければ、その共有ドメインに属するどのアプリケーション内からもそのリソースにアクセスできません。別の例として、Java モジュールで使用されることが想定されているアプリケーションからのクラスがあります。それらのクラスがエクスポートされなければ、Java モジュールはそれらにアクセスできません。
+
+== Java クラスのエクスポート方法
+
+Java クラスをエクスポートするには、アーティファクトの `mule-artifact.json` ファイルの `exportedPackages` 項目を使用します。インポートできるのは完全なパッケージのみであり、個々のクラスではないことに注意してください。
+
+[source,json,linenums]
+----
+{
+    "name": "MyApp",
+    "minMuleVersion": "4.0.0",
+    "classLoaderModelLoaderDescriptor": {
+        "id": "mule",
+        "attributes": {
+            "exportedPackages": [
+                "org.mule.myapp.api.customer",
+                "org.mule.myapp.api.account"
+            ]
+        }
+    }
+}
+----
+
+CAUTION: アプリケーションが機能するのに必要な最小限の数のクラスをエクスポートしてください。そうすることで、アプリケーション内で使用する他のアーティファクト (モジュールやコネクタなど) と競合する可能性が低くなります。
+
+TIP: 公開パッケージ内では `.api.` を使用し、非公開パッケージ内では `.internal.` を使用するようにします。
+
+
+== リソースファイルのエクスポート方法
+
+リソースをエクスポートするには、アーティファクトの `mule-artifact.json` ファイルの `exportedResources` 項目を使用します。
+
+[source,json,linenums]
+----
+{
+    "name": "MyApp",
+    "minMuleVersion": "4.0.0",
+    "classLoaderModelLoaderDescriptor": {
+        "id": "mule",
+        "attributes": {
+            "exportedResources": [
+                "/org/mule/myapp/customer-to-user.dwl",
+                "/org/mule/myapp/beans.xml"
+            ]
+        }
+    }
+  }
+}
+----
+
+IMPORTANT: 同じメカニズムがすべてのアーティファクトに適用されます。これには、Mule SDK を使用して開発されたカスタム拡張を含みます。

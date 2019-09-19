@@ -1,0 +1,75 @@
+= On-Error エラーハンドラ
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+On Error コンポーネントは、処理するエラーの種別を定義します。On Error コンポーネントは
+スコープに近い Error Handler コンポーネント内で設定します。
+
+エラーが発生すると、Error Handler コンポーネントが Mule エラーをエラーに一致した
+最初の On Error コンポーネントにルーティングします。この時点でエラーが
+調査可能になるため、On Error コンポーネントはそれに応じて実行し、
+アクションを行うことができます。
+
+Mule は 2 つの種別の On Error コンポーネントをサポートしています。どちらもエラー種別
+(またはエラー種別のグループ) または式
+(高度なユースケース向け) を通じて照合を実行できます。各 On Error コンポーネントは、エラーが起こったときに実行する
+異なる動作を指定します。この動作により、その
+所有者 (Error Handler が定義されている Flow または Try スコープ) の結果に影響を及ぼします。
+
+[%header%autowidth.spread,cols='a,a']
+|===
+|On Error スコープ |説明
+| On Error Propagate
+| 実行するが、エラーを 1 つ上のレベルに伝播するため、所有者の実行が中断されます。 +
+トランザクションが処理中の場合、ロールバックされます。
+
+image::error-handling-e77ec.png[]
+
+| On Error Continue
+| 実行し、所有者が実際に実行を正常に完了したかのように、実行の結果をその所有者の結果として使用します。 +
+トランザクションが処理中の場合、同様にコミットされます。
+|===
+
+各 On Error スコープは異なるエラー種別のセットを受け入れるようにセットアップできます。Studio と Design Center の両方で、エラーハンドラの所有者で使用されるコンポーネントによって発生する可能性があるエラーのリストから選択できます。
+
+種別 *ANY* を受け入れるパスをセットアップし、他のパスによって使用されないすべてのエラー種別を照合することもできます。条件は順番に評価されるため、他のパスを評価するには、*ANY* パスを必ず最後に配置する必要があります。
+*ANY* の明示的な最終パスがない場合、デフォルトのエラー処理が適用され、エラーはログ記録されて伝播されます。つまり、`on-error-propagate` が設定されていたかのように拡散し続けることになります。
+
+パスをエラー種別のセットにマップする代わりに、自由に定義した条件にマップすることもできます。たとえば、When 項目を次のように設定して、パスを条件にマップできます。
+
+`#[error.cause.message contains "fatal"]`
+
+各フローに含むことができるエラーハンドラは 1 つだけですが、このエラーハンドラには表示する必要がある任意の個数の On Error スコープを含むことができます。上記のとおり、デフォルトでは、明示的に処理されないエラーは伝播されます。
+
+== On Error スコープの再利用
+
+グローバルに公開してフローおよび try スコープで参照することでエラーハンドラを
+共有できるのと同じように、on-error スコープも再利用できます。on-error スコープをグローバルに定義して
+名前を付け、下の例のように、参照の on-error コンポーネントを使用して
+参照できます。
+
+.例: 参照される On-Error の XML 設定
+[source,xml,linenums]
+----
+<on-error-propagate name="sharedPropagateHandler">
+  <logger message="An unhandled error has occurred."/>
+</on-error-propagate>
+
+<on-error-continue type="EXPRESSION" name="sharedContinueHandler">
+  <logger message="An expression failed to evaluate."/>
+</on-error-continue>
+
+<error-handler name="reusingHandlers">
+  <on-error ref="sharedContinueHandler"/>
+  <on-error-continue type="ROUTING">
+    <logger message="An expression failed to evaluate."/>
+  </on-error-continue>
+  <on-error ref="sharedPropagateHandler"/>
+</error-handler>
+----
+
+== 関連情報
+
+* xref:mule-error-concept.adoc[Mule エラー]
+* xref:try-scope-concept.adoc[Try スコープ]

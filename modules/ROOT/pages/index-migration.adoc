@@ -1,0 +1,30 @@
+= Mule 3 ユーザ向けの Mule 4 情報
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+// author: Dan D
+
+Mule 4 の改善により、Mule 3 よりも学習、開発、管理が簡単になりました。これらの機能の概要については、xref:mule-runtime-updates.adoc[「Mule 4 の新機能」]を参照してください。
+
+このドキュメントでは、Mule 3 と Mule 4 の違い、Mule 4 に移行すべきタイミング、アプリケーションを手動で移行するには何が必要かについて説明します。次のトピックに関する情報が含まれています。
+
+* xref:intro-overview.adoc[Mule 4 の概要]: すでに Mule 3 を知っている方向けの Mule 4 の概要。
+* xref:migration-prep.adoc[移行の準備]: Mule アプリケーションに移行する前に考える手順。
+* xref:migration-process.adoc[移行プロセスについて]: 移行に含まれる主要な手順の概要。
+* xref:migration-cheat-sheet.adoc[移行早見表]: 一般的な移行作業に関する記事の索引。
+* より詳細な移行情報
+ ** xref:migration-core.adoc[コアコンポーネントの移行]
+ ** xref:migration-connectors.adoc[コネクタの移行]
+ ** xref:migration-api-gateways.adoc[API ゲートウェイの移行]
+ ** xref:migration-mel.adoc[MEL から DataWeave への移行]
+ ** xref:migration-dataweave.adoc[DataWeave 1.0 から 2.x への移行]
+ ** xref:migration-munit.adoc[MUnit の移行]
+ * xref:migration-example-complex.adoc[移行の例]: Mule アプリケーションで使用される移行前 (Mule 3) と移行後 (Mule 4) の構文を示した詳細な例。
+* より詳細な移行情報
++
+// ** xref:migration-devkit-to-mule-sdk.adoc[Migrating DevKit to the Mule SDK]
+
+IMPORTANT: MuleSoft は、アプリケーションを Mule 4 に移行するためのツールを間もなくリリースします。今すぐ移行する差し迫った必要がない場合は、現時点では新しいプロジェクトのみに Mule 4 を使用し、このガイドは既存の Mule 3 ユーザ向けの学習ツールとしてのみ使用することをお勧めします。
+
+このガイドはすべての 3.x バージョンに適用されます。ただし、3.x の例では Mule 3.9 を使用しています。

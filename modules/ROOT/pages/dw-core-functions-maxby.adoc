@@ -1,0 +1,82 @@
+= maxBy
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[maxby1]]
+== maxBy&#40;Array<T&#62;, &#40;item: T&#41; &#45;&#62; Comparable&#41;: T &#124; Null
+
+配列を反復処理し、配列から比較可能な要素の最大値を返します。
+
+
+項目のデータ型は同じである必要があります。同じでない場合、`maxBy` はエラーを返し、配列が空の場合は、null を返します。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `array` | 入力配列。
+| `criteria` | 配列から `Number` (数値)、`Boolean` (ブール)、`DateTime` (日時)、`LocalDateTime` (ローカル日時)、`Date` (日付)、`LocalTime` (ローカル時刻)、`Time` (時刻)、または `TimeZone` (タイムゾーン) データ型の項目を選択するための式。`&#36;` で参照できます。
+|===
+
+=== 例
+
+次の例では、配列のオブジェクト (キー-値ペア) 内の最大数値を返します。`item.a` を使用してオブジェクトの値を選択しています。`[ { "a" : 1 }, { "a" : 3 }, { "a" : 2 } ] maxBy &#36;.a` のように、匿名パラメータを使用して同じ式を記述することもできます。
+
+==== 取得元
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+output  application/json
+---
+[ { "a" : 1 }, { "a" : 3 }, { "a" : 2 } ] maxBy ((item) -> item.a)
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "a" : 3 }
+----
+
+=== 例
+
+次の例では、変数 `myDateTime1` および `myDateTime2` で定義された入力から最新の `DateTime` (日時)、`Date` (日付)、および `Time` (時刻) を取得します。また、この関数は空の配列に対して null を返すことも示しています。
+
+==== 取得元
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+var myDateTime1 = "2017-10-01T22:57:59-03:00"
+var myDateTime2 = "2018-10-01T23:57:59-03:00"
+output application/json
+---
+{
+  myMaxBy: {
+    byDateTime: [ myDateTime1, myDateTime2 ] maxBy ((item) -> item),
+    byDate: [ myDateTime1 as Date, myDateTime2 as Date ] maxBy ((item) -> item),
+    byTime: [ myDateTime1 as Time, myDateTime2 as Time ] maxBy ((item) -> item),
+    emptyArray: [] maxBy ((item) -> item)
+  }
+}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "myMaxBy": {
+    "byDateTime": "2018-10-01T23:57:59-03:00",
+    "byDate": "2018-10-01",
+    "byTime": "23:57:59-03:00",
+    "emptyArray": null
+  }
+}
+----
+

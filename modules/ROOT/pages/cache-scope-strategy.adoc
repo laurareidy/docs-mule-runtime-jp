@@ -1,0 +1,43 @@
+= キャッシュ戦略のセットアップ
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Cache スコープまたは Anypoint Studio のグローバル要素設定からキャッシュ戦略を作成できます。作成した戦略は、フローの Cache コンポーネントで参照できます。
+
+. [Caching Strategy configuration (キャッシュ戦略設定)] ウィンドウを開きます。
++
+これは、[Cache component configuration (Cache コンポーネント設定)] タブまたは Studio 内の [Global Elements (グローバル要素)] タブの [Caching Strategies (キャッシュ戦略)] オプションから開くことができます。
++
+. キャッシュ戦略の名前を入力します。
+. ObjectStore を参照するか、Cache コンポーネントで参照する ObjectStore を作成します。
++
+. キャッシュ戦略内でイベントを保存するために使用されるキーを生成するメカニズムを選択します。
++
+* Default (デフォルト)
+* Key Expression (キー式): DataWeave 式 (`keyGenerationExpression="#[vars.requestId]"` など)。
++
+同じ (「等しい」) 2 つの要求の場合、同じキーを生成する必要があります。そのようにしないと、誤った結果を取得する可能性があります。
++
+* Key Generator (キージェネレータ): `com.mulesoft.mule.runtime.cache.api.key.MuleEventKeyGenerator` インターフェースを実装する必要があります。
++
+. 必要に応じて、省略可能なステップを実行します。
++
+* 応答ジェネレータを選択または作成する。
++
+このステップでは、`com.mulesoft.mule.runtime.cache.api.response.ResponseGenerator` インターフェースを実装する必要があります。
++
+* イベントコピー戦略をデフォルトの [Simple (シンプル)] (データは変更不可能) から [Serializable (シリアル化可能)] (データは変更可能) に変更する。
+
+////
+REMOVED PER PABLO K:
+* Select or create a Consumable Message Filter.
++
+Note that this step requires that you implement the `com.mulesoft.mule.compatibility.core.api.routing.filter.Filter` interface.
+////
+
+== 関連情報
+
+xref:cache-scope.adoc[Cache スコープ]
+
+xref:cache-scope-to-configure.adoc[Cache スコープの設定]

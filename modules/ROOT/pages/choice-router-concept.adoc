@@ -1,0 +1,47 @@
+= Choice ルータ
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Choice ルータは、メッセージコンテンツを評価する一連の DataWeave 式に従ってフローで動的にメッセージをルーティングします。各式は、異なるルーティングオプションに関連付けられます。これにより、大部分のプログラミング言語の `if`/`then`/`else` コードブロックのような条件付き処理がフローに追加されます。
+
+.3 つのオプション (1 つはデフォルトオプション) がある Choice ルータの系統図
+image::component-choice-schematic.png[Choice ルータの系統図]
+
+== 例
+
+Anypoint Studio を使用して、Anypoint Exchange からサンプルプロジェクト  _Content-Based Routing_  (コンテンツベースのルーティング) をダウンロードできます。このプロジェクトでは、Choice ルータを使用するフローの稼働サンプルが提供されます。
+
+プロジェクトを Mule アプリケーションとして実行すると、アプリケーションは次のアクションを実行します。
+
+. メッセージをリスンします。
+. メッセージを変数設定コンポーネントに渡します。このコンポーネントは、パラメータ `language` でメッセージに渡される言語を変数 `language` に設定します。
+. Choice ルータを使用して、各メッセージに `language` 属性が含まれているかどうかを確認します。この属性の存在や値によって、Choice ルータによるメッセージのルーティング方法が決まります。
+
+  - 値が `French` の場合、ルータはメッセージを _Reply in French_ という名前のペイロード設定コンポーネントにルーティングします。後者のコンポーネントは、メッセージ `Bonjour!` をリクエスタに返します。
+  - 値が `Spanish` の場合、ルータはメッセージを _Reply in Spanish_ という名前のペイロード設定コンポーネントにルーティングします。後者のコンポーネントは、メッセージ `Hola!` をリクエスタに返します。
+  - メッセージに `language` 属性が含まれていない場合、ルータはメッセージをデフォルトパスにルーティングします。デフォルトパスは、次の作業を行うサブフローです。
+
+. メッセージ「No language specified. Using English as a default. (言語が指定されていません。デフォルトとして英語が使用されます。)」をコンソールに記録する。
+. `language` の値を `English` に設定する。
+. メッセージ `Hello!` を返す。
+
+このサンプルプロジェクトは、フローで Choice ルータを使用してメッセージをルーティングするときに 4 つの側面を考慮する必要があることを示しています。
+
+* メッセージのルーティング方法を決定するために Choice ルータが評価するコンテンツ
+* ルータの数
+* デフォルトルーティングオプション
+* ルーティングオプションごとにフローで実行する処理
+
+Anypoint Studio でこのサンプルプロジェクトをダウンロードして開くには、左上隅にある [Exchange] アイコンをクリックします。次に、開いたウィンドウで、Anypoint Exchange にログインし、プロジェクトの名前を検索します。
+
+
+== 関連情報
+
+xref:choice-router-xml-reference.adoc[Choice ルータ XML リファレンス]
+
+xref:about-flows.adoc[フローおよびサブフロー]
+
+xref:dataweave-cookbook-extract-data.adoc[データの抽出]
+
+xref:dataweave-language-introduction.adoc[DataWeave スクリプト]

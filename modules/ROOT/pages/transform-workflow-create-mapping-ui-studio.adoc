@@ -1,0 +1,25 @@
+= ワークフロー: Anypoint Studio UI でのマッピングの作成
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+. xref:transform-input-output-structure-transformation-studio-task.adoc[変換の入力および出力構造の定義]
+予想される入力構造と必要な出力構造を定義します。
+
+
+. xref:transform-graphically-construct-mapping-studio-task.adoc[マッピングのグラフィカルな作成]
+入力の要素をドラッグして、出力の要素にドロップします。固定値や関数を使用して出力をビルドすることもできます。
+
+
+. xref:transform-preview-transformation-output-studio-task.adoc[変換の出力のプレビュー]
+変換で予想される出力が生成されることを確認します。
+
+
+
+
+
+== 関連情報
+
+xref:transform-component-about.adoc[Transform Message コンポーネント]
+
+xref:dataweave.adoc[DataWeave 言語]

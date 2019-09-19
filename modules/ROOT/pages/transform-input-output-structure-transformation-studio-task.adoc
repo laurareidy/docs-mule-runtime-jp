@@ -1,0 +1,92 @@
+= 変換の入力構造と出力構造の定義 (Anypoint Studio)
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+グラフィカルビューを使用してドラッグアンドドロップでマッピングを構築するには、まず、ドラッグアンドドロップで利用できる項目についての情報を Transform Message コンポーネントで定義する必要があります。
+
+DataWeave コードで変換をすべて定義する場合には、入力と出力の定義は省略して、要素を直接参照できます。
+
+
+== 他のコンポーネント上のデータ構造の定義
+
+
+. フローの他の要素がすべて完全に設定されていることを確認します。
++
+コンポーネントの入力と出力が設定から予測できる場合は、フローの残りの部分に公開されます。たとえば、特定の操作を実行するように Salesforce Connector が設定されている場合、その出力構造は既知であるため、公開されます。
+
+. 特定のコンポーネントの入力または出力が予測できない場合、主要なコンポーネントの出力と入力を、それぞれの [Metadata (メタデータ)] タブで手動で定義します。
++
+たとえば、HTTP リスナは、あらゆる種別のペイロードを含む要求を受信します。
+
+
+== Transform Message コンポーネントでのデータ構造の定義
+
+. 入力または出力ツリーのルートを右クリックして、[Set Metadata (メタデータの設定)] を選択します。
+
+. データ構造を手動で定義します。
+
+
+
+== XML でのデータ構造の定義
+
+xref:transform-dataweave-xml-reference.adoc[DataWeave XML リファレンス]を参照してください。
+
+
+== リーダーの設定
+
+入力を特別な方法で解析する必要がある場合は、リーダーオブジェクトの特定のプロパティをセットアップできます。各入力形式では、設定できるプロパティが異なります (セットアップできるプロパティがない場合もあります)。これらを設定する方法は次の 2 つです。
+
+* [Metadata (メタデータ)] タブを使用してフロー上の他のコンポーネントを設定します。
+
+* Transform Message コンポーネントの入力ペインのルートをクリックして、*[Reader Configuration (リーダーの設定)]* を選択します。
++
+image::dw-reader-configuration-select.png[リーダーの設定]
+
++
+[NOTE]
+このオプションは、選択したデータ型形式でリーダープロパティを設定できる場合にのみ表示されます。ペイロードが `unknown` 型である場合は、先に型を変更する必要があります。
+
+
+各形式の [Reader Configuration (リーダーの設定)] で設定できるプロパティの詳細については、対応する*リーダーのプロパティ*セクションを参照してください。
+
+* xref:dataweave-formats.adoc#csv[CSV]
+
+* xref:dataweave-formats.adoc#xml[XML]
+
+* xref:dataweave-formats.adoc#flat-file[フラットファイル]
+
+[NOTE]
+この情報は、Mule プロジェクトの XML ソースのプロパティでも追加できます。
+
+
+== ライターの設定
+
+出力を特別な方法で構築する必要がある場合は、ライターオブジェクトの特定のプロパティをセットアップできます。各出力形式には異なる設定プロパティがあります (プロパティがない形式もあります)。
+
+これらのプロパティは、DataWeave コードの `%output` ディレクティブで書き込む必要があります。
+
+各形式の [Writer Configuration (ライターの設定)] で設定できるプロパティの詳細については、対応する​*ライターのプロパティ*​セクションを参照してください。
+
+* xref:dataweave-formats.adoc#csv[CSV]
+
+* xref:dataweave-formats.adoc#xml[XML]
+
+* xref:dataweave-formats.adoc#json[JSON]
+
+* xref:dataweave-formats.adoc#flat-file[フラットファイル]
+
+
+== 関連情報
+
+xref:transform-workflow-create-mapping-ui-studio.adoc[ワークフロー: Anypoint Studio UI でのマッピングの作成]
+
+xref:transform-component-about.adoc[Transform Message コンポーネント]
+
+xref:dataweave.adoc[DataWeave 言語]
+
+xref:dataweave-types.adoc[DataWeave 型]
+
+xref:dataweave-formats.adoc[DataWeave の出力形式とライタープロパティ]
+
+xref:transform-dataweave-xml-reference.adoc[DataWeave XML リファレンス]

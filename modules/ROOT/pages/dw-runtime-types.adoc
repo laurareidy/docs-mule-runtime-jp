@@ -1,0 +1,10 @@
+= Runtime 型 (dw::Runtime)
+
+|===
+| 型 | 定義 | 説明
+
+| TryResult
+| `type TryResult = { success: Boolean, result?: T, error?: { kind: String, message: String, stack?: Array<String&#62;, location?: String } }`
+| オブジェクトと結果またはエラーメッセージ。`success` が `false` の場合は、`error` が含まれます。`true` の場合は `result` が含まれます。
+
+|===

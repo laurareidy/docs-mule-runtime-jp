@@ -1,0 +1,16 @@
+= Multipart 型 (dw::module::Multipart)
+
+|===
+| 型 | 定義 | 説明
+
+| Multipart
+| `type Multipart = { preamble?: String, parts: { _?: MultipartPart } }`
+| `MultiPart` 型: 完全な `Multipart` 形式のデータ構造。出力例は、マルチパート `form` 関数のドキュメントを参照してください。
+
+
+| MultipartPart
+| `type MultipartPart = { headers?: { "Content&#45;Disposition"?: { name: String, filename?: String }, "Content&#45;Type"?: String }, content: Any }`
+| `MultipartPart` 型: `MultiPart` 形式内のパートのデータ構造。
+出力例は、マルチパート `field` 関数のドキュメントを参照してください。
+
+|===

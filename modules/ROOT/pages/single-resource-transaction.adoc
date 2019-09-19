@@ -1,0 +1,33 @@
+= 単一リソーストランザクション
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Anypoint Studio, ランタイム, トランザクション, ローカル, resource (リソース), 単一
+
+単一リソーストランザクション (単一トランザクションやローカルトランザクションとも呼ばれる) では、単一リソースのみを使用してメッセージを送信または受信します: JMS ブローカー、VM キュー、または JDBC 接続。
+
+次の例は、JMS コネクタのソースおよびパブリッシュ操作を使用して実行される単一リソーストランザクションが含まれるフローを示しています。
+
+[source,xml,linenums]
+----
+<flow name="asdFlow" doc:id="2a67b1ee-0394-44a8-b6d9-9ce4f94f1ae2" >
+	<jms:listener config-ref="JMS_Config" destination="test.in" transactionalAction="ALWAYS_BEGIN"/>
+	<!-- Other operations -->
+	<jms:publish config-ref="JMS_Config" destination="test.out" transactionalAction="ALWAYS_JOIN"/>
+</flow>
+----
+
+[NOTE]
+`jms:listener` ソースと `jms:publish` 操作の両方で同じ接続設定を使用する必要があります。これは、このメカニズムが 1 つのリソースを管理することを目的としているためです。
+
+上記の例では、`test.in` キューからメッセージを受信する JMS メッセージソースとメッセージを `test.out` キューに送信する別の JMS 操作を定義しています。`transactionalAction` 属性によって、Mule がトランザクションを開始する方法が決まります。このフロー内で、Mule は受信したすべてのメッセージのトランザクションを開始 (`jms:listener` ソース) し、送信するすべてのメッセージについて進行中のトランザクションを必ず結合します (`jms:publish` 操作)。
+
+Mule は、完全なフローを通じて正常に渡されるメッセージのみをコミットします。フローのどこかの時点でメッセージがエラーをスローし、そのエラーが伝播される場合 (つまり、`on-error-continue` で処理されない)、Mule はトランザクションをロールバックします。エラーの処理方法についての詳細は、xref:on-error-scope-concept.adoc[「On Error スコープ」]を参照してください。
+
+== ネストされたトランザクション
+
+ネストされたトランザクションは、単一リソーストランザクションでは使用できません。詳細は、xref:xa-transactions.adoc#nested-transactions[「XA トランザクション」]を参照してください。
+
+== 関連情報
+
+* xref:transaction-management.adoc[トランザクションの管理]

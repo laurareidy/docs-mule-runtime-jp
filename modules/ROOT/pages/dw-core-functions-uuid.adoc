@@ -1,0 +1,33 @@
+= uuid
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[uuid1]]
+== uuid&#40;&#41;: String
+
+取得元として乱数を使用して、v4 UUID を返します。
+
+
+=== 例
+
+この例では、ランダムな v4 UUID を生成します。
+
+==== 取得元
+
+----
+%dw 2.0
+output application/json
+---
+uuid()
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+"7cc64d24-f2ad-4d43-8893-fa24a0789a99"
+----
+

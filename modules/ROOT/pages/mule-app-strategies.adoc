@@ -1,0 +1,22 @@
+= 全般設定
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Anypoint, Studio, 戦略, アプリケーション, pattern (パターン)
+
+以下のトピックでは、さまざまな Mule コンポーネントを使用できる Mule アプリケーション設定について説明しています。
+
+* xref:configuring-properties.adoc[プロパティの設定]
+ ** xref:mule-app-properties-to-configure.adoc[Mule アプリケーションのプロパティプレースホルダの設定]
+ ** xref:mule-app-properties-system.adoc[システムプロパティ]
+ ** xref:custom-configuration-properties-provider.adoc[カスタム設定プロパティプロバイダ]
+* xref:error-handling.adoc[エラー処理]
+ ** xref:mule-error-concept.adoc[Mule エラー]
+* xref:streaming-about.adoc[Mule アプリケーションでのストリーミング]
+ ** xref:streaming-strategies-reference.adoc[ストリーミング戦略リファレンス]
+* xref:shared-resources.adoc[共有リソース]
+ ** xref:setting-environment-variables.adoc[環境変数の設定]
+* xref:target-variables.adoc[Target パラメータを使用したデータの強化]
+* xref:reconnection-strategy-about.adoc[再接続戦略]
+ ** xref:reconnection-strategy-reference.adoc[再接続戦略リファレンス]
+* xref:sources-reference.adoc[ソースリファレンス]

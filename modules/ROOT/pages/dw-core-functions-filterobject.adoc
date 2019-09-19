@@ -1,0 +1,93 @@
+= filterObject
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[filterobject1]]
+== filterObject&#40;{ &#40;K&#41;?: V }, &#40;value: V, key: K, index: Number&#41; &#45;&#62; Boolean&#41;: { &#40;K&#41;?: V }
+
+オブジェクト内のキー-値ペアのリストを反復処理し、一致するオブジェクトのみを返す式を適用することで、残りを出力から除外します。
+
+
+式は `true` または `false` を返す必要があります。オブジェクトのキー、値、またはインデックスに対して式が `true` を返した場合、そのオブジェクトは出力にキャプチャされます。これらのいずれかに対して式が `false` を返した場合、そのオブジェクトは出力から除外されます。一致する値がない場合、出力配列は空になります。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `value` | 評価するソースオブジェクト。
+| `criteria` | オブジェクトの `value`、`key`、または `index` を選択するブール式。
+|===
+
+=== 例
+
+次の例では、オブジェクトの値が `"apple"` と等しい場合にそのオブジェクトを出力します。
+
+==== 取得元
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{"a" : "apple", "b" : "banana"} filterObject ((value) -> value == "apple")
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "a": "apple" }
+----
+
+=== 例
+
+次の例では、キーが「letter」で開始するオブジェクトのみを出力します。DataWeave `startsWith` 関数は `true` または `false` を返します。キーの代わりに匿名パラメータを使用して式を記述することができます (`((value, key) -> key startsWith "letter")`: (&#36;&#36; startsWith "letter")`)。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{"letter1": "a", "letter2": "b", "id": 1} filterObject ((value, key) -> key startsWith "letter")
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "letter1": "a", "letter2": "b" }
+----
+
+=== 例
+
+次の例では、インデックスが 1 未満の、配列内のオブジェクトのみを出力します。1 番目のオブジェクトは常にこれに該当します。インデックスの代わりに匿名パラメータを使用して式を記述することができます (`((value, key, index) -> index < 1)`: `(&#36;&#36;&#36; < 1)`)。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{ "1": "a", "2": "b", "3": "c"} filterObject ((value, key, index) -> index < 1)
+----
+
+==== 出力
+
+[source,json,linenums]
+----
+{ "1": "a" }
+----
+
+
+[[filterobject2]]
+== filterObject&#40;Null, &#40;value: Nothing, key: Nothing, index: Nothing&#41; &#45;&#62; Boolean&#41;: Null
+
+`filterObject` を null 値に使用できるようにするヘルパー関数。
+

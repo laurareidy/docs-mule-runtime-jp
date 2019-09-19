@@ -1,0 +1,18 @@
+= Multipart (dw::module::Multipart)
+
+このヘルパーモジュールは、マルチパートと形式、およびマルチパート形式のパート (項目と境界を含む) を作成するための関数を提供します。
+
+
+== 関数
+
+[%header, cols="1,3"]
+|===
+| Name (名前)  | 説明
+| xref:dw-multipart-functions-field.adoc[field] | 指定されたパート名、そのパートの入力コンテンツ、形式 (または MIME タイプ)、および省略可能なファイル名を使用して、`MultipartPart` データ構造を作成します。
+| xref:dw-multipart-functions-file.adoc[file] | ソースファイルから `MultipartPart` データ構造を作成します。
+| xref:dw-multipart-functions-form.adoc[form] | 指定されたパートの配列を使用して `Multipart` データ構造を作成します。
+| xref:dw-multipart-functions-generateboundary.adoc[generateBoundary] | `Multipart` データ構造の境界を生成するためのヘルパー関数。
+|===
+
+== 型
+* xref:dw-multipart-types.adoc[Multipart 型]

@@ -1,0 +1,98 @@
+= 関数を引数として渡す
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, 変換, トランスフォーマ, 形式, 集約, 名前変更, 分割, 変換の絞り込み, xml, json, csv, pojo, java オブジェクト, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング
+
+この DataWeave の例では、2 つの引数 (関数と関数を適用する要素) を取得するベース関数をヘッダーで定義します。ベース関数は、受信した関数を取得した要素のキーとその子要素の各キーに再帰的に適用します。この場合、送信された関数はすべてのキーを小文字に設定します。
+
+この例では、以下を使用します。
+
+* 再帰的に適用されるカスタム関数。たとえば、最初に取得する要素の子ごとに自分自身をコールします。
+* 要素の各子を並び替える `mapObject`。
+* 入力のすべてのキーを小文字にする文字列ライブラリの `lower`。
+* 渡された要素が `Object` 型である (子がいる) かどうかをチェックする `is`。
+* 条件を満たしている場合に関数コール自体のみを設定し、条件を満たしていない場合にその分岐の再帰的なループを終了する `if` および `else`。
+
+
+
+.DataWeave
+[source,dataweave,linenums]
+----
+%dw 2.0
+import * from dw::core::Strings
+output application/xml
+fun applyToKeys(element, func) =
+    if (element is Object)
+        element mapObject (value, key) -> {
+        (func(key)) : applyToKeys( value, func)
+        }
+    else element
+---
+applyToKeys(payload, (key) -> lower(key))
+----
+
+.入力 XML
+[source,xml,linenums]
+----
+<CATALOG>
+  <CD>
+    <TITLE>Empire Burlesque</TITLE>
+    <ARTIST>Bob Dylan</ARTIST>
+    <COUNTRY>USA</COUNTRY>
+    <COMPANY>Columbia</COMPANY>
+    <PRICE>10.90</PRICE>
+    <YEAR>1985</YEAR>
+  </CD>
+  <CD>
+    <TITLE>Hide your heart</TITLE>
+    <ARTIST>Bonnie Tyler</ARTIST>
+    <COUNTRY>UK</COUNTRY>
+    <COMPANY>CBS Records</COMPANY>
+    <PRICE>9.90</PRICE>
+    <YEAR>1988</YEAR>
+  </CD>
+</CATALOG>
+----
+
+.出力 XML
+[source,xml,linenums]
+----
+<?xml version='1.0' encoding='US-ASCII'?>
+<catalog>
+  <cd>
+    <title>Empire Burlesque</title>
+    <artist>Bob Dylan</artist>
+    <country>USA</country>
+    <company>Columbia</company>
+    <price>10.90</price>
+    <year>1985</year>
+  </cd>
+  <cd>
+    <title>Hide your heart</title>
+    <artist>Bonnie Tyler</artist>
+    <country>UK</country>
+    <company>CBS Records</company>
+    <price>9.90</price>
+    <year>1988</year>
+  </cd>
+</catalog>
+----
+
+
+== 関連する例
+
+* xref:dataweave-cookbook-define-a-custom-addition-function.adoc[カスタム追加関数の定義]
+
+* xref:dataweave-cookbook-map-based-on-an-external-definition.adoc[定義に基づいた動的なマップ]
+
+* xref:dataweave-cookbook-define-function-to-flatten-list.adoc[リスト内のデータをフラット化する関数の定義]
+
+* xref:dataweave-cookbook-conditional-list-reduction-via-function.adoc[関数を使用したリストの条件付き削減]
+
+
+== 関連情報
+
+* xref:dataweave-selectors.adoc[DataWeave セレクタ]
+
+* xref:dataweave-cookbook.adoc[DataWeave の解説書]

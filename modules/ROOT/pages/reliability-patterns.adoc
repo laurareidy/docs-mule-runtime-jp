@@ -1,0 +1,164 @@
+= 信頼性パターン
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: 信頼性, パターン, クラスタ, ha, トランザクション, 配信, 確保
+
+信頼性パターンとは、アプリケーションが非トランザクションコネクタからメッセージを受信する場合であっても、アプリケーションのメッセージングが信頼できるようになるデザインです。信頼性パターンでは、次の図で示しているように、信頼性の高い取得フローとアプリケーションロジックフローを組み合わせています。
+
+image::reliability-pattern.png[Reliability_Pattern]
+
+信頼性の高い取得フロー (図の左側) は、トランザクションを実装しないメッセージソースからトランザクションを実装するコネクタのアウトバウンド操作にメッセージを確実に配信します。操作は、VM や JMS など、任意の種別のトランザクションエンドポイントにできます。信頼性の高い取得フローは、メッセージを配信できない場合でもメッセージが失われないようにします。
+
+* HTTP などのソケットベースの接続の場合、これはクライアントが要求を再試行できるように「要求失敗」応答をクライアントに返すことを意味します。
+* ファイルや FTP などのリソースベースの接続の場合、再処理できるようにファイルを削除しないことを意味します。
+
+アプリケーションロジックフロー (図の右側) は、トランザクションコネクタを使用するメッセージソースからアプリケーションのビジネスロジックにメッセージを配信します。
+
+== 信頼性の高いメッセージング
+
+高可用性アプリケーションは、メッセージの損失の許容がゼロである必要があります。つまり、基礎となる Mule とその個別の接続の信頼性が高い必要があります。
+
+アプリケーションで JMS、VM、DB などのトランザクション接続を使用する場合、信頼性の高いメッセージングはコネクタでのトランザクションのビルトインサポートで確保されます。つまり、たとえばトランザクションがコミットされたときに JMS サーバからのみメッセージが削除されるようにするトランザクションを JMS リスナで設定できます。これにより、メッセージの処理中にエラーが発生した場合でも、まだ再処理できるようになります。言い換えると、こうしたコネクタでのトランザクションサポートにより、ソースから操作に、またはフロー内のプロセッサ間でメッセージが確実に配信されるようになります。
+
+トランザクションをサポートする異なるコネクタ間でメッセージを移動する場合は、XA トランザクションを使用して両方のコネクタのトランザクションが 1 つのユニットとしてコミットされるようにします。
+
+XA をはじめとするトランザクションの種別についての詳細は、xref:transaction-management.adoc[「トランザクションの管理」]を参照してください。
+
+HTTP などの非トランザクションコネクタを使用する Web アプリケーションがある場合、信頼性パターンに従ってアプリケーションで信頼性の高いメッセージングを確保してください。
+
+[NOTE]
+VM ファイルの永続性はクラスタで無効になっているため、VM エンドポイントはクラスタリングされたトポロジのメモリ内で存続します。
+
+== 信頼性パターンでのエンドポイントの比較
+
+信頼性の高い取得フローは任意の種別のトランザクションエンドポイントと組み合わせることができます。信頼性パターンで VM エンドポイントを使用する必要はありません。次の図は、信頼性の高い取得フローがメッセージを JMS エンドポイントに配信する信頼性パターンを示しています。
+
+image::reliabilitypatternwithjms.png[ReliabilityPatternwithJMS]
+
+VM コネクタはデフォルトでメモリ内キューを使用するため、JMS などの他のトランザクションエンドポイントに比べてはるかに高速です。
+
+次の表は、信頼性の高い取得フローで VM、JMS、JDBC エンドポイントを使用した場合のメリットとデメリットを示しています。
+
+[%header,cols="10a,60a,30a"]
+|===
+|エンドポイント |メリット |デメリット
+|VM (スタンドアロン Mule)
+|
+* すべてがメモリ内かつプロセス内に存在するため JMS より高速です。
+* Mule ですぐに使用できます。追加のソフトウェアが必要ありません。
+|
+* Mule が存在する場合にデータが失われます。
+* クラスタリングされません。
+|ファイルベースの VM (スタンドアロン Mule)
+|
+* Mule ですぐに使用できます。追加のソフトウェアが必要ありません。
+|
+* クラスタリングされません。
+|VM (Mule HA クラスタ)
+|
+* すべてが共有メモリ内に存在するため JMS より高速です。
+* Mule ですぐに使用できます。追加のソフトウェアが必要ありません。
+|
+* Mule クラスタ全体が存在する場合にデータが失われます。
+|JDBC
+|
+* 使用できるリソースに応じて、JDBC が大量の情報を保持できます。
+|
+* 適切な DBMS スキーマが必要なため、複雑になる場合があります。
+|JMS (永続性に有効ではない)
+|
+* 他の Mule インスタンスまたは Mule 以外のクライアントとデータを共有できます。
+|
+* 別のプロセスに存在するため VM よりも低速です。
+|JMS (永続性に有効)
+|
+* メッセージがディスクに保持されるため、最も信頼性の高い選択肢です。
+|
+* ディスクアクセスがあるため VM よりも低速です。
+|===
+
+== 信頼性パターンの実装
+
+次に、信頼性の高い取得フローとアプリケーションロジックフローを含む信頼性パターンの全体像となるコード例を示します。この例では、信頼性パターンのうち信頼性の高い取得フローは「HTTP から VM」の部分です。
+
+=== 例: HTTP から VM
+
+[source,xml,linenums]
+----
+<!-- This is the reliable acquisition flow in the reliability pattern.  -->
+<flow name="reliable-data-acquisition">
+	<http:listener config-ref="HTTP_Listener_config" path="transactionalEndpoint"/>
+	<vm:publish config-ref="VM_Config" queueName="toTransactionalVM"/> <!--1-->
+</flow>
+
+<!-- This is the application logic flow in the reliability pattern.
+	It is a wrapper around a sub-flow, "business-logic-processing". -->
+<flow name="main-flow">
+	<vm:listener doc:name="Listener" config-ref="VM_Config" queueName="toTransactionalVM"
+		transactionalAction="ALWAYS_BEGIN"/> <!--2-->
+	<flow-ref name="business-logic-processing"/>
+</flow>
+
+<!-- This is where the real work of the application will happen. -->
+<sub-flow name="business-logic-processing">
+	<!--
+		This flow is where the actual business-logic is performed.
+	-->
+</sub-flow>
+----
+<1> メッセージは VM キューに書き込まれます。メインフローで処理できるようになりました。
+<2> メッセージはトランザクション的に VM キューから読み取られます。これにより、エラーが発生した場合、読み取りがロールバックされ、メッセージが再処理されるようになります。
+
+[NOTE]
+この例は VM ファイルの永続性を示していますが、クラスタでは機能しません。
+
+== 信頼性の高い取得フローの実装
+
+「<<implementing-a-reliability-pattern>>」で示している例は、VM のパブリッシュ操作に対する HTTP リスナの信頼性の高い取得フローを示していました。このシナリオでは、非トランザクションメッセージソースがある信頼性の高い取得フローに重点を置きます: FTP-to-VM (または SFTP、FTPS)。
+
+この場合、リソースベースの接続が使用されます。ソースベースの接続を使用する場合、必ずリソースを 1 回だけ読み取るようにしてください。これは、`watermarkEnabled` を `true` に設定することで実行されます。
+
+`auto-delete` パラメータを `true` に設定すると、処理が別のフローによって実行された場合であってもフローが完了した時点で直ちにファイルが削除されるため、そのように設定しないでください。同じことは `moveToDirectory` にも言えます。
+
+=== 例: FTP から VM
+
+次のコードでは、パブリッシュ操作による FTP リスナ (On New または Updated File) から VM キューへの信頼性の高い取得フローを実装しています。
+
+[source,xml,linenums]
+----
+<ftp:config name="FTP_Config">
+	<ftp:connection host="localhost" username="max" password="mulesoft"/>
+</ftp:config>
+
+<flow name="reliable-data-acquisition">
+	<ftp:listener config-ref="FTP_Config" watermarkEnabled="true" directory="someDirectory/in"> <!--1-->
+		<scheduling-strategy >
+			<fixed-frequency />
+		</scheduling-strategy>
+	</ftp:listener>
+	<vm:publish config-ref="VM_Config" queueName="toTransactionalVM"/>
+</flow>
+
+<flow name="doc-examplesFlow">
+	<vm:listener queueName="toTransactionalVM" config-ref="VM_Config" transactionalAction="ALWAYS_BEGIN"/>
+	<set-variable value="#[attributes.filename]" variableName="filepath"/>
+	<!-- File content is already present in payload -->
+	<flow-ref name="business-logic-processing"/>
+	<ftp:delete path="#[vars.filepath]"/> <!--2-->
+</flow>
+----
+<1> VM にパブリッシュする前に変換を実行するには、最大再配信数を追加します。
+<2> ファイルを削除したくない場合は、`ftp:delete` 操作を使用しないでください。目的の操作が `ftp:move` の場合にも同じことが言えます。
+
+他のリソースベースのコネクタについても同じような実装が行われます。
+
+== 一般的な考慮事項
+
+信頼性パターンを実装するときには、次の点に注意してください。
+
+* コネクタ (メッセージソース) で許可されている場合は、必ずトランザクションを使用してください。
+* 同じトランザクション内の複数の管理対象リソースを取得する場合は、XA トランザクションを使用してメッセージソースをブリッジします。
+* JMS の信頼性は MQ 実装およびその設定に関連付けられています。ほとんどの MQ 実装では、メッセージがメモリ内のみに保存されるか、それとも保持されるかを設定できます。信頼性を実現できるのは、メッセージを転送する前に永続的に保存するように MQ サーバを設定している場合のみです。それ以外の場合、万一 MQ サーバがクラッシュしたときにメッセージが失われるリスクがあります。
+* 信頼性はパフォーマンスに影響を及ぼします。
+* 信頼性の高い取得性フローのアウトバウンド操作が非トランザクション (たとえば、ファイルから FTP へのフロー) の場合、メッセージ配信を確保するには xref:try-scope-concept.adoc[Try スコープ]を使用するしかありません。

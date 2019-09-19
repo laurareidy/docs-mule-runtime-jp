@@ -1,0 +1,17 @@
+= Mule セキュアトークンサービス OAuth 2.0
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: セキュリティ, oauth, 認証, OAuth プロバイダ, トークン, 非公開キー, シークレットキー, アクセスキー
+
+Mule Runtime Engine は OAuth 2.0 プロトコルをサポートしています。OAuth 2.0 認証の設定方法は、OAuth ロールおよび目的に応じて異なります。
+
+* Github OAuth2 サーバなど、認証が必要なサービスに要求を送信する場合は、クライアント Mule アプリケーションで認証を設定します。OAuth2 設定には xref:connectors::oauth/oauth-documentation.adoc[OAuth モジュール]を使用します。
+
+* xref:connectors::oauth/oauth2-provider-documentation-reference.adoc[Mule OAuth2 プロバイダコネクタ]を使用して、保護されたリソースにアクセスするために必要なトークンを付与して検証する Mule アプリケーションを作成します。
+
+API またはアプリケーションが不正な要求を受信しないように保護するには、`OAuth 2.0 Access Token Enforcement Using External Provider` ポリシーなどの API Manager ポリシーを使用します。OAuth 2.0 セキュリティによって保護される Web サービスを公開するには、xref:api-manager::mule-oauth-provider-landing-page.adoc[API Manager のドキュメント]を参照してください。
+
+== 関連情報
+
+* xref:authorization-grant-types.adoc[OAuth 認証許可種別]

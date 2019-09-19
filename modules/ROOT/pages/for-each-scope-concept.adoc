@@ -1,0 +1,177 @@
+= For Each スコープ
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+For Each スコープは、ペイロードを要素に分割し、それらを 1 つずつ、スコープ内に配置したコンポーネントで処理します。
+これは、ほとんどのプログラミング言語の `for-each`/`for` loop コードブロックに似ており、リストや配列を含め、あらゆるコレクションを処理できます。
+コレクションには、サポートされている任意のコンテンツ種別 (`application/json`、`application/java`、`application/xml` など) を使用できます。
+
+////
+TODO? Splitter not in Studio 7 as of GA. Not clear when it will be in.
+== Differences With a Splitter
+
+The For Each scope performs a similar task to using a Splitter and then an Aggregator. The main difference is that the For Each scope outputs a collection just like the one it receives, the Aggregator outputs a message where the payload is a list of mule messages (each with its own payload and attributes).
+////
+For Each スコープに関する一般的な考慮事項:
+
+* デフォルトでは、For Each はペイロードを分割しようとします。ペイロードが単純な Java コレクションであれば、For Each スコープは設定なしでペイロードを分割できます。For Each スコープ内のペイロードは、分割された各要素です。元のメッセージ内の属性は、メッセージ全体に関連するため無視されます。 
+* For Each によって、現在のペイロードは変更されません。出力ペイロードは入力と同じです。  
+* XML や JSON など、Java 以外のコレクションの場合は、DateWeave 式を使用してデータを分割します。それには *[Collection (コレクション)]* 項目を使用します。
++
+次の例では、For Each の *[Collection (コレクション)]* 項目は、`payload.topics` に保存された配列に対して反復処理を行うように設定されています。
++
+image::component-foreach-example.png[For Each コンポーネント]
+
+For Each スコープでは、各反復中にコレクションの各項目が `payload` に保存されます。
+////
+Note that if the input contains information outside the collection you tell it to split, this information is lost.
+////
+
+配列をバッチに分割することで、処理時間を短縮することもできます。各バッチは、個別の Mule メッセージとして処理されます。たとえば、コレクションに 200 個の要素があり、*[Batch Size (バッチサイズ)]* を `50` に設定すると、For Each スコープは 50 個の要素から成る 4 つのバッチをそれぞれ個別の Mule メッセージとして反復処理します。
+
+=== サンプル XML
+
+これは、上述の For Each スコープ設定に基づくサンプル XML です。
+[source,xml,linenums]
+----
+...
+  <foreach doc:name="For Each" collection="#[payload.topics]" batchSize="1" rootMessageVariableName="rootMessage" counterVariableName="counter">
+      <file:write ... >
+      <!--Any other module that you want to include in the For Each scope -->
+  </foreach>
+...
+----
+
+== 変数の伝播
+
+For Each スコープの各実行は、ブロックの前回の実行からの変数と値を使用して開始されます。1 つの要素の処理時に作成された新しい変数や既存の変数に加えられた変更は、別の要素の処理中に参照できます。ただし、変数へのこれらの変更は、For Each スコープの外部では使用できません。つまり、For Each スコープの実行後、一連の変数 (およびその値) は、実行前と同じ状態になります。
+
+[source,xml,linenums]
+----
+<set-variable variableName="var1" value="var1"/>
+<set-variable variableName="var2" value="var2"/>
+<foreach #[['apple', 'banana', 'orange']]>
+    <choice>
+        <when expression="#[payload == 'apple']">
+            <set-variable variableName="var2" value="newValue"/>
+            <set-variable variableName="var3" value="appleVal"/>
+        </when>
+        <when expression="#[payload == 'banana']">
+            <set-variable variableName="var3" value="#[vars.var3 ++ ' bananaVal']"/>
+            <!-- var3 will now have value 'appleVal bananaVal'-->
+        </when>
+        <otherwise>
+            <set-variable variableName="var3" value="otherVal"/>
+            <set-variable variableName="var4" value="val4"/>
+        </otherwise>
+    </choice>
+</foreach>
+----
+
+集約後、変数は次のようになります。
+
+`{var1: "var1", var2: "var2"}`
+
+新しい変数の作成を含め、変更は ForEach スコープの外部に伝播されません。
+
+== エラー処理
+
+コレクション内のいずれかの要素で例外がスローされると、For Each スコープはそのコレクションの処理を停止し、エラーハンドラを呼び出します。
+
+== サンプルプロジェクト
+
+Anypoint Exchange にはいくつかのサンプルプロジェクトがあり、Anypoint Studio でそれらを開いて For Each スコープの使用方法について詳しく学ぶことができます。
+
+* _Authenticating Salesforce using OAuth2 (OAuth2 を使用した Salesforce の認証)_
+* _Import contacts into Microsoft Dynamics CRM (Microsoft Dynamics CRM への取引先責任者のインポート)_
+* _Importing a CSV file into mongoDB (mongoDB への CSV ファイルのインポート)_
+* _Importing an Email Attachment using the IMAP Connector (IMAP コネクタを使用したメールの添付ファイルのインポート)_
+* _Importing Email Attachments using the POP3 Connector (POP3 コネクタを使用したメールの添付ファイルのインポート)_
+* _Querying a Database and Attaching Results to an Email (データベースへのクエリ実行とメールへの結果の添付)_
+
+Anypoint Studio でサンプルプロジェクトをダウンロードして開くには、左上隅にある Exchange アイコンをクリックします。次に、開いたウィンドウで、Anypoint Exchange にログインし、プロジェクトの名前を検索します。
+
+== XML リファレンス
+
+For Each スコープの開始と終了には `<foreach>` タグを使用します。このスコープの影響を受けるコンポーネントは、`<foreach>` タグの子要素として定義されます。
+
+=== 設定可能なプロパティ
+
+[%header,cols="35,20,45"]
+|===
+|プロパティ | Default (デフォルト) | 説明
+| `collection`
+| `payload`
+| Java コレクション、オブジェクト配列、マップ、または DOM ノードを返す式。
+
+| `counterVariableName`
+| `counter`
+| 反復処理を行うメッセージ数を保存するプロパティの名前。
+
+| `batchSize`
+| `1`
+| コレクションを指定されたサイズのサブコレクションに分割します。たとえば、コレクションに 200 個の要素があり、バッチサイズを 50 に設定すると、50 個の要素から成る 4 つのバッチを処理します。
+
+| `rootMessageVariableName`
+| `rootMessage`
+| 親メッセージを保存するプロパティの名前。親は、分割されていない完全なメッセージです。
+|===
+
+
+////
+=== Iterate a JSON Array
+
+[source,xml,linenums]
+----
+include::{examplesdir}/for-each-scope-concept_1.xml[]
+----
+
+In this case, the payload contains a JSON array. For Each iterates over the payload because the `collection` attribute has not been defined. The payload within For Each is each of the users in the JSON array.
+
+=== Iterate over a Java Map that is Placed in a Variable
+
+[source,xml,linenums]
+----
+include::{examplesdir}/for-each-scope-concept_2.xml[]
+----
+
+The example uses the `ee:transform` to set a variable named `users` with a Java map that is created with DataWeave. Then it uses a built-in DataWeave function to get the entries of a map as a collection in order to iterate over it.
+
+=== Split a Collection into Batches
+
+[source,xml,linenums]
+----
+include::{examplesdir}/for-each-scope-concept_3.xml[]
+----
+
+The `batchSize` attribute creates sub-arrays of two elements. So inside `foreach`, the payload will have an array of two elements.
+
+=== Aggregate the Process of Each Element into a Variable
+
+[source,xml,linenums]
+----
+include::{examplesdir}/for-each-scope-concept_4.xml[]
+----
+
+Within the For Each, the example creates an `aggregation` variable that concatenates the name in reverse. Then that variable can be accessed outside the For Each scope.
+
+////
+
+////
+EDGE CASE? OUT IN 4.0, PER DAN F. IF THERE'S A REQUEST TO RESTORE IT, WE MIGHT RESTORE IT
+== Persisting Data
+
+In case the message inside the For Each scope is persisted, not only the item in the collection is serialized but also all the variables associated with it. The rootMessage variable, associated with the message, contains a reference to the complete, unsplit collection. Therefore, serialization/deserialization of the rootMessage variable could impact memory consumption considerably when this collection is large enough.
+
+To avoid this issue you must first remove the rootMessage variable from the message before persisting it.
+////
+
+include::partial$parallelforeach_vs_foreach.adoc[]
+
+xref:parallel-foreach-scope.adoc[「並列 For Each スコープ」]を参照してください。
+
+== 関連情報
+
+* xref:about-mule-event.adoc[Mule イベント]
+* xref:about-mule-message.adoc[Mule メッセージ構造]

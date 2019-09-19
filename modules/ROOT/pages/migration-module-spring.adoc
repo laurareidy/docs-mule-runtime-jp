@@ -1,0 +1,107 @@
+= Spring モジュールの移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Mule 3 では、Spring DSL を直接使用して、Mule アプリケーションの一部として Spring bean を定義できました。このアプローチでは、ランタイムの内部で使用される Spring バージョンおよびコンポーネントに、Mule アプリケーションを公開する必要があります。これにより 2 つの問題が発生します。
+
+* ユーザは Mule Runtime で使用できる Spring バージョンおよびモジュールに制限されていた。
+* ランタイムでの変更またはアップグレードが、定義するアプリケーションに影響する可能性がある。
+
+この問題を修正するために、Mule 4 では Spring を別個のモジュールとしてパッケージすることにしました。したがって、Spring bean をアプリケーション上で直接定義する代わりに、ファイルで定義し、Spring モジュールを使用してそれらを参照する必要があります。
+
+.Mule 3 の例:
+[source,xml,linenums]
+----
+<mule>
+    <spring:beans>
+        <spring:bean name="xaConnectionFactory" class="org.apache.activemq.ActiveMQXAConnectionFactory">
+            <spring:property name="brokerURL" value="vm://localhost?broker.persistent=false&amp;broker.useJmx=false" />
+        </spring:bean>
+    </spring:beans>
+
+    <flow>
+        ...
+    </flow>
+</mule>
+----
+
+.Mule 4 の例:
+[source,xml,linenums]
+----
+<mule>
+    <spring:config name="springConfig" files="config/connection-factory-beans.xml"/>
+
+    <flow>
+        ...
+    </flow>
+</mule>
+----
+
+[TIP]
+XML ファイルの例や設定手順の詳細は、xref:connectors::spring/spring-module.adoc[「Spring モジュール」]を参照してください。
+
+配布される Spring モジュールには、特定の Spring 連動関係は含まれていません。アプリケーションの `pom.xml` に以下を追加して、必要なものを提供できます。
+
+[source,xml,linenums]
+----
+ <properties>
+    <springVersion>4.1.9.RELEASE</springVersion>
+    <springSecurityVersion>4.0.4.RELEASE</springSecurityVersion>
+</properties>
+
+    <build>
+         <plugins>
+             <!-- Only used to declare the shared libraries-->
+             <plugin>
+                 <groupId>org.mule.tools.maven</groupId>
+                 <artifactId>mule-maven-plugin</artifactId>
+                 <version>1.0.0</version>
+                 <configuration>
+                     <sharedLibraries>
+                         <sharedLibrary>
+                             <groupId>org.springframework</groupId>
+                             <artifactId>spring-core</artifactId>
+                         </sharedLibrary>
+                         <sharedLibrary>
+                             <groupId>org.springframework</groupId>
+                             <artifactId>spring-beans</artifactId>
+                         </sharedLibrary>
+                         <sharedLibrary>
+                             <groupId>org.springframework</groupId>
+                             <artifactId>spring-context</artifactId>
+                         </sharedLibrary>
+                         <sharedLibrary>
+                             <groupId>org.springframework</groupId>
+                            <artifactId>spring-aop</artifactId>
+                         </sharedLibrary>
+                         <sharedLibrary>
+                             <groupId>org.springframework.security</groupId>
+                             <artifactId>spring-security-core</artifactId>
+                         </sharedLibrary>
+                         <sharedLibrary>
+                             <groupId>org.springframework.security</groupId>
+                             <artifactId>spring-security-config</artifactId>
+                         </sharedLibrary>
+                     </sharedLibraries>
+                 </configuration>
+             </plugin>
+         </plugins>
+     </build>
+----
+
+Spring モジュールを使用するには、Studio のパレットを使用してアプリケーションに追加するか、`pom.xml` ファイルで次の連動関係を追加します。
+
+[source,xml,linenums]
+----
+<dependency>
+  <groupId>org.mule.modules</groupId>
+  <artifactId>mule-spring-module</artifactId>
+  <version>1.1.0</version> <!-- or newer -->
+  <classifier>mule-plugin</classifier>
+</dependency>
+----
+
+== 関連情報
+
+* xref:connectors::spring/spring-module.adoc[Spring モジュールの使用]

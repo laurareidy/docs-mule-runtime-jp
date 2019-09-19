@@ -1,0 +1,43 @@
+= floor
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[floor1]]
+== floor&#40;Number&#41;: Number
+
+数値を最も近い整数に切り捨てます。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `number` | 評価する数値。
+|===
+
+=== 例
+
+次の例では、数値の小数点以下を切り捨てて最も近い整数にします。`1.5` の小数点以下が
+切り捨てられて `1` になっています。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+[ floor(1.5), floor(2.2), floor(3) ]
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+[ 1, 2, 3]
+----
+

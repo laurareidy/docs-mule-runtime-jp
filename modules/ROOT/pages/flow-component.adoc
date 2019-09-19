@@ -1,0 +1,198 @@
+= Flow および Subflow スコープ
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: コンポーネント, Mule 4
+:toc:
+:toc-title:
+
+toc::[]
+
+//Anypoint Studio, Design Center connector
+[[short_description]]
+Flow スコープと Subflow スコープは、他の一連のコアコンポーネントと操作 (コネクタとモジュールによって提供される) をグループ化するコンポーネントで、インテグレーションプロセスの自動化に役立ちます。Flow コンポーネントは、Mule アプリケーションの基盤です。すべての Mule アプリケーションには少なくとも 1 つのフローを含める必要があるため、Anypoint Studio と Flow Designer では、Mule アプリケーション内に最初の Flow コンポーネントが自動的に提供されます。
+
+Mule アプリケーションには、追加のフローとサブフローを含めることができます。次に例を示します。
+
+.例: フローとサブフロー
+image::component-flow-subflow.png[フローとサブフローの例]
+
+フローとサブフローの仕様、機能、制限についての詳細は、xref:about-flows.adoc[「フローおよびサブフロー」]を参照してください。
+
+フローは常に同期的に機能します。ファイアアンドフォーゲットなどの非同期パターンを実現する必要がある場合は、xref:async-scope-reference.adoc[Async スコープ] (`<async/>`) を使用できます。
+
+== フローの設定
+
+フローは設定可能です。たとえば、Mule アプリケーションの起動時に開始するか停止したままにするかを設定したり、同時に実行できる数を制限したり、ビジネスイベントをセットアップしたりできます。また、コンポーネントのエラー処理をセットアップすることもできます (「<<error_handling>>」参照)。
+
+//TODO: NEED BETTER BUSINESS EVENTS DOCS (SEE DOCS-2146).
+[%header,cols="1,4"]
+|===
+| 項目 | 説明
+| Name (名前) (`name`) | フローの名前。フローには、プロジェクト名と同じ (または部分的に同じ) 編集可能な名前が自動的につけられます。
+| Initial State (初期状態) (`initialState`) a| 値: Started (開始済み)、Stopped (停止済み)。これらは、フローの Mule Runtime 設定です。デフォルトの Started (開始済み) (`initialState="started"`、Studio では [Empty (空)] とも呼ばれる) は、アプリケーションの起動時にフローが有効であることを示します。そのため、フロー内の内部または外部イベント取得元 (HTTP リスナやスケジューラなど)、別のフローやサブフローからのフロー参照、または xref:dataweave-runtime-functions.adoc#functions_runtime[lookup] 関数のコールによってトリガできます。
+
+初期状態を Stopped (停止済み) (`initialState="stopped"`) に設定した場合は、フローを有効化するには xref:runtime-manager::flow-management.adoc[Runtime Manager] を使用する必要があります。または、単にフロー設定を `Started` にリセットすることもできます。この状態のコンソール出力は次のようになります: `Flow flow_component_ex has not been started (initial state = 'stopped')`
+| Max Concurrency (最大同時実行) (`maxConcurrency`) a| 省略可能。デフォルトでは、スレッドが使用できるかどうかによってのみ制限されます。フローがメッセージの処理時にパフォーマンスを最適化するために使用できる並列性の最大レベルは、コンテナスレッドプールによって異なります。
+
+例: `1` (XML の例: `maxConcurrency="1"`)。
+
+`1` に設定すると、Mule 3 の同期処理戦略と同じ動作になります。また、これを使用して、指定した数の要求が処理されている間は新しい処理の受け入れを停止することもできます。Mule 3 では、一部のユーザは通知とエラーハンドラを使用してどこかの時点でフローを停止し、後で再開していましたが、Mule 4 では Max Concurrency (最大同時実行) を使用して同じことを実現できます。
+
+この処理方法についての詳細は、xref:execution-engine.adoc#backpressure[「バックプレッシャー」]のドキュメントを参照してください。
+| ビジネスイベント  a| 省略可能。デフォルトは `false` です。Mule アプリケーションを CloudHub にデプロイする場合は、ビジネスイベントを有効にし (XML の例: `tracking:enable-default-event="true"`)、トランザクション ID を追加できます (XML の例: `<tracking:transaction id=12345`/>)。xref::business-events.adoc[「ビジネスイベント」]を参照してください。
+| メタデータ  | 他の多くのコンポーネントと同様に、このコンポーネントのメタデータを設定できます。このトピックについての詳細は、xref:7.1@studio::metadata-editor-concept.adoc[「Metadata Editor (メタデータエディタ)」]を参照してください。
+|===
+
+== サブフローの設定
+
+Subflow スコープでは、サブフローの名前を編集し、メタデータを追加できます。フローとは異なり、サブフローにはエラー処理をセットアップするメカニズムは組み込まれていません。ただし、エラー処理を実行する必要がある場合は、サブフロー内の xref:try-scope-concept.adoc[Try スコープ] によって提供されるエラー処理を使用できます。
+
+[%header,cols="1,4"]
+|===
+| 項目 | 説明
+| Name (名前) (`name`) | サブフローの名前。サブフローには、プロジェクト名と同じ (または部分的に同じ) 編集可能な名前が自動的につけられます。
+| メタデータ  | 他の多くのコンポーネントと同様に、このコンポーネントのメタデータをセットアップできます。このトピックについての詳細は、xref:7.1@studio::metadata-editor-concept.adoc[「Metadata Editor (メタデータエディタ)」]を参照してください。
+|===
+
+== フローとサブフローの XML
+
+次の例は、シンプルなフロー (`<flow/>`) の XML です。このフローは、10 秒ごとにフローの実行をトリガするスケジューラを取得元として使用し、Flow Ref (`<flow-ref/>`) コンポーネントを介してサブフロー (`<sub-flow/>`) に接続します。そのサブフローも、Flow Ref コンポーネントを使用して別のサブフローに接続します。Studio の UI を使用してコンポーネントを設定すると、Mule アプリケーションの設定 XML に自動的に XML が追加されます。
+
+.例: フローとサブフローの XML
+[source,xml,linenums]
+----
+<flow name="flow_component_ex">
+  <scheduler doc:name="Scheduler" >
+    <scheduling-strategy >
+      <fixed-frequency frequency="10" timeUnit="SECONDS"/>
+    </scheduling-strategy>
+  </scheduler>
+  <ee:transform doc:name="Transform Message">
+    <ee:message >
+      <ee:set-payload ><![CDATA[
+ %dw 2.0
+ var myXml =  read('<prices>
+    <basic>9.99</basic>
+    <premium>53</premium>
+    <vip>398.99</vip>
+  </prices>', 'application/xml')
+ output application/xml
+ ---
+ myXml
+]]></ee:set-payload>
+    </ee:message>
+  </ee:transform>
+  <flow-ref name="subflow_ex1"/>
+</flow>
+<sub-flow name="subflow_ex1">
+  <ee:transform doc:name="Transform Message">
+    <ee:message>
+      <ee:set-payload><![CDATA[%dw 2.0
+import * from dw::util::Timer
+output application/json
+var conversionRate=13
+---
+priceList: payload.prices mapObject(value, key, index) -> {
+  (key) : {
+       dollars: value,
+       localCurrency: value * conversionRate,
+       index_plus_1: index + 1,
+       timer : currentMilliseconds()
+   }
+}]]>
+      </ee:set-payload>
+   </ee:message>
+ </ee:transform>
+ <flow-ref name="subflow_ex2"/>
+</sub-flow>
+<sub-flow name="subflow_ex2">
+  <logger level="INFO" doc:name="Logger" message="#[payload]" />
+</sub-flow>
+----
+
+この例の出力は次のようになります。
+
+.出力
+[source,json,linenums]
+----
+{
+  "priceList": {
+    "basic": {
+      "dollars": "9.99",
+      "localCurrency": 129.87,
+      "index_plus_1": 1,
+      "timer": 1533024312658
+    },
+    "premium": {
+      "dollars": "53",
+      "localCurrency": 689,
+      "index_plus_1": 2,
+      "timer": 1533024312659
+    },
+    "vip": {
+      "dollars": "398.99",
+      "localCurrency": 5186.87,
+      "index_plus_1": 3,
+      "timer": 1533024312659
+    }
+  }
+}
+----
+
+[[error_handling]]
+== エラー処理
+
+Flow コンポーネントにxref:error-handling.adoc[エラーハンドラ]を追加できます (サブフローには追加できません)。
+
+Studio では、Flow コンポーネントの下部にある [Error handling (エラー処理)] 領域を展開し、エラーコンポーネントをフローにドラッグするだけです。このプロセスにより、Error Handler コンポーネントにコンポーネントが自動的に配置されるため、最初に Error Handler コンポーネントを追加する必要はありません。
+
+この XML 例の末尾付近で、フローの On Error Continue (エラー時継続) 設定 (`<on-error-continue/>`) があります
+
+.例: On Error Continue (エラー時継続) 設定が含まれるフローの XML
+[source,xml,linenums]
+----
+<flow name="flow_subflowFlow" >
+  <scheduler doc:name="Scheduler" >
+    <scheduling-strategy >
+      <fixed-frequency frequency="10" timeUnit="SECONDS"/>
+    </scheduling-strategy>
+  </scheduler>
+  <ee:transform doc:name="Transform Message" >
+    <ee:message >
+      <ee:set-payload ><![CDATA[
+ %dw 2.0
+ var myXml =  read('<prices></prices>', 'application/xml')
+ output application/xml
+ ---
+ myXml
+]]></ee:set-payload>
+    </ee:message>
+  </ee:transform>
+  <logger level="INFO" doc:name="Logger" message='#[payload.prices]'/>
+  <error-handler >
+    <on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" type="EXPRESSION" when="#[isEmpty(payload.prices)]">
+      <logger level="ERROR" doc:name="Logger" message='"An Error Occurred"'/>
+    </on-error-continue>
+  </error-handler>
+</flow>
+----
+
+前の例では、エラーが発生します。次の点を確認してください。
+
+. `<set-payload/>` の変数 `var myXml` は、ペイロードとして空の `<prices></prices>` タグを設定します。
+. `<set-payload/>` コンポーネントの横にある Logger は、空のタグの値を記録するように設定されているため、`null` を返します。
+. DataWeave 条件 `isEmpty(payload.prices)` が `true` を返すため、`<on-error-continue/>` コンポーネントはエラーを返します。
+. `<on-error-continue/>` 内の Logger (`<logger/>`) では、エラーが発生したときにコンソールに出力するエラーメッセージを設定します。結果のエラーメッセージは次のようになります。
+
+[source,text,linenums]
+----
+ERROR 2018-07-30 23:58:45,293 [[MuleRuntime].cpuLight.06:
+ [flow_subflow].flow_subflowFlow.CPU_LITE @1b1529b2]
+ [event: 0-2aba3280-948f-11e8-82d0-f45c898f2549]
+ org.mule.runtime.core.internal.processor.LoggerMessageProcessor:
+ "An Error Occurred"
+----
+
+//TODO: WOULD BETTER TO HAVE AN EXAMPLE OF A FLOW THAT USES THE ERROR SCOPES.
+これらのコンポーネントについての詳細は、xref:on-error-scope-concept.adoc[「On-Error エラーハンドラ」]を参照してください。

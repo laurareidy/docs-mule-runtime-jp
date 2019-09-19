@@ -1,0 +1,210 @@
+= DataWeave で使用可能な外部関数
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: lookup, causedby, p, properties, 関数
+
+組み込み DataWeave 関数に加えて Mule Runtime と一部のモジュール、コネクタ、およびコアコンポーネントには、DataWeave スクリプトで使用できる関数が用意されています。この関数は、その関数を提供するモジュール、コネクタ、およびコンポーネントに固有のものです。
+
+[[functions_runtime]]
+== Mule Runtime 関数
+
+以下の関数は Mule Runtime により挿入されています。
+
+* `p`
+* `lookup`
+* `causedBy`
+
+[NOTE]
+====
+Mule 4.1.4 以降、DataWeave は Mule Runtime 関数を Mule 関数モジュールに組み込みました。
+
+Mule Runtime 4.1.4 以降で実行する Mule アプリケーションでこれらの関数を使用する場合、まず `Mule` 名前空間を使用することをお勧めします。これを使用するには、関数名の先頭に名前空間を追加するだけです。たとえば、`p('http:port')` ではなく `Mule::p('http:port')` のようにします。
+
+DataWeave スクリプトとマッピングでの Mule Runtime 関数の使用が継続的にサポートされることに加えて、Mule モジュールを使用すると、xref:dataweave-create-module.adoc[カスタム DataWeave モジュール]で Mule Runtime 関数を使用することもできます。
+
+バージョン 4.1.4  _よりも前_ の Mule Runtime バージョンで実行する Mule アプリケーションでは、DataWeave スクリプトおよびマッピング内に限って、`Mule` 名前空間を使用したり、カスタムモジュールで Mule Runtime 関数を使用したりできません。
+====
+
+[[function_p]]
+=== プロパティの割り当て (p 関数)
+
+`p` 関数は、以下のプロパティへのアクセスを提供します。
+
+* Mule プロパティのプレースホルダ
+* システムプロパティ
+* 環境プロパティ
+
+プロパティの設定および処理方法についての詳細は、xref:configuring-properties.adoc[「プロパティの設定」]を参照してください。
+
+次の例では、プロパティ `http.port` の値を記録します。
+
+.例: Mule 4.1.4 以降のプロパティ関数の使用方法
+[source,xml,linenums]
+----
+<flow name="simple">
+  <logger level="INFO" doc:name="Logger"
+    message="#[Mule::p('http.port')]"/>
+</flow>
+----
+
+DataWeave 変数または関数を定義する場合も関数を使用できます。この例では、`p` 関数を `myVar` 定義内で使用します。
+4.1.4 よりも前のランタイムでは、`Mule::` 名前空間を省略するだけでこれと同様の処理を実行できます。
+
+[source,xml,linenums]
+----
+<flow name="simple">
+  <logger level="INFO" doc:name="Logger"
+    message="#[var myVar = Mule::p('http.port') --- myVar]"/>
+</flow>
+----
+
+.例: Mule 4.1.3 以前のプロパティ関数の使用方法
+[source,xml,linenums]
+----
+<flow name="simple">
+  <logger message="#[p('http.port')]"/>
+</flow>
+----
+
+Mule 4.2 の Mule 関数モジュールで導入された xref:dw-mule-functions-p.adoc[p] 関数も参照してください。
+
+[[function_lookup]]
+=== フローの実行 (lookup 関数)
+
+Flow Reference コンポーネントと同様に、`lookup` 関数を使用すると、アプリケーション内で別のフローを実行し、結果のペイロードを取得できます。これは、フローの名前と入力ペイロードをパラメータとして使用します。たとえば、`lookup("anotherFlow", payload)` は、`anotherFlow` という名前のフローを実行します。
+
+この関数は、現在の属性、変数、エラーを使用して、指定されたフローを実行しますが、属性または変数を含まないペイロードを渡すのみです。同様に、コールされたフローはそのペイロードを返すのみです。
+
+`lookup` 関数では、サブフローのコールはサポートされません。
+
+==== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `flowName` | 対象フローを識別する文字列。
+| `payload` | 対象フローに送信するペイロード。任意 (`Any`) 型を使用できます。
+| `timeoutMillis` | 省略可能。対象フローの実行のタイムアウト (ミリ秒)。実行しているスレッドが CPU_LIGHT または CPU_INTENSIVE の場合、デフォルトの `2000` ミリ秒 (2 秒) に設定され、他のスレッドから実行している場合は 1 分に設定されます。lookup の実行に、指定された `timeoutMillis` 値よりも長い時間がかかっている場合、エラーが発生します。
+|===
+
+次の例は、2 つのフローの XML を示しています。`flow1` の `lookup` 関数は `flow2` を実行し、オブジェクト `{test:'hello '}` をそのペイロードとして `flow2` に渡します。次に、`flow2` の Set Payload コンポーネント (`<set-payload/>`) は `{test:'hello '}` の値を文字列 `world` と連結し、`hello world` を出力して記録します。
+
+.例: Mule 4.1.4 以降の `lookup` 関数の使用方法
+[source,XML,linenums]
+----
+<flow name="flow1">
+  <http:listener doc:name="Listener" config-ref="HTTP_Listener_config"
+    path="/source"/>
+  <ee:transform doc:name="Transform Message" >
+    <ee:message >
+      <ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+Mule::lookup('flow2', {test:'hello '})]]></ee:set-payload>
+    </ee:message>
+  </ee:transform>
+</flow>
+<flow name="flow2" >
+  <set-payload value='#[payload.test ++ "world"]' doc:name="Set Payload" />
+  <logger level="INFO" doc:name="Logger" message='#[payload]'/>
+</flow>
+----
+
+
+.例: Mule 4.1.3 以前の `lookup` 関数の使用方法
+[source,XML,linenums]
+----
+<flow name="flow1">
+  <http:listener doc:name="Listener" config-ref="HTTP_Listener_config"
+    path="/source"/>
+  <ee:transform doc:name="Transform Message" >
+    <ee:message >
+      <ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+lookup('flow2', {test:'hello '})]]></ee:set-payload>
+    </ee:message>
+  </ee:transform>
+</flow>
+<flow name="flow2" >
+  <set-payload value='#[payload.test ++ "world"]' doc:name="Set Payload" />
+  <logger level="INFO" doc:name="Logger" message='#[payload]'/>
+</flow>
+----
+
+.出力
+[source,json,linenums]
+----
+hello world
+----
+
+[WARNING]
+====
+DataWeave のような関数型言語では、`lookup` 関数の呼び出しに副作用が _ない_ ことが期待されることを常に覚えておくことが重要です。
+このため、DataWeave エンジン内部の動作により、`lookup` 関数が他の `lookup` と並行して呼び出されたり、何も呼び出されなかったりすることがあります。
+
+Flow Ref (`flow-ref`) コンポーネントを使用してフローを呼び出して、`target` 属性を使用してフローの結果を `var` に配置し、その `var` を DataWeave スクリプト内から参照することをお勧めします。
+====
+
+[[function_causedBy]]
+=== 種別によるエラーの一致 (causedBy 関数)
+
+`causedBy` 関数は、エラーハンドラのように、エラーをその種別によって一致させます。これは、上位の種別による一致だけでなく特定のサブ種別のロジックも必要な場合や、異なる種別の子エラーを含む `COMPOSITE_ROUTING` エラーを処理する場合に役立ちます。
+
+一致させるエラーは暗黙的に示すことはできますが、種別は常に必須パラメータです。
+
+次の例では、`SECURITY` エラーを一般的な方法で処理するようにグローバルエラーハンドラがセットアップされていますが、`HTTP:UNAUTHORIZED` と `HTTP:FORBIDDEN` のエラーについては特定のアクションがセットアップされています。
+
+.例: Mule Runtime バージョン 4.1.4 以降のエラーマッチャー関数の使用方法
+[source,xml,linenums]
+----
+<error-handler name="securityHandler">
+  <on-error-continue type="SECURITY">
+    <!-- general error handling for all SECURITY errors -->
+    <choice>
+      <when expression="#[error Mule::causedBy 'HTTP:UNAUTHORIZED']">
+        <!-- specific error handling only for HTTP:UNAUTHORIZED errors -->
+      </when>
+      <when expression="#[Mule::causedBy('HTTP:FORBIDDEN')]">
+        <!-- specific error handling only for HTTP:FORBIDDEN errors -->
+      </when>
+    </choice>
+  </on-error-continue>
+</error-handler>
+----
+
+.例: Mule Runtime バージョン 4.1.3 以前のエラーマッチャー関数の使用方法
+[source,xml,linenums]
+----
+<error-handler name="securityHandler">
+  <on-error-continue type="SECURITY">
+    <!-- general error handling for all SECURITY errors -->
+    <choice>
+      <when expression="#[error causedBy 'HTTP:UNAUTHORIZED']">
+        <!-- specific error handling only for HTTP:UNAUTHORIZED errors -->
+      </when>
+      <when expression="#[causedBy('HTTP:FORBIDDEN')]">
+        <!-- specific error handling only for HTTP:FORBIDDEN errors -->
+      </when>
+    </choice>
+  </on-error-continue>
+</error-handler>
+----
+
+エラーパラメーターは明示的にも暗黙的にも使用されます。
+
+== コネクタおよびコンポーネント関数
+
+Mule アプリケーションでコネクタとコンポーネントを使用する場合、関数を挿入できます。
+Runtime 関数とは異なり、この関数には名前空間が必要であり、通常、この名前空間はコンポーネント名に一致します。
+
+たとえば、Batch を使用するアプリケーションでは、`#[Batch::isSuccessfulRecord()]` 式を使用できます。
+
+== 関連情報
+
+xref:dw-functions.adoc[DataWeave Core 関数]
+
+xref:dataweave-types.adoc[DataWeave 型]
+
+xref:dataweave-selectors.adoc[DataWeave セレクタ]

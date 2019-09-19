@@ -1,0 +1,154 @@
+= readUrl
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[readurl1]]
+== readUrl&#40;String, String, Object&#41;: Any
+
+`read` 関数と似ています。ただし、`readURL` は、クラスパスベースの URL を含め URL を入力として受け入れます。
+
+
+クラスパスベースの URL は `classpath:`` プロトコルプレフィックスを使用します (例: `classpath://myfolder/myFile.txt`。`myFolder` は Mule プロジェクトの `src/main/resources` の下に配置されています)。それ以外の場合、`readURL` は `read` と同じ引数を受け入れます。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `url` | 読み取る URL 文字列。クラスパスベースの URL も受け入れます。
+| `contentType` | サポートされる形式 (または MIME タイプ)。デフォルト: `application/dw`。
+| `readerProperties` | (省略可能) リーダー設定プロパティを定義します。他の形式およびリーダー設定プロパティについては、&#8203;https://docs.mulesoft.com/mule-runtime/4.2/dataweave-formats[「DataWeave の出力形式とライタープロパティ」]を参照してください。
+|===
+
+=== 例
+
+次の例では、URL から JSON オブジェクトを読み取ります。(読みやすいように、下記の出力値は `...` で短縮されています)。
+
+==== 取得元
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+output application/json
+---
+readUrl("https://jsonplaceholder.typicode.com/posts/1", "application/json")
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "userId": 1, "id": 1, "title": "sunt aut ...", "body": "quia et ..." }
+----
+
+=== 例
+
+次の例では、Studio の `src/main/resources` ディレクトリに配置されている `myJsonSnippet.json` ファイルから JSON オブジェクトを読み取ります。(このファイルのサンプル JSON コンテンツは以下の「入力」セクションで示されています)。ファイルの内容を読み取ったら、スクリプトは、選択された項目を JSON から CSV に変換します。サンプルデータで DataWeave スクリプトを試す場合、特に取得元データが大きく、スクリプトが複雑なときは、この方法でファイルを読み取ることが役立つ可能性があります。
+
+==== 取得元
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+var myJsonSnippet = readUrl("classpath://myJsonSnippet.json", "application/json")
+output application/csv
+---
+(myJsonSnippet.results map(item) -> item.profile)
+----
+
+==== 入力
+
+[source,JSON,linenums]
+----
+{
+  "results": [
+    {
+      "profile": {
+        "firstName": "john",
+        "lastName": "doe",
+        "email": "johndoe@demo.com"
+      },
+      "data": {
+        "interests": [
+          {
+            "language": "English",
+            "tags": [
+              "digital-strategy:Digital Strategy",
+              "innovation:Innovation"
+            ],
+            "contenttypes": []
+          }
+        ]
+      }
+    },
+    {
+      "profile": {
+      "firstName": "jane",
+        "lastName": "doe",
+        "email": "janedoe@demo.com"
+      },
+      "data": {
+        "interests": [
+          {
+            "language": "English",
+            "tags": [
+              "tax-reform:Tax Reform",
+              "retail-health:Retail Health"
+            ],
+            "contenttypes": [
+              "News",
+              "Analysis",
+              "Case studies",
+              "Press releases"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
+----
+
+==== 出力
+
+[source,CSV,linenums]
+----
+firstName,lastName,email
+john,doe,johndoe@demo.com
+jane,doe,janedoe@demo.com
+----
+
+=== 例
+
+次の例では、Studio の `src/main/resources` ディレクトリから単純な `dwl` ファイルを読み取って、そのファイルからキー `name` の値を動的に読み取ります。(入力ファイルのサンプルコンテンツは以下の「入力」セクションで示されています)。
+
+==== 取得元
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+output application/json
+---
+(readUrl("classpath://name.dwl", "application/dw")).firstName
+----
+
+==== 入力
+
+[source,JSON,linenums]
+----
+{
+  "firstName" : "Somebody",
+  "lastName" : "Special"
+}
+----
+
+==== 出力
+
+[source,CSV,linenums]
+----
+"Somebody"
+----
+

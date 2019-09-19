@@ -1,0 +1,82 @@
+= プロパティプレースホルダの設定
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+接続をはじめとする Mule アプリケーション設定の静的値を使用する代わりに、`.yaml` または `.properties` ファイルを作成してプロパティを格納し、アプリケーションからプロパティを参照することができます。
+
+プロパティファイルを設定することで、アプリケーションの構成およびメンテナンス性が向上します。
+
+`.yaml` ファイルでは、プロパティは次の形式になります。
+[source, yaml]
+----
+http:
+  path: "/service"
+  port: "10000"
+  host: "my-api.cloudhub.io"
+----
+
+`.properties` ファイルでは、プロパティは次の形式になります。
+----
+http.path=/service
+http.port=10000
+http.host=my-api.cloudhub.io
+----
+
+== プロパティファイルを作成して設定する
+
+. プロジェクトで `.yaml` または `.properties` ファイルを新規作成し、`/src/main/resources` に保存します。
+. ファイルを編集して、必要なプロパティおよび値を定義します。
+. プロパティファイルを Mule アプリケーションに追加します。
+
+* Studio から:
++
+.. *[Global Elements (グローバル要素)]* タブを開き、*[Create (作成)]* ボタンをクリックします。
+.. 「Configuration Properties (設定プロパティ)」という名前の要素を検索し、*[OK]* をクリックします。
+.. *[...]* ボタンをクリックして、`.yaml` または `.properties` ファイルに移動します。
+
+* XML エディタから:
++
+.. `<configuration-properties>` 要素を `<mule>` 内に含めて、プロパティファイル名を使用してその `file` パラメータを設定します。例:
++
+[source, xml]
+----
+<mule>
+  <configuration-properties
+    file="myConfiguration.yaml"
+    doc:name="Configuration properties"
+    doc:id="872422be-3571-4a52-a383-a2b0e16859d7" />`
+  ...
+</mule>
+----
+
+== アプリケーションでプロパティプを使用する
+
+プロパティファイルを設定してプロジェクトに追加したら、次のような構文を使用してその属性を参照できます: `${propertyContainer.propertyName}`。
+
+前のセクションで設定した例に基づくと、`path` 値および `port` 値を使用するには、構文はそれぞれ `${http.path}` および `${http.port}` になります。
+
+たとえば、グローバル HTTP 要求設定を設定してプロパティファイルで定義された値を使用できます。
+
+* Studio から:
+
+image::properties-file.png[properties-file]
+
+* XML エディタから
++
+[source, xml]
+----
+<http:request-config
+  name="HTTP_Request_config"
+  doc:name="HTTP Request
+  configuration" doc:id="7120494c-0540-4ad1-a118-f5b6db3f1456"
+  basePath="${http.path}" >
+		<http:request-connection
+      host="${http.host}"
+      port="${http.port}" />
+</http:request-config>
+----
+
+== 関連情報
+
+* xref:configuring-properties.adoc[プロパティの設定]

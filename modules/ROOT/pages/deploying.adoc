@@ -1,0 +1,30 @@
+= Mule Runtime のデプロイ
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: デプロイ, デプロイ, cloudhub, オンプレミス, オンプレミス
+
+[NOTE]
+このセクションでは、Mule Runtime のスタンドアロンインスタンスへのデプロイについて説明します。管理機能と監視機能を最大限に活用するには、Runtime Manager を介して同じ Mule Runtime にデプロイすることができます。
+
+Mule スタンドアロンは複数のアプリケーションを実行できます。つまり、同じ名前空間を異なるアプリケーション内に含めることができます。これらは競合したり、情報を共有したりしません。
+
+実際には Mule はアプリケーションサーバです。Mule は新しいアプリケーション (`apps` ディレクトリ内) があるかどうかを確認し、それを開始します。
+
+Mule は、アプリケーションが変更されたことを検出した場合もアプリケーションを再起動します。つまり、既存の実行中のアプリケーションの変更バージョンを `/apps` ディレクトリにドロップすると、Mule は既存のアプリケーションを停止し、新しいファイルを使用して再起動します。
+
+
+== デプロイに関するトピック
+
+* Mule Runtime インスタンスの開始および停止方法については、xref:starting-and-stopping-mule-esb.adoc[「Mule の開始と停止」]を参照してください。
+* Runtime インスタンスの管理についてはxref:runtime-manager::index.adoc[「Runtime Manager について」]を参照し、MuleSoft サーバでのデプロイについてはxref:runtime-manager::cloudhub.adoc[「CloudHub」]を参照してください。
+* プラットフォームで提供されるさまざまなデプロイ方法は、xref:runtime-manager::deployment-strategies.adoc[「デプロイメント戦略」]を参照してください。
+* xref:mule-deployment-model.adoc[「Mule アプリケーションのデプロイメントモデル」]に習熟してください。
+//* xref:deploying-to-multiple-environments.adoc[Configuring Mule App for Deployment Anywhere]
+* インスタンスがオフラインになった場合に信頼できるバックアップを提供する Runtime インスタンスのクラスタをセットアップするには、xref:mule-high-availability-ha-clusters.adoc[Mule 高可用性クラスタ]を参照してください。
+
+== 関連情報
+
+* xref:mule-server-notifications.adoc[Mule サーバの通知]
+//* xref:profiling-mule.adoc[Profiling Mule]
+* xref:hardening-your-mule-installation.adoc[Mule インストールの強化]

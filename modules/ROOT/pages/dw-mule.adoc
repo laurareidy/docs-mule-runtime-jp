@@ -1,0 +1,18 @@
+= Mule (Mule)
+
+この DataWeave モジュールには、Mule Runtime Engine とやりとりする関数が含まれます。
+
+このモジュールを使用するには、Mule `p` 関数をコールするときに関数の前に `Mule` 名前空間を追加します (例: `Mule::p('http.port')`)。
+
+== 関数
+
+[%header, cols="1,3"]
+|===
+| Name (名前)  | 説明
+| xref:dw-mule-functions-causedby.adoc[causedBy] | この関数は、エラーハンドラのように、エラーをその種別によって一致させます。
+| xref:dw-mule-functions-lookup.adoc[lookup] | この関数を使用すると、Mule アプリケーション内でフローを実行し、結果のペイロードを取得できます。
+| xref:dw-mule-functions-p.adoc[p] | この関数は、Mule プロパティプレースホルダ、システムプロパティ、または環境変数のいずれかの入力プロパティの値を識別する文字列を返します。
+|===
+
+== 型
+* xref:dw-mule-types.adoc[Mule 型]

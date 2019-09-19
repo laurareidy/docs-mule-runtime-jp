@@ -1,0 +1,176 @@
+= 複数の入力の参照
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, 変換, トランスフォーマ, 形式, xml, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング, 削除, mapobject
+
+この DataWeave の例では、3 つの異なる入力 JSON ファイル (ペイロード、変数、属性) を取得します。これらのすべては、同じ Mule イベントの意一部です。ペイロードには本のオブジェクトの配列が含まれ、変数には一連の通貨換算レートがあり、属性ではクエリとして使用される年を指定します。
+
+この例では、以下を使用します。
+
+* 入力属性で指定した日付よりも古い本を除外する `filter`。
+* 入力配列の各本を調べる `map`。その後に変数の通貨を調べてそれぞれの本の価格を計算する別の `map` 関数。複数ある場合に本のすべての著者をリストする 3 番目の `map` 関数。
+* 出力の XML 属性を定義する `@`。
+
+
+
+.DataWeave
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/xml
+---
+books: {
+  (payload filter ($.properties.year > attributes.publishedAfter) map  (item)   ->  {
+    book @(year: item.properties.year): {
+      (variables.exchangeRate.USD map {
+        price @(currency: $.currency): $.ratio * item.price
+      }),
+      title: item.properties.title,
+      authors: { (item.properties.author map {
+        author: $
+      }) }
+    }
+  } )
+}
+----
+
+.入力ペイロード
+[source,json,linenums]
+----
+[
+  {
+      "type": "book",
+      "price": 30,
+      "properties": {
+        "title": "Everyday Italian",
+        "author": [
+          "Giada De Laurentiis"
+        ],
+        "year": 2005
+      }
+  },
+  {
+      "type": "book",
+      "price": 29.99,
+      "properties": {
+        "title": "Harry Potter",
+        "author": [
+          "J K. Rowling"
+        ],
+        "year": 2005
+      }
+  },
+  {
+      "type": "book",
+      "price": 41.12,
+      "properties": {
+        "title": "Mule in Action",
+        "author": [
+          "David Dossot",
+          "John D'Emic"
+        ],
+        "year": 2009
+      }
+  },
+  {
+      "type": "book",
+      "price": 49.99,
+      "properties": {
+        "title": "XQuery Kick Start",
+        "author": [
+          "James McGovern",
+          "Per Bothner",
+          "Kurt Cagle",
+          "James Linn",
+          "Kurt Cagle",
+          "Vaidyanathan Nagarajan"
+        ],
+        "year": 2003
+      }
+  },
+  {
+      "type": "book",
+      "price": 39.95,
+      "properties": {
+        "title": "Learning XML",
+        "author": [
+          "Erik T. Ray"
+        ],
+        "year": 2003
+      }
+  }
+]
+----
+
+.入力属性
+[source,json,linenums]
+----
+{
+  "publishedAfter": 2004
+}
+----
+
+.入力変数 `exchangeRate`
+[source,json,linenums]
+----
+{
+  "USD": [
+    {"currency": "EUR", "ratio":0.92},
+    {"currency": "ARS", "ratio":8.76},
+    {"currency": "GBP", "ratio":0.66}
+  ]
+}
+----
+
+
+
+.出力
+[source,xml,linenums]
+----
+<?xml version='1.0' encoding='US-ASCII'?>
+<books>
+  <book year="2005">
+    <price currency="EUR">27.60</price>
+    <price currency="ARS">262.80</price>
+    <price currency="GBP">19.80</price>
+    <title>Everyday Italian</title>
+    <authors>
+      <author>Giada De Laurentiis</author>
+    </authors>
+  </book>
+  <book year="2005">
+    <price currency="EUR">27.5908</price>
+    <price currency="ARS">262.7124</price>
+    <price currency="GBP">19.7934</price>
+    <title>Harry Potter</title>
+    <authors>
+      <author>J K. Rowling</author>
+    </authors>
+  </book>
+  <book year="2009">
+    <price currency="EUR">37.8304</price>
+    <price currency="ARS">360.2112</price>
+    <price currency="GBP">27.1392</price>
+    <title>Mule in Action</title>
+    <authors>
+      <author>David Dossot</author>
+      <author>John D'Emic</author>
+    </authors>
+  </book>
+</books>
+----
+
+== 関連する例
+
+* xref:dataweave-cookbook-extract-data.adoc[データの抽出]
+
+* xref:dataweave-cookbook-merge-multiple-payloads.adoc[個別のオブジェクトの項目のマージ]
+
+== 関連情報
+
+* xref:dataweave-types.adoc[DataWeave の型]
+
+* xref:dataweave-selectors.adoc[DataWeave セレクタ]
+
+* xref:dataweave-cookbook.adoc[DataWeave の解説書]

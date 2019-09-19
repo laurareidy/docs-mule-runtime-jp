@@ -1,0 +1,21 @@
+= Numbers (dw::core::Numbers)
+
+このモジュールには、数値を操作するヘルパー関数が含まれます。
+
+このモジュールを使用するには、DataWeave コードにインポートする必要があります。その方法として、たとえば、行 `import * from dw::core::Numbers` を DataWeave スクリプトの
+ヘッダーに追加します。
+
+_DataWeave 2.2.0 で導入されました。Mule 4.2 以降でサポートされます。_
+
+== 関数
+
+[%header, cols="1,3"]
+|===
+| Name (名前)  | 説明
+| xref:dw-numbers-functions-frombinary.adoc[fromBinary] | 2 進数から 10 進数に変換します。
+| xref:dw-numbers-functions-fromhex.adoc[fromHex] | 16 進数を 10 進数に変換します。
+| xref:dw-numbers-functions-fromradixnumber.adoc[fromRadixNumber] | 指定された基数の数値を 10 進数に変換します。
+| xref:dw-numbers-functions-tobinary.adoc[toBinary] | 10 進数を 2 進数に変換します。
+| xref:dw-numbers-functions-tohex.adoc[toHex] | 10 進数を 16 進数に変換します。
+| xref:dw-numbers-functions-toradixnumber.adoc[toRadixNumber] | 10 進数を他の基数の数値文字列に変換します。
+|===

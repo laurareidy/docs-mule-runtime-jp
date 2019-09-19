@@ -1,0 +1,126 @@
+= 個別のオブジェクトの項目のマージ
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, 変換, トランスフォーマ, 形式, 集約, filter, json, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング, contains, as
+
+DataWeave の例では、個別の入力配列の項目をマージします。最初の DataWeave 変数 (`firstInput`) は本 ID ごとに価格をリストし、2 番目の DataWeave 変数 (`secondInput`) は本 ID ごとに著者をリストします。各本には一意の `bookId` キーがあります。
+
+DataWeave スクリプトでは、同じ出力が生成されます。どちらのスクリプトも検索条件と共に 2 つの `map` 関数を使用しますが、一方のスクリプトは `bookId` の別名も作成します。
+
+* 最初の `map` 関数は、`firstInput` 配列の要素を反復処理します。その関数が各要素を評価するときに、2 番目の `map` 関数は検索条件を使用して、`filter` 条件 (`secondInput filter ($.*bookId contains firstInputValue.bookId)`) に一致する 2 番目の配列 (`secondInput`) の要素を識別します。この検索条件は、`firstInput` 要素の `bookId` 値と一致する `bookId` 値が含まれる `secondInput` の要素を返します。
+* 2 番目の `map` 関数は、その絞り込まれた要素を評価し、`secondInputValue.author` を使用して、オブジェクト `{author : secondInputValue.author}` の `"author"` 項目の値を選択して入力します。
+* `filter` は、2 番目の `map` 関数のスコープを同じ `bookId` を共有する `secondInput` のオブジェクトに制限します。
+
+.DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+%dw 2.0
+var firstInput = [
+  { "bookId":"101",
+    "title":"world history",
+    "price":"19.99"
+  },
+  {
+    "bookId":"202",
+    "title":"the great outdoors",
+    "price":"15.99"
+  }
+]
+var secondInput = [
+  {
+    "bookId":"101",
+    "author":"john doe"
+  },
+  {
+    "bookId":"202",
+    "author":"jane doe"
+  }
+]
+output application/json
+---
+firstInput map (firstInputValue) ->
+  {
+    theId : firstInputValue.bookId as Number,
+    theTitle: firstInputValue.title,
+    thePrice: firstInputValue.price as Number,
+    (secondInput filter ($.*bookId contains firstInputValue.bookId) map (secondInputValue) -> {
+      theAuthor : secondInputValue.author
+    })
+  }
+----
+
+次のスクリプトのように、`id` の別名 (`using (id = firstInputValue.bookId)` で作成される) を使用して同じスクリプトを記述することもできます。別名は、長いセレクタ式 `firstInputValue.bookId` を置き換えます。
+
+.別名を使用する DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+%dw 2.0
+var firstInput = [
+  { "bookId":"101",
+    "title":"world history",
+    "price":"19.99"
+  },
+  {
+    "bookId":"202",
+    "title":"the great outdoors",
+    "price":"15.99"
+  }
+]
+var secondInput = [
+  {
+    "bookId":"101",
+    "author":"john doe"
+  },
+  {
+    "bookId":"202",
+    "author":"jane doe"
+  }
+]
+output application/json
+---
+firstInput map (firstInputValue) -> using (id = firstInputValue.bookId)
+  {
+    theValue : id as Number,
+    theTitle: firstInputValue.title,
+    thePrice: firstInputValue.price as Number,
+    (secondInput filter ($.*bookId contains id)  map (secondInputValue) -> {
+      theAuthor : secondInputValue.author
+    })
+  }
+----
+
+どちらのスクリプトも、同じ出力が生成されます。
+
+.出力
+[source,json,linenums]
+----
+[
+  {
+    "theId": 101,
+    "theTitle": "world history",
+    "thePrice": 19.99,
+    "theAuthor": "john doe"
+  },
+  {
+    "theId": 202,
+    "theTitle": "the great outdoors",
+    "thePrice": 15.99,
+    "theAuthor": "jane doe"
+  }
+]
+----
+
+== 関連する例
+
+* xref:dataweave-cookbook-extract-data.adoc[データの抽出]
+
+* xref:dataweave-cookbook-reference-multiple-inputs.adoc[複数の入力の参照]
+
+* xref:dataweave-cookbook-zip-arrays-together.adoc[複数の配列要素のグループ化]
+
+== 関連情報
+
+* xref:dataweave-selectors.adoc[DataWeave セレクタ]
+
+* xref:dataweave-cookbook.adoc[DataWeave の解説書]

@@ -1,0 +1,10 @@
+= DataFormat アノテーション (dw::extension::DataFormat)
+
+|===
+| アノテーション | 定義 | 説明
+
+| DataFormatExtension
+| `@DataFormatExtension()`
+| カスタムデータ形式を表す変数を見つけるために DataWeave エンジンが使用する登録フック。例については、&#8203;https://github.com/mulesoft-labs/data-weave-custom-data-format/blob/master/README.md[「カスタムデータ形式の例」の README] を参照してください。
+
+|===

@@ -1,0 +1,68 @@
+= rightPad
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[rightpad1]]
+== rightPad&#40;String, Number, String&#41;: String
+
+目的のサイズ (`size`) になるように、指定された `text` の_右_側に `padText` を埋め込みます。
+デフォルトの `padText` は `" "` です。
+
+
+右側をパディングした `String` を返すか、パディングが不要な場合は元の `String` を返します。
+
+_DataWeave 2.2.0 で導入されました。Mule 4.2 以降でサポートされます。_
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `text` | 入力文字列。
+| `size` | パディングの目的のサイズ。
+| `padText` | 埋め込むテキスト。指定されていない場合、デフォルトで 1 桁の空白に設定されます。
+|===
+=== 例
+
+次の例では、さまざまな入力とサイズでの `rightPad` の動作を示します。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+import * from dw::core::Strings
+output application/json
+---
+{
+  "a": rightPad(null, 3),
+  "b": rightPad("", 3),
+  "c": rightPad("bat", 5),
+  "d": rightPad("bat", 3),
+  "e": rightPad("bat", -1)
+}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  "a": null,
+  "b": "   ",
+  "c": "bat  ",
+  "d": "bat",
+  "e": "bat"
+}
+----
+
+
+[[rightpad2]]
+== rightPad&#40;Null, Number, String&#41;: Null
+
+`rightPad` を `null` 値に使用できるようにするヘルパー関数。
+

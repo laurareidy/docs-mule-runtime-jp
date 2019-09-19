@@ -1,0 +1,154 @@
+= splitBy
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[splitby1]]
+== splitBy&#40;String, Regex&#41;: Array<String&#62;
+
+文字列の一部に一致する値に基づいて、文字列を文字列配列に分割します。一致部分は、返される配列から除外されます。
+
+
+このバージョンの `splitBy` は、入力文字列を照合する Java 正規表現 (regex) を受け入れます。この正規表現は入力文字列内の任意の文字を照合できます。`splitBy` は `joinBy` と逆の操作を実行します。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `text` | 分割する入力文字列。
+| `regex` | 文字列を分割するために使用する Java 正規表現。文字列のどの部分にも一致しない場合、この関数は、元の分割されていない文字列を配列で返します。
+|===
+
+=== 例
+
+次の例では、Java 正規表現を使用して、アドレス帳内のピリオドとスラッシュでアドレス帳を分割します。正規表現はスラッシュの間にあります。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+"192.88.99.0/24" splitBy(/[.\/]/)
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+["192", "88", "99", "0", "24"]
+----
+
+=== 例
+
+次の例では、複数の正規表現を使用して入力文字列を分割します。最初の例では、`\/^*.b./\` を使用して文字列を `-b-` で分割します。2 番目の例では、`/\s/` を使用して文字列を空白スペースで分割します。3 番目の例では、正規表現 `/^s/` (最初の文字列が `s` の場合にその文字列に一致) が入力文字列 (`"no match"`) の最初の文字に一致しないため、元の入力文字列を配列で返します (`[ "no match"]`)。`/^n../` を使用する 4 番目の例では、`"no match"` の最初の文字に一致するため、`[ "", "match"]` を返します。最後の例では、すべての数値と大文字を文字列から削除し、各小文字を配列に残します。区切り文字は出力からは削除されます。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{ "splitters" : {
+   "split1" : "a-b-c" splitBy(/^*.b./),
+   "split2" : "hello world" splitBy(/\s/),
+   "split3" : "no match" splitBy(/^s/),
+   "split4" : "no match" splitBy(/^n../),
+   "split5" : "a1b2c3d4A1B2C3D" splitBy(/^*[0-9A-Z]/)
+  }
+}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  splitters: {
+    split1: [ "a", "c" ],
+    split2: [ "hello", "world" ],
+    split3: [ "no match" ],
+    split4: [ "", "match" ],
+    split5: [ "a", "b", "c", "d" ]
+  }
+}
+----
+
+
+[[splitby2]]
+== splitBy&#40;String, String&#41;: Array<String&#62;
+
+入力文字列の一部に一致する区切り文字列に基づいて、文字列を文字列配列に分割します。一致する文字列は、返される配列から除外されます。
+
+
+区切り文字には、入力内の任意の文字を一致させることができます。`splitBy` は `joinBy` と逆の操作を実行します。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `text` | 分割する文字列。
+| `separator` | 入力文字列を区切るために使用される文字列。文字列のどの部分にも一致しない場合、この関数は、元の分割されていない文字列を配列で返します。
+|===
+
+=== 例
+
+次の例では、IP アドレスを含む文字列をそのピリオドで分割します。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+"192.88.99.0" splitBy(".")
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+["192", "88", "99", "0"]
+----
+
+=== 例
+
+最初の例 (`splitter1`) では、`"a-b-c"` 内のハイフン (`-`) を使用して文字列を分割します。2 番目の例では、空の文字列 (`""`) を使用して文字列内の各文字 (空白スペースを含む) を分割します。3 番目の例では、入力文字列内のカンマ (`,`) に基づいて分割します。最後の例では、入力は分割されません。この関数は大文字と小文字を区別する、つまり、大文字の `NO` が入力文字列内の小文字の `no` と一致しないためです。  区切り文字は出力からは削除されます。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{ "splitters" : {
+    "split1" : "a-b-c" splitBy("-"),
+    "split2" : "hello world" splitBy(""),
+    "split3" : "first,middle,last" splitBy(","),
+    "split4" : "no split" splitBy("NO")
+   }
+}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{
+  splitters: {
+    split1: [ "a","b","c" ],
+    split2: [ "h","e","l","l","o","","w","o","r","l","d" ],
+    split3: [ "first","middle","last"],
+    split4: [ "no split"]
+  }
+}
+----
+

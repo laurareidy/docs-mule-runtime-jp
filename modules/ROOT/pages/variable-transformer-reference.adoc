@@ -1,0 +1,89 @@
+= Set Variable トランスフォーマ
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Anypoint Studio, Studio, Mule, 変数とトランスフォーマ, 変数, 変数の設定, 変数の編集, 変数の削除
+
+Set Variable (`set-variable`) コンポーネントは、Mule アプリケーションのフロー内で使用する値を格納するための変数を作成または更新します。文字列やメッセージといったシンプルなリテラル値、メッセージペイロード、または属性オブジェクトを格納できます。たとえば、メッセージの元の (処理前の) ペイロードを格納しておくことで、後でフローやエラーハンドラで使用できるようにします。
+
+`set-variable` コンポーネントは、複雑な式や変換には向いていません。このコンポーネントは選択などのシンプルな処理に使用し、複雑なシナリオでは xref:transform-component-about.adoc[Transform コンポーネント]を使用してください。
+
+
+[%header,cols="20a,20a,60a"]
+|===
+|項目 | 使い方 | 説明
+
+| Variable Name (変数名) (`variableName`)
+| 必須
+| 変数の名前。数字、文字、アンダースコアのみを使用できます。たとえば、名前にハイフンは使用できません。
+
+| Value (値) (`value`)
+| 必須
+| 変数の値で、文字列または DataWeave 式を指定できます。
+
+| Mime Type (MIME タイプ) (`mimeType`)
+| 省略可能
+| 変数の MIME 型 (`text/plain` や `application/json` など) を設定します。
+
+| Encoding (エンコード) (`encoding`)
+| 省略可能
+| 変数のエンコード (`ISO 10646/Unicode(UTF-8)` など) を設定します。
+
+|===
+
+[WARNING]
+--
+`mimeType` 属性と `encoding` 属性は、`value` に指定された DataWeave 式には影響しません。これらは、格納されている出力値にのみ影響します。変換が必要な場合には、DataWeave 式に明示的な出力ディレクティブを指定する必要があります。
+--
+
+== 例
+
+次の例では、変数を文字列に設定しています。
+
+* Name (名前) = `myVar`
+* Value (値) = `my first variable`
+
+次の例は、`5` の値を生成する DataWeave 操作を使用して変数を設定しています。
+
+* Name (名前) = `myVar`
+* Value (値) = Anypoint Studio では `#[max([1,2,3] ++ [3,4,5])]`
+
+次の例は、変数をメッセージペイロードに設定しています。
+
+* Name (名前) = `myVar`
+* Value (値) = Design Center では `payload`、Anypoint Studio では `#[payload]`
+
+次の例は、変数をメッセージ属性に設定しています。
+
+* Name (名前) = `myVar`
+* Value (値) = Design Center では `attributes`、Anypoint Studio では `#[attributes]`
+
+次の例は、変数をメッセージ全体に設定しています。
+
+* Name (名前) = `myVar`
+* Value (値) = Design Center では `message`、Anypoint Studio では `#[message]`
+
+次の XML 例では、マップを値として取る変数を設定しています。
+`<set-variable variableName="employee" value="{ 'name' : 'Ana', 'office' : 'BA' }" mimeType="application/json" encoding="UTF-8/>`
+
+次の例では、DataWeave スクリプトのセレクタを使用して、同じ変数を設定しています。この例では、`name` 属性が Set Variable への入力として利用できることを前提としています。
+`<set-variable variableName="employee" value="#[output application/java --- payload.name]"/>`
+
+これらの例では、変数をブール値 `true` に設定しています。
+
+* Name (名前) = `myVar`
+* Value (値) =  
+** Design Center では `true`、Anypoint Studio では `#[true]`
+** Design Center では `true as Boolean`、Anypoint Studio では `#[true as Boolean]` 
+** `(1 + 1 == 2)` は Design Center では `true`、`#[(1 + 1 == 2)]` は Anypoint Studio では `true`
+
+Design Center で Logger コンポーネントを使用して変数の値を表示するには、`vars.myVar` ではなく `#[vars.myVar]` のように Anypoint Studio の構文を使用する必要がある場合があります。 
+
+== 他のイベントプロセッサの変数へのアクセス
+Set Variable は、現在の Mule イベントで変数を設定し、設定された変数は Mule イベントと一緒に下流のイベントプロセッサに伝播されます。DataWeave では、`vars` を使用することで任意の変数にアクセスできます。たとえば、lastMessage という名前の変数を設定してある場合は、`vars.lastMessage` としてアクセスできます。  Transform Message コンポーネントでは変数を設定でき、多くのコネクタやイベントプロセッサでは [Advanced (詳細)] タブで対象を設定できます。これらによってフロー変数を設定し、同じようにキーワードの `vars.` を使用してアクセスできます。
+
+
+== 関連情報
+
+* xref:about-mule-variables.adoc[Mule イベントの変数]
+* xref:target-variables.adoc[Target パラメータを使用したデータの強化]

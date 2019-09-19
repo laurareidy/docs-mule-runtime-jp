@@ -1,0 +1,43 @@
+= SHA1
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[sha11]]
+== SHA1&#40;Binary&#41;: String
+
+SHA1 ハッシュを計算し、その結果を小文字の 16 進文字列に変換します。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `content` | 暗号化するバイナリ入力値。
+|===
+
+=== 例
+
+次の例では、SHA1 アルゴリズムを使用してバイナリ値を暗号化します。
+
+==== 取得元
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+import dw::Crypto
+output application/json
+---
+{ "sha1" : Crypto::SHA1("dsasd" as Binary) }
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "sha1": "2fa183839c954e6366c206367c9be5864e4f4a65" }
+----
+

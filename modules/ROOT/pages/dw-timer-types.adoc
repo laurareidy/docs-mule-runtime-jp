@@ -1,0 +1,15 @@
+= Timer 型 (dw::util::Timer)
+
+|===
+| 型 | 定義 | 説明
+
+| DurationMeasurement
+| `type DurationMeasurement = { time: Number, result: T }`
+| 関数コールの実行時間と結果が含まれる戻り値のデータ型。
+
+
+| TimeMeasurement
+| `type TimeMeasurement = { start: DateTime, result: T, end: DateTime }`
+| 関数コールの開始時刻、終了時刻、結果が含まれる戻り値のデータ型。
+
+|===

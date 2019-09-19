@@ -1,0 +1,391 @@
+= DataWeave スクリプト
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, esb, 変換, トランスフォーマ, 形式, 集約, 名前変更, 分割, 変換の絞り込み, xml, json, csv, pojo, java オブジェクト, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング
+
+DataWeave は Mule フローの主データ変換言語です。Transform Message コンポーネントでスタンドアロンの DataWeave スクリプトを記述できます。また、インライン DataWeave 式を記述すると、データを _その場_ で変換し、さまざまなプロパティの値 (イベントプロセッサまたはグローバル設定要素の設定項目など) を動的に設定することもできます。インライン DataWeave 式は `&#35;[ ]` コードブロックで囲みます。たとえば、DataWeave 式を使用して、Choice ルータの条件を設定したり、Set Payload または Set Variable コンポーネントの値を設定したりできます。
+
+次の例の DataWeave コードでは、DataWeave の `now()` 関数を使用して、タイムスタンプ変数を現在時刻に設定しています。
+
+.例: 簡単なインライン DataWeave スクリプト
+[source,xml,linenums]
+----
+<set-variable value="#[now()]" variableName="timestamp" doc:name="Set timestamp" />
+----
+
+DataWeave コードを<<dwl_file, 外部ファイル>>に保存して他の DataWeave スクリプトに読み込んだり、Mule アプリケーションのすべてのコンポーネントで共有できる再利用可能な DataWeave 関数のモジュール (ライブラリ) に DataWeave コードをファクタリングしたりすることもできます。
+
+
+== DataWeave スクリプトの構造
+DataWeave スクリプトとファイルは 2 つの主なセクションに分割されます。
+
+* ヘッダー: 本文の式に適用するディレクティブを定義します (省略可能)。
+
+* 本文: 出力構造を生成する式が含まれます。
+
+ヘッダーを含めた場合、ヘッダーは本文の上に表示され、3 つのダッシュ `---` で構成される区切り文字で分離されます。
+
+DataWeave ファイルの例を次に示します。このファイルでは、ヘッダーで出力ディレクティブを宣言し、その後の DataWeave 式で、子の 2 つのキー/値ペアを含むユーザオブジェクトを作成します。
+
+.例: 簡単な DataWeave スクリプト
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/xml
+---
+{
+  user: {
+    firstName: payload.user_firstname,
+    lastName: payload.user_lastName
+  }
+}
+----
+
+== DataWeave ヘッダー
+
+この例は、ヘッダーディレクティブで使用できるキーワード (`import`、`var` など) を示しています。
+
+.DataWeave スクリプト
+[source,dataweave,linenums]
+----
+%dw 2.0
+import * from dw::core::Arrays
+var myVar=13.15
+fun toUser(obj) = {
+  firstName: obj.field1,
+  lastName: obj.field2
+}
+type Currency = String { format: “##“}
+ns ns0 http://www.abc.com
+output application/xml
+---
+/*
+ * Body here.
+ * /
+----
+
+* `%dw`: DataWeave バージョンは省略可能です。デフォルトは、`2.0` です。
++
+例: `%dw 2.0`
++
+* `output`: スクリプトから出力される MIME タイプを特定する、よく使用されるディレクティブ。
++
+例: `output application/xml`
++
+有効な値: xref:dataweave-formats.adoc[DataWeave の出力形式とライタープロパティ]
++
+デフォルト: 出力が指定されていない場合、デフォルトの出力は、スクリプトで使用されている入力 (ペイロード、変数など) を検査するアルゴリズムによって決まります。
++
+. 入力がない場合、デフォルトの `output application/java` になります。
+. すべての入力の MIME タイプが同じ場合、スクリプトの出力は同じ MIME タイプになります。たとえば、すべての入力が `application/json` の場合、`output application/json` が出力されます。
+. 各入力の MIME タイプが異なり、出力が指定されていない場合、スクリプトは例外をスローして、出力の MIME タイプを指定するようにユーザに知らせます。
++
+指定できる出力のタイプは 1 つのみです。
++
+* `import`: DataWeave 関数モジュールをインポートします。xref:dw-functions.adoc[「DataWeave 関数」]を参照してください。
+* `var`: DataWeave スクリプトの本文全体で参照できる定数を定義するためのグローバル変数。
++
+.例
+[source,dataweave,linenums]
+----
+%dw 2.0
+var conversionRate=13.15
+output application/json
+---
+{
+ price_dollars: payload.price,
+ price_localCurrency: payload.price * conversionRate
+}
+----
++
+詳細は、xref:dataweave-variables.adoc[「DataWeave 変数」]を参照してください。
++
+* `type`: 式で使用できるカスタム型を指定します。
++
+完全な例は、xref:dataweave-types-coercion.adoc[「DataWeave を使用した型の強制」] を参照してください。
++
+* `ns`: 名前空間。名前空間をインポートするために使用します。
++
+.例
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/xml
+
+ns ns0 http://www.abc.com
+ns ns1 http://www.123.com
+---
+{
+    ns0#myroot: {
+         ns1#secondroot: "hello world"
+    }
+}
+----
++
+* `fun`: スクリプトの本文内からコールできるカスタム関数を作成します。
++
+.例
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/json
+fun toUser(user) = {firstName: user.name, lastName: user.lastName}
+---
+{
+  user: toUser(payload)
+}
+----
+
+=== インライン DataWeave スクリプトにヘッダーを含める
+
+インライン DataWeave スクリプトを記述する場合、DataWeave スクリプトのすべての行を 1 つの行にフラット化することで、ヘッダーディレクティブを含めることができます。小さな DataWeave スクリプトの場合、これにより、ヘッダーディレクティブをすばやく適用し (個別の Transform Message コンポーネントを追加して変数を設定する必要はありません)、次のイベントプロセッサで変数を置き換えることができます。
+
+たとえば、前述の Transform Message コンポーネントと同じ有効な XML 出力を作成する Mule 設定の XML を次に示します。
+
+.例: 簡単なインライン DataWeave スクリプト
+[source,xml,linenums]
+----
+<set-payload value="#[output application/xml --- { myroot: payload } ]" doc:name="Set Payload" />
+----
+
+DataWeave ドキュメントに多くの<<see_also,変換例>>が記載されています。
+
+== DataWeave 本文
+
+DataWeave 本文には、出力構造を生成する式が含まれます。MuleSoft では、DataWeave モデルを使用してデータを操作するための正規の方法 (クエリ、変換、ビルドプロセス) が提供されています。
+
+DataWeave スクリプト用の JSON 入力を提供する簡単な例を次に示します。
+
+.例: JSON 入力
+[source,json,linenums]
+----
+{
+    "message": "Hello world!"
+}
+----
+
+この DataWeave スクリプトは、上の JSON 入力のペイロード全体を取得して `application/xml` 形式に変換します。
+
+[[script_output_xml]]
+.例: application/xml を出力するスクリプト
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/xml
+---
+payload
+----
+
+次の例は、DataWeave スクリプトから生成された XML 出力を示しています。
+
+.例: XML 出力
+[source,xml,linenums]
+----
+<?xml version='1.0' encoding='UTF-8'?>
+<message>Hello world!</message>
+----
+
+上のスクリプトは JSON 入力を XML 出力に正常に変換します。
+
+== エラー (スクリプティングエラーと書式設定エラー)
+
+DataWeave スクリプトは、DataWeave コーディングエラーを原因とするエラーと書式設定エラーを原因とするエラーをスローする可能性があります。このため、データ形式を変換する場合、言語と形式の両方の制約に留意することが重要です。たとえば、XML には単一ルートノードが必要です。<<script_output_xml, 上の DataWeave スクリプト>>を使用して次の JSON 入力を XML に変換しようとすると、JSON 入力に単一ルートがないためエラー (`Unexpected internal error`) が発生します。
+
+[[json_input]]
+.例: JSON 入力
+[source,json,linenums]
+----
+{
+    "size" : 1,
+    "person": {
+      "name": "Yoda"
+    }
+}
+----
+
+スクリプトを作成するには、入力を JSON に似た <<dataweave-formats#format_dataweave, application/dw>> 形式に標準化することをお勧めします。実際に、エラーが発生した場合は、単に入力を `application/dw` に変換することができます。変換が成功した場合、エラーは書式設定エラーの可能性があります。変換が失敗した場合、エラーはコーディングエラーの可能性があります。
+
+次の例では、出力形式を `application/dw` に変更します。
+
+.例: application/dw を出力する DataWeave スクリプト
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/dw
+---
+payload
+----
+
+このスクリプトでは上記の <<json_input,JSON 入力例>>から `application/dw` 出力が正常に生成されることを確認できます。
+
+.例: application/dw 出力
+[source,dataweave,linenums]
+----
+{
+  size: 1,
+  person: {
+    name: "Yoda"
+  }
+}
+----
+
+つまり、前述のエラー (`Unexpected internal error`) は、コーディングではなく形式に固有のエラーであることがわかります。上記の `application/dw` 出力では、XML 形式で必要な単一ルート要素が提供されていないことを確認できます。 _XML_  出力用のスクリプトを修正するには、例えば次のように単一ルート要素をスクリプトに提供する必要があります。
+
+.例: application/xml を出力するスクリプト
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/xml
+---
+{
+    "myroot" : payload
+}
+----
+
+出力が XML の要件を満たすようになったため、出力ディレクティブを `application/xml` に戻すと、結果として有効な XML 出力が生成されます。
+
+.例: 単一 XML ルートを含む XML 出力
+[source,xml,linenums]
+----
+<?xml version='1.0' encoding='UTF-8'?>
+<myroot>
+  <size>1</size>
+  <person>
+    <name>Yoda</name>
+  </person>
+</myroot>
+----
+
+== 特殊文字のエスケープ
+
+DataWeave では、バックスラッシュ (`\`) を使用して、入力文字列で使用している特殊文字をエスケープします。
+
+文字列内の特殊文字は多くありません。
+
+* `$`: 文字列で `$` が使用されている場合、エスケープする必要があります。エスケープしないと、DataWeave は `$` を名前のない関数パラメータとして処理し、エラー `Unable to resolve reference of $.` を返します。
+* `"`: 二重引用符で囲まれた文字列の場合、文字列に含まれる二重引用符をエスケープする必要があります (例: `"a\"bcdef"`)。この例の 2 番目の二重引用符は、`a` で始まり `f` で終わる文字列の一部です。
+* `'`: 一重引用符で囲まれた文字列の場合、文字列に含まれる一重引用符をエスケープする必要があります (例: `'abcd\'e"f'`)。この例の 2 番目の一重引用符は、`a` で始まり `f` で終わる文字列の一部です。この場合、二重引用符をエスケープする必要はありません。
+* `/``: (DataWeave 2.0 でサポートされる) バッククォートで囲まれた文字列の場合、文字列に含まれるバッククォートをエスケープする必要があります (例: ``'"\`\$\\``)。
+* `\`: バックスラッシュは他の特殊文字をエスケープするために使用する文字列であるため、これを文字列で使用するには別のバックスラッシュでエスケープする必要があります (例: `\\`)。
+* `\n`: 改行を挿入します。
+* `\t`: タブを挿入します。
+* `\u`: Unicode 文字を挿入します (例: `\u25c4`)。
+
+== 例
+
+DataWeave スクリプトの _入力_ 文字列では特殊文字がエスケープされますが、 _出力_ では、出力形式 (`application/json`、`application/xml`、`application/csv` など) の要件に従ってエスケープされます。
+
+この例では、二重引用符で囲まれた内部の引用符がエスケープされます。
+
+.DataWeave の例
+[source,txt,linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+    "a": "something",
+    "b": "dollar sign (\$)",
+    "c": 'single quote (\')',
+    "c": "double quote (\")",
+    "e": `backtick (\`)`
+}
+----
+
+JSON 出力でも、出力が有効な JSON になるように二重引用符がエスケープされますが、他の文字はエスケープされません。
+
+.JSON 出力
+[source,json,linenums]
+----
+{
+  "a": "something",
+  "b": "dollar sign ($)",
+  "c": "single quote (')",
+  "c": "double quote (\")",
+  "e": "backtick (`)"
+}
+----
+
+次の例では、同じ文字がエスケープされますが、XML に出力されます。
+
+.DataWeave の例
+[source,txt,linenums]
+----
+%dw 2.0
+output application/xml
+---
+{
+  xmlExample:
+  {
+     "a": "something",
+     "b": "dollar sign (\$)",
+     "c": 'single quote (\')',
+     "d": "double quote (\")",
+     "e": `backtick (\`)`
+   }
+}
+----
+
+XML 出力は、(JSON 出力とは異なり) 二重引用符をエスケープしなくても有効です。
+
+.XML 出力
+[source,xml,linenums]
+----
+<?xml version='1.0' encoding='UTF-8'?>
+<xmlExample>
+  <a>something</a>
+  <b>dollar sign ($)</b>
+  <c>single quote (')</c>
+  <d>double quote (")</d>
+  <e>backtick (`)</e>
+</xmlExample>
+----
+
+== DataWeave コメント
+Java に似た構文を使用するコメントも DataWeave で受け入れられます。
+----
+// My single-line comment here.
+
+/*
+ * My multi-line comment here.
+ */
+----
+
+[[dwl_file]]
+== dwl ファイル
+
+Transform や他のコンポーネント内で DataWeave スクリプトを指定するのに加えて、`.dwl` ファイル内でスクリプトを指定することもできます。Studio プロジェクトでは、スクリプトファイルは `src/main/resources` に保存されます。
+
+Mule アプリケーションの XML では、`${file::filename}` 構文を使用して、`dwl` ファイル内のスクリプトを、式を期待している XML タグに送信することができます。たとえば、次の Choice ルータの `when expression="${file::someFile.dwl}"` を参照してください。
+
+[source,xml,linenums]
+----
+<http:listener doc:name="Listener" config-ref="HTTP_Listener_config" path="/test">
+  <http:response >
+    <http:body ><![CDATA[#[${file::transform.dwl}]]]></http:body>
+  </http:response>
+</http:listener>
+<choice doc:name="Choice"  >
+  <when expression="${file::someFile.dwl}" >
+    <set-payload value="It's greater than 4!" doc:name="Set Payload"  />
+  </when>
+  <otherwise >
+    <set-payload value="It's less than 4!" doc:name="Set Payload" />
+  </otherwise>
+</choice>
+----
+
+
+[[see_also]]
+== 関連情報
+
+* xref:dataweave-selectors.adoc[DataWeave セレクタ]
+
+* xref:dw-functions.adoc[DataWeave 関数]
+
+* xref:dataweave-cookbook.adoc[DataWeave の解説書]
+
+* xref:dataweave-formats.adoc[DataWeave の出力形式とライタープロパティ]
+
+* xref:dataweave-types.adoc#functions-and-lambdas[関数とラムダ]

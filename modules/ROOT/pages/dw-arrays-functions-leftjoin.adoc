@@ -1,0 +1,96 @@
+= leftJoin
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[leftjoin1]]
+== leftJoin&#40;Array<L&#62;, Array<R&#62;, &#40;leftValue: L&#41; &#45;&#62; String, &#40;rightValue: R&#41; &#45;&#62; String&#41;: Array<{ l: L, r?: R }&#62;
+
+オブジェクトの 2 つの配列を、指定された ID 条件で結合します。
+
+
+`leftJoin` は、すべての `left` 項目を含む配列を返し、結合条件に一致する右の項目を ID によってマージします。
+
+_DataWeave 2.2.0 で導入されました。Mule 4.2 以降でサポートされます。_
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `left` | オブジェクトの左側配列
+| `right` | オブジェクトの右側配列
+| `leftCriteria` | 左のコレクションの ID を抽出するために使用する条件。
+| `rightCriteria` | 右のコレクションの ID を抽出するために使用する条件。
+|===
+
+=== 例
+
+次の例は、結合の動作を示しています。これは左側配列 (`left`) のすべてのオブジェクトを返しますが、右側配列 (`right`) の項目は、左側の `user.id` と右側の `product.ownerId` の値が一致した場合にのみ結合されます。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+ %dw 2.0
+ import * from dw::core::Arrays
+ var users = [{id: "1", name:"Mariano"},{id: "2", name:"Leandro"},{id: "3", name:"Julian"},{id: "5", name:"Julian"}]
+ var products = [{ownerId: "1", name:"DataWeave"},{ownerId: "1", name:"BAT"}, {ownerId: "3", name:"DataSense"}, {ownerId: "4", name:"SmartConnectors"}]
+ output application/json
+ ---
+ leftJoin(users, products, (user) -> user.id, (product) -> product.ownerId)
+
+----
+
+==== 出力
+
+[source,json,linenums]
+----
+[
+  {
+    "l": {
+      "id": "1",
+      "name": "Mariano"
+    },
+    "r": {
+      "ownerId": "1",
+      "name": "DataWeave"
+    }
+  },
+  {
+    "l": {
+      "id": "1",
+      "name": "Mariano"
+    },
+    "r": {
+      "ownerId": "1",
+      "name": "BAT"
+    }
+  },
+  {
+    "l": {
+      "id": "2",
+      "name": "Leandro"
+    }
+  },
+  {
+    "l": {
+      "id": "3",
+      "name": "Julian"
+    },
+    "r": {
+      "ownerId": "3",
+      "name": "DataSense"
+    }
+  },
+  {
+    "l": {
+      "id": "5",
+      "name": "Julian"
+    }
+  }
+]
+----
+

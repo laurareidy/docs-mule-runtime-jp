@@ -1,0 +1,70 @@
+= scan
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[scan1]]
+== scan&#40;String, Regex&#41;: Array<Array<String&#62;&#62;
+
+入力文字列内で検出されたすべての一致を含む配列を返します。
+
+
+各一致は、完全な一致の後に正規表現のキャプチャグループ (存在する場合) が含まれる配列として返されます。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `text` | スキャンする入力文字列。
+| `regex` | `text` (テキスト) 内でパターン一致を記述する Java 正規表現。
+|===
+
+=== 例
+
+次の例では、`regex` (正規表現) で URL が記述されます。括弧内に 3 つのキャプチャグループ (ピリオド `.` より前の文字と後の文字) が含まれます。入力 URL への一致とキャプチャグループの配列が作成されます。`flatten` を使用して、出力を配列の配列から単純な配列にフラット化しています。`regex` (正規表現) はスラッシュ (`//`) 内で指定されています。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+flatten("www.mulesoft.com" scan(/([w]*).([a-z]*).([a-z]*)/))
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+[ "www.mulesoft.com", "www", "mulesoft", "com" ]
+----
+
+=== 例
+
+次の例では、`regex` (正規表現) でメールアドレスが記述されます。2 つの
+キャプチャグループ (`@` より前の文字と後の文字) が含まれます。入力文字内のメールアドレスへの一致とキャプチャグループの配列が作成されます。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+"anypt@mulesoft.com,max@mulesoft.com" scan(/([a-z]*)@([a-z]*).com/)
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+[
+  [ "anypt@mulesoft.com", "anypt", "mulesoft" ],
+  [ "max@mulesoft.com", "max", "mulesoft" ]
+]
+----
+

@@ -1,0 +1,286 @@
+= Mule サーバの通知
+
+ifndef::env-site,env-github[]
+
+include::_attributes.adoc[]
+
+endif::[]
+
+:keywords: サーバ通知, log, ダウンタイム, 監視
+
+Mule には、フローコンポーネントの追加、認証の要求失敗、Mule の起動など、Mule サーバで行われた変更を確認するために使用できる内部通知メカニズムがあります。こうした通知に反応するためのエージェントまたはフローコンポーネントをセットアップできます。
+
+== 通知の設定
+
+メッセージ通知は、Mule サーバとの間で送信されるすべての情報のスナップショットとなります。Mule はメッセージを送受信したときにこうした通知を実行します。こうした追加の通知はパフォーマンスに影響を及ぼすため、デフォルトで無効になっています。メッセージ通知を有効にするには、Mule 設定ファイルで `<notifications>` 要素を使用して有効にするメッセージの種別を設定します。また、通知リスナを登録してインターフェースを特定の通知に関連付けます。
+
+たとえば、最初に Spring 設定ファイルで通知リスナの Bean を作成し、受信する通知の種別のクラスを指定します。
+
+[source,xml,linenums]
+
+----
+<bean name="notificationLogger" class="org.myfirm.ProcessorNotificationStore"/>
+----
+
+続いて、Spring 設定の参照を追加します。
+
+[source,xml,linenums]
+
+----
+<spring:config name="springConfig" files="notification-beans.xml"/>
+----
+
+次に、`<notification>` 要素を使用して受信する通知を指定し、`<notification-listener>` 要素を使用してリスナを登録します。
+
+[source,xml,linenums]
+
+----
+<notifications>
+    <notification event="MESSAGE-PROCESSOR"/>
+    <notification-listener ref="notificationLogger"/>
+</notifications>
+----
+
+MESSAGE-PROCESSOR 通知を指定すると、通知はメッセージプロセッサが呼び出される前と後に送信されます。リスナは受信する通知の種別のインターフェースを実装しているため、リスナは正しい通知を受信します。
+
+たとえば、`ProcessorNotificationLogger` クラスは `org.mule.runtime.api.notification.MessageProcessorNotificationListener` を実装します。
+
+[source,java,linenums]
+
+----
+public class ProcessorNotificationLogger implements MessageProcessorNotificationListener<MessageProcessorNotification> {
+
+    @Override
+    public void onNotification(MessageProcessorNotification notification) {
+        // write here the logic to process the notification event
+    }
+}
+----
+
+[CAUTION]
+
+API クラスをクラスパスで使用できるように、忘れずに `provided` をスコープとして POM ファイルで Mule と API の連動関係を追加してください。この連動関係は実行時に Mule によって提供されます。
+
+通知種別のリストについては、xref:notifications-configuration-reference.adoc[「通知設定リファレンス」]を参照してください。通知リスナインターフェースのリストについては、下記の<<「通知インターフェース」>>を参照してください。
+
+=== 別のインターフェースの指定
+
+通知に関連付けられたインターフェースを変更するには、`interface-class` 属性で新しいインターフェースを指定します。
+
+[source,xml,linenums]
+
+----
+<notifications>
+    <notification event="COMPONENT-MESSAGE" interface-class="org.myfirm.MyMessageNotifications"/>
+</notifications>
+----
+
+=== カスタム通知の設定
+
+カスタム通知を作成する場合、`event-class` 属性も指定します。
+
+[source,xml,linenums]
+
+----
+<notifications>
+  <notification event="CUSTOM" event-class="org.myfirm.MyMessageNotificationsCustomMessage"
+  interface-class="org.myfirm.MyMessageNotifications"/>
+</notifications>
+----
+
+=== 通知の無効化
+
+特定のインターフェースが通知を受信しないようにブロックするには、`<disable-notification>` 要素で指定します。ブロックする通知種別 (イベント)、イベントクラス、インターフェース、インターフェースクラスを指定できます。
+
+[source,xml,linenums]
+
+----
+<notifications>
+    <disable-notification interface="SECURITY"/>
+</notifications>
+----
+
+=== サブスクリプションの使用
+
+リスナを登録するときに、`subscription` 属性を使用して特定のコンポーネントからの通知のみを受信するように指定できます。たとえば、「MyService1」という名前のフローコンポーネントからのみ通知を受信するようにリスナを指定するには、次のようにリスナを設定します。
+
+[source,xml]
+
+----
+<notification-listener ref="endpointNotificationLogger" subscription="MyService1"/>
+
+<object name="endpointNotificationLogger" class="org.myfirm.EndpointNotificationLogger"/>
+----
+
+名前に「Service」が付くすべてのフローコンポーネントからの通知の受信に登録するには、次のようにワイルドカード文字列を使用します。
+
+----
+<notification-listener ref="endpointNotificationLogger" subscription="*Service*"/>
+----
+
+詳細は、下記の​<<プログラムでのリスナの登録>>​リンクを参照してください。
+
+== カスタム通知の実行
+
+オブジェクトは Mule でカスタム通知を実行し、カスタムリスナに通知できます。たとえば、検出エージェントはクライアントが接続したときに「Client Found (クライアントが見つかりました)」という通知を実行する場合もあります。
+
+カスタム通知は次のように実行します。
+
+[source,text,linenums]
+
+----
+CustomNotification n = new CustomNotification("Hello");
+
+notificationDispatcher.dispatch(n);
+----
+
+`CustomNotificationListener` を実装するオブジェクトがこの通知を受信します。`CustomNotification` を拡張して、カスタム通知種別のアクションを定義すると良いでしょう。例:
+
+[source,text,linenums]
+
+----
+DiscoveryNotification n = new DiscoveryNotification(client, DiscoveryNotification.CLIENT_ADDED);
+
+notificationDispatcher.dispatch(n);
+----
+
+== 通知インターフェース
+
+次の表は、`org.mule.runtime.api.notification` パッケージの Mule サーバ通知とインターフェースを示しています。オブジェクトは、これらのインターフェースのいずれかを実装して関連付けられた通知のリスナになることができます。すべてのリスナは `NotificationListener` インターフェースを拡張します。
+
+// https://www.mulesoft.org/docs/site/4.1.1/apidocs/org/mule/runtime/api/notification/package-summary.html will  update the link once it's migrated into 4.2.0
+
+[%header,cols="34a,33a,33a"]
+
+|===
+
+|Notification (通知) |説明 |インターフェース
+
+|Connection (接続) 通知 |接続が行われるか切断されたときに実行されます。 |`ConnectionNotificationListener`
+
+|Custom (カスタム) 通知 |コンポーネントの他、ルータ、トランスフォーマ、エージェントなどのオブジェクトによって相互の状態の変更を通信するために実行される場合があります。 |`CustomNotificationListener`
+
+|Exception (例外) 通知 |例外がスローされました。 |`ExceptionNotificationListener`
+
+|Management (管理) 通知 |内部キューが容量に達するなど、Mule インスタンスまたはそのリソースの状態が変更されました。 |`ManagementNotificationListener`
+
+|Mule Context (Mule コンテキスト) 通知 |Mule コンテキストの開始などのイベントが発生したときに実行できます。 |`MuleContextNotificationListener`
+
+|Routing (ルーティング) 通知 |Async-Reply (非同期返信) ルータは、すでに処理されたイベントグループについてイベントが受信されたときにこの通知を使用します。 |`RoutingNotificationListener`
+
+|Security (セキュリティ) 通知 |認証の要求が失敗したときに実行されます。 |`SecurityNotificationListener`
+
+|Transaction (トランザクション) 通知 |トランザクションが開始された、コミットされた、ロールバックされた後に実行されます。 |`TransactionNotificationListener`
+
+|Async-Message (非同期メッセージ) 通知 |非同期作業がスケジュールされ、指定されたフローについて完了したときに実行できます。 |`AsyncMessaheNotificationListener`
+
+|Pipeline-Message (パイプラインメッセージ) 通知 |パイプラインの処理の重要なステップで実行されます。 |`PipelineMessageNotificationListener`
+
+|Message-Processor (メッセージプロセッサ) 通知 |メッセージプロセッサが呼び出されました。 |`MessageProcessorNotificationListener`
+
+|Exception Strategy (例外戦略) 通知 |例外戦略が呼び出されました。 |`ExceptionStrategyNotificationListener`
+
+|Extension (拡張機能) 通知 |カスタムデータを含む拡張機能によって実行できます。 |`ExtensionNotificationListener`
+
+|Connector-Message (コネクタメッセージ) 通知 |メッセージが受信されたかコネクタを通じて送信されたときに実行されます。 |`ConnectorMessageNotificationListener`
+
+|===
+
+リスナインターフェースにはすべて単一のメソッドがあります。
+
+[source,java]
+
+----
+
+public void onNotification(T notification);
+
+----
+
+ここで、T は通知クラスです (末尾に「Listener」が付かないリスナクラス)。
+
+実装されているリスナに応じて、特定の通知のみが受信されます。たとえば、オブジェクトで `ManagementNotificationListener` が実装されている場合、種別 `ManagementNotification` の通知のみが受信されます。オブジェクトは複数のリスナを実装して複数の種別の通知を受信できます。
+
+== プログラムでのリスナの登録
+
+リスナは次のように登録できます。
+
+----
+
+notificationListenerRegistry.registerListener(listener);
+
+----
+
+または
+
+----
+
+notificationListenerRegistry.registerListener(listener, selector);
+
+----
+
+ここで、`listener` は `NotificationListener<N>` インスタンスであり、`selector` はリスナをコールする前に実行された通知に適用する検索条件として機能する `Predicate<N>` です。
+
+== 通知アクションコード
+
+各通知には、通知種別を決定するアクションコードがあります。アクションコードを問い合わせて、その種別を決定することができます。例:
+
+*MyObject.java*
+
+[source,java,linenums]
+
+----
+public class MyObject implements ConnectionNotificationListener<ConnectionNotification> {
+
+    (...)
+
+    public void onNotification(ConnectionNotification notification) {
+
+        if (valueOf(ConnectionNotification.CONNECTION_FAILED).equals(notification.getAction().getIdentifier())) {
+
+            // write here the logic to handle the connection failed notification
+        }
+     }
+}
+----
+
+//For a list of the action codes available with each notification type, see the Javadocs for the https://www.mulesoft.org/docs/site/4.1.1/apidocs/org/mule/runtime/api/notification/package-summary.html[org.mule.runtime.api.notification] package and click on the class of the notification type you want.
+//Will update once the link is migrated into 4.2.0
+== 通知ペイロード
+
+すべての通知は `java.util.EventObject` を拡張し、`getSource()` メソッドを使用してオブジェクトのペイロードにアクセスできます。次の表で、通知の各種別のペイロードについて説明します。
+
+[%header,cols="4*"]
+
+|===
+
+|Notification (通知) |ペイロード種別 |リソース ID |説明
+
+|Connection (接続) 通知 |String (文字列) |`<connector-name>.receiver(<endpoint-uri>)` |接続されたメッセージレシーバまたはメッセージディスパッチャ。
+
+|Custom (カスタム) 通知 |任意のオブジェクト |任意の String (文字列) |オブジェクト種別は通知を実行したオブジェクトに対してカスタムです。
+
+|Exception (例外) 通知 |ComponentLocation |コンポーネント名 |通知をトリガしたフローコンポーネント。
+
+|Management (管理) 通知 |Object (オブジェクト) |オブジェクト ID |この通知をトリガした監視対象オブジェクト。
+
+|Mule Context (Mule コンテキスト) 通知 |MuleContext |Mule コンテキスト ID |Mule コンテキストインスタンス。getMuleContext() のコールと同じ。
+
+|Routing (ルーティング) 通知 |Message (メッセージ) |メッセージ ID |送信または受信されたメッセージ。
+
+|Security (セキュリティ) 通知 |SecurityException |例外メッセージ。 |発生したセキュリティ例外。
+
+|Transaction (トランザクション) 通知 |String (文字列) |トランザクション ID |この通知をトリガしたトランザクション。
+
+|Async-Message (非同期メッセージ) 通知 |ComponentLocation |コンポーネント名 |非同期作業をスケジュールしたコンポーネント。
+
+|Pipeline-Message (パイプラインメッセージ) 通知 |String (文字列) |Name (名前) |パイプライン名。
+
+|Message-Processor (メッセージプロセッサ) 通知 |ComponentLocation |コンポーネント名 |通知をトリガしたフローコンポーネント。
+
+|Exception Strategy (例外戦略) 通知 |ComponentLocation |コンポーネント名 |通知をトリガしたフローコンポーネント。
+
+|Extension (拡張機能) 通知 |Object (オブジェクト) | |ペイロードは拡張機能ごとに変更できます。
+
+|Connector-Message (コネクタメッセージ) 通知 ||ComponentLocation |コンポーネント名 |通知をトリガしたフローコンポーネント。
+
+|===

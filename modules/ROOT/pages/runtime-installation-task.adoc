@@ -1,0 +1,69 @@
+= Mule のダウンロードおよびインストール
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Mule をダウンロードしてインストールする前に、サポートされている JDK がインストールされていることを確認してください。
+この例では、Mule 4.2 に推奨の AdoptOpenJDK 8 を使用しています。
+
+[source,console,linenums]
+----
+$ java -version
+openjdk version "1.8.0_212"
+OpenJDK Runtime Environment (AdoptOpenJDK)(build 1.8.0_212-b03)
+OpenJDK 64-Bit Server VM (AdoptOpenJDK)(build 25.212-b03, mixed mode)
+----
+
+== Mule のダウンロード
+
+. Mule 4 のバイナリファイルを次のリンクからダウンロードして展開します。
++
+https://www.mulesoft.com/lp/dl/mule-esb-enterprise[https://www.mulesoft.com/lp/dl/mule-esb-enterprise]
++
+. 環境変数の `MULE_HOME` を、ファイルを展開したフォルダ内の  `mule` ディレクトリに設定します。
++
+バージョン 4.2.0 を `Downloads` ディレクトリに展開した場合の例を示します。
++
+* Windows 環境:
++
+[source,console]
+----
+$ env:MULE_HOME=C:\Downloads\mule-enterprise-standalone-4.2.0\
+----
++
+* Linux/Unix 環境:
++
+[source,console]
+----
+$ export MULE_HOME=~/Downloads/mule-enterprise-standalone-4.2.0/
+----
+
+== Mule の実行
+
+次のコマンドを実行することで、お使いの環境で Mule がエラーなく動作するかどうかを確認できます。
+
+* Windows 環境:
++
+[source,powershell]
+----
+%MULE_HOME%\bin\mule.bat
+----
+
+* Linux/Unix 環境:
++
+[source,console]
+----
+$ $MULE_HOME/bin/mule
+----
+
+これらのコマンドは、Mule をフォアグランドで実行し、起動スクリプトによってターミナルの標準出力に情報が表示されます。Mule の動作中は、他のコマンドを実行することはできません。
+
+Mule を停止するには、スクリプトが動作しているターミナルで `CTRL-C` を押します。
+
+
+
+== 関連情報
+
+* xref:starting-and-stopping-mule-esb.adoc[Mule の開始と停止]
+* xref:studio::to-download-and-install-studio.adoc[Anypoint Studio 7.0 のインストール]
+* xref:mule-runtime-updates.adoc[Mule 4 の新機能]

@@ -1,0 +1,24 @@
+= 変換対象の変更 (Anypoint Studio)
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+デフォルトでは、Transform Message コンポーネントはメッセージペイロードに出力します。この対象を変更することで、プロパティや変数など、他の出力部分に変換結果を出力できます。
+
+. DataWeave コードエディタの上にある *[Edit Current Target (現在の対象を編集)]* をクリックします。
++
+image:using-dataweave-in-studio-47984.png[]
++
+. DataWeave 変換の結果を出力 Mule メッセージのどこに配置するかを指定します。新しい変数やプロパティを作成する場合は、名前を指定する必要があります。
++
+image::dw-new-variable.png[新規変数]
+
+== 関連情報
+
+xref:transform-component-about.adoc[Transform Message コンポーネント]
+
+xref:transform-add-another-output-transform-studio-task.adoc[Transform Message コンポーネントへの出力の追加]
+
+xref:about-mule-message.adoc[Mule メッセージ構造]
+
+xref:dataweave.adoc[DataWeave 言語]

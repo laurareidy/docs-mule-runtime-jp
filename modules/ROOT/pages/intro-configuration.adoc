@@ -1,0 +1,27 @@
+= Mule 4 の概要: Mule アプリケーションの設定
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Mule 3 では、デプロイした環境に合わせてアプリケーションを動的に設定するために、Spring プロパティがよく使用されていました。Mule 4 にはこのための組み込みメカニズムがあり、デフォルト値を設定できるため、Spring を学習する必要がなくなりました。
+
+次のプロパティが YAML ファイルに保存されます。
+[source,yaml]
+----
+http:
+  path: service
+  port: "10000"
+----
+
+YAML ファイルを Mule アプリケーションに追加するには、設定プロパティと呼ばれるグローバル要素を使用します。この要素の XML は次のようになります。
+[source,xml,linenums]
+----
+<configuration-properties file="myConfiguration.yaml" />
+----
+
+アプリケーション内のすべての環境の設定ファイルをパッケージ化しないことを強くお勧めします。その代わりに、このファイルをデフォルトとして、デプロイ時に Runtime Manager を使用してこれらのプロパティを個別に上書きします。
+
+
+== 関連情報
+
+xref:configuring-properties.adoc[プロパティの設定]

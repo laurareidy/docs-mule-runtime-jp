@@ -1,0 +1,1328 @@
+= DataWeave の出力形式とライタープロパティ
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, esb, 変換, トランスフォーマ, 形式, 集約, 名前変更, 分割, 変換の絞り込み, xml, json, csv, pojo, java オブジェクト, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング
+
+DataWeave では、JSON、XML など、多くの種別のデータ形式を読み書きできます。DataWeave では、以下の形式 (または MIME タイプ) が入力および出力としてサポートされます。
+
+[cols="2,2", options="header"]
+|===
+| MIME タイプ | サポートされる形式
+
+| `application/avro`
+| <<format_avro>>
+
+| `application/csv`
+| <<format_csv>>
+
+| `application/dw`
+| <<format_dataweave>> (DataWeave 式のテスト用)
+
+| `application/flatfile`
+| <<format_flat_file>>、<<format_cobol_copybook>>、<<format_fixed_width>>
+
+| `application/java`
+| <<format_java>>、<<format_enum>>
+
+| `application/json`
+| <<format_json>>
+
+| `application/octet-stream`
+| <<format_octet_stream>> (バイナリ)
+
+| `application/yaml`
+| <<format_yaml>>
+
+| `application/xml`
+| <<format_xml>>、<<format_cdata>>
+
+| `application/x-ndjson`
+| <<format_ndjson>> (改行区切りの JSON)
+
+| `application/xlsx`
+| <<format_excel>>
+
+| `application/x-www-form-urlencoded`
+| <<format_url_encoded>>
+
+| `multipart/*`
+| <<format_form_data>>
+
+| `text/plain`
+| <<format_text_plain>> (プレーンテキスト)
+
+| `text/x-java-properties`
+| <<format_x_java_properties>> (プロパティ)
+|===
+// TODO: PLAIN TEXT SECTION? <<format_plain_text>>
+
+[[set_mime_types]]
+== MIME タイプの設定
+
+Mule アプリケーションを流れる入力および出力データで MIME タイプを指定できます。
+
+DataWeave 変換の場合、出力データで MIME タイプを指定できます。
+たとえば、Transform Message コンポーネントまたは Write 操作内の式の `output` ヘッダーディレクティブを `output application/json` または `output application/csv` に設定できます。
+
+この例では、File Write 操作を使用して MIME タイプを設定し、形式固有のライター (CSV ライター) がペイロードを CSV 形式で出力するようにします。
+
+.例: CSV ライターの MIME タイプ
+[source,xml,linenums]
+----
+<file:write doc:name="Write" config-ref="File_Config" path="my_transform">
+  <file:content ><![CDATA[#[output application/csv --- payload]]]></file:content>
+</file:write>
+----
+
+入力データの場合、Mule ソースの形式固有のリーダー (新規ファイルリスナなど)、Mule 操作 (Read、HTTP Request 操作など)、および DataWeave 式では、Mule イベントの入力ペイロード、属性、および変数に関連付けられるメタデータから MIME タイプが推定されます。MIME タイプをメタデータから推定できない場合 (およびそのメタデータが静的でない場合)、Mule ソースおよび操作では、リーダーの MIME タイプを指定することができます。たとえば、新規ファイルリスナの MIME タイプを CSV ファイルの_入力_用の `outputMimeType='application/csv'` に設定できます。この設定では、ファイル形式に関する情報が CSV リーダーに提供されます。
+
+.例: CSV リーダーの MIME タイプ
+[source,xml,linenums]
+----
+<file:listener doc:name="On New File"
+  config-ref="File_Config"
+  outputMimeType='application/csv'>
+</file:listener>
+----
+
+形式間の変換を実行するのにリーダー設定は使用 _されません_ 。リーダー設定は、リーダーが入力の形式を解釈できるようサポートするのみです。
+
+また、ソース、操作、またはコンポーネントの形式固有のリーダーまたはライターで使用する、リーダーとライターの特別なプロパティを設定することもできます。
+「<<reader_writer_properties>>」を参照してください。
+
+[[reader_writer_properties]]
+== リーダーとライターのプロパティの使用
+
+場合によって、形式固有のプロパティを使用して、形式の各側面を変更または指定することが必要になることがあります。たとえば、`separator` (または区切り文字) など、CSV ファイルで使用する、CSV の入力および出力プロパティを指定できます。
+Cobol コピーブックでは、`schemaPath` プロパティを使用して、スキーマファイルへのパスを指定する必要があります。
+
+Mule アプリケーション内の特定のコンポーネントの MIME タイプ (`outputMimeType`) 属性にリーダープロパティを追加できます。Listeners および Read 操作ではこの設定が受け入れられます。たとえば、この新規ファイルリスナの例では、CSV 入力ファイルの `,` 区切り文字を識別します。
+
+.例: CSV リーダーのプロパティ
+[source,xml,linenums]
+----
+<file:listener doc:name="On New File" config-ref="File_Config" outputMimeType='application/csv; separator=","'>
+  <scheduling-strategy >
+    <fixed-frequency frequency="45" timeUnit="SECONDS"/>
+  </scheduling-strategy>
+  <file:matcher filenamePattern="comma_separated.csv" />
+</file:listener>
+----
+
+上記の `outputMimeType` 設定は、ライターではなく CSV  _リーダー_ が `comma_separated.csv` 入力ファイルの形式と区切り文字を解釈するのに役立ちます。
+
+出力形式を指定するには、File Write 操作で使用する CSV または JSON ライターなど、ライターの MIME タイプと任意のライタープロパティを提供できます。たとえば、CSV 出力のペイロードで、入力で使用する他の区切り文字ではなくパイプ (`|`) 区切り文字を記述しなければならない場合があります。これを行うには、プロパティとその値を DataWeave 式の `output` ディレクティブに追加します。たとえば、次の Write 操作ではパイプを `separator` として指定しています。
+
+.例: CSV ライターの出力ディレクティブ
+[source,xml,linenums]
+----
+<file:write doc:name="Write" config-ref="File_Config" path="my_transform">
+  <file:content ><![CDATA[#[output application/csv separator="|" --- payload]]]></file:content>
+</file:write>
+----
+
+以下のセクションで、サポートされる各形式で使用可能な形式固有のリーダープロパティとライタープロパティについて説明します。
+
+// application/avro //////////////////////////////////////////////////////////
+[[format_avro]]
+== Avro
+
+MIME タイプ: `application/avro`
+
+Avro はデータシリアル化システムです。
+
+=== ライタープロパティ (application/avro)
+
+DataWeave スクリプトで `output` 形式として `application/avro` を指定する場合、次のプロパティを追加して、DataWeave パーサーによるデータの処理方法を変更できます。
+
+[cols="1,1,1,3", options="header"]
+|===
+| パラメータ | 型 | Default (デフォルト) | 説明
+// TODO ERROR schemaUrl
+| `schemaUrl` | String (文字列) | a| 指定されたデータ構造の null 値をスキップします。
+  デフォルトでは、スキップしません。
+| `bufferSize` | Number (数値) | `8192` a| バッファライターのサイズ。
+| `deferred` | Boolean (ブール) | `false` a| 遅延出力用。
+  有効なオプションは `true` または `false` です。
+|===
+
+=== リーダープロパティ (application/avro)
+
+DataWeave リーダーの `application/avro` 入力を定義する場合、次のプロパティを設定できます。
+
+[cols="1,1,1,3", options="header"]
+|===
+| パラメータ | 型 | Default (デフォルト) | 説明
+| `schemaUrl` | String (文字列) | a| 指定されたデータ構造の null 値をスキップします。
+  デフォルトでは、スキップしません。
+|===
+
+// application/flatfile ////////////////////////////////////////////////////
+[[format_cobol_copybook]]
+== Cobol コピーブック
+
+MIME タイプ: `application/flatfile`
+
+Cobol コピーブックは、Cobol データファイルのレコードと項目のレイアウトを記述するフラットファイルの種別です。
+
+Transform Message コンポーネントは、Cobol コピーブック形式を処理するための設定を提供します。たとえば、Cobol 定義を Transform Message コンポーネントにインポートしてコピーブック変換で使用できます。
+
+[[cobol_metadata]]
+=== コピーブック定義のインポート
+
+コピーブック定義をインポートすると、Transform Message コンポーネントは、`schemaPath` プロパティで参照できるフラットファイルスキーマに定義を変換します。
+
+コピーブック定義をインポートする方法
+
+. Studio で Transform コンポーネントの入力ペイロードを右クリックし、
+[Set Metadata (メタデータを設定)] を選択して [Set Metadata Type (メタデータ型を設定)] ダイアログを開きます。
++
+コピーブック定義をインポートする前に、メタデータ型を作成する必要があります。
++
+. コピーブックメタデータの名前を入力します (例: `copybook`)。
+. [Type (型)] ドロップダウンメニューから [Copybook (コピーブック)] 型を選択します。
+. コピーブック定義ファイルをインポートします。
+. [Select (選択)] をクリックします。
++
+.コピーブック定義ファイルのインポート
+image::copybook-import.png[コピーブック定義のインポート]
+
+たとえば、次のようなコピーブック定義ファイル (`mailing-record.cpy`) があるとします。
+
+----
+       01  MAILING-RECORD.
+           05  COMPANY-NAME            PIC X(30).
+           05  CONTACTS.
+               10  PRESIDENT.
+                   15  LAST-NAME       PIC X(15).
+                   15  FIRST-NAME      PIC X(8).
+               10  VP-MARKETING.
+                   15  LAST-NAME       PIC X(15).
+                   15  FIRST-NAME      PIC X(8).
+               10  ALTERNATE-CONTACT.
+                   15  TITLE           PIC X(10).
+                   15  LAST-NAME       PIC X(15).
+                   15  FIRST-NAME      PIC X(8).
+           05  ADDRESS                 PIC X(15).
+           05  CITY                    PIC X(15).
+           05  STATE                   PIC XX.
+           05  ZIP                     PIC 9(5).
+----
+
+* コピーブック定義は常に `01` エントリから始まる必要があります。コピーブック内の `01` 定義ごとに個別のレコードタイプが生成されます (コピーブックを使用できるようにするには 1 つ以上の `01` 定義が存在する必要があります。定義がない場合は、任意の名前を使用して、コピーブックの開始位置に定義を追加します)。コピーブックファイルに複数の `01` 定義がある場合、変換で使用する定義をドロップダウンリストから選択できます。
+* COBOL 形式では、各行の列 7 ～ 72 のみを使用するように定義する必要があります。列 1 ～ 5 と列 72 以降のデータは、インポートプロセスで無視されます。列 6 は、行継続マーカーです。
+
+スキーマをインポートすると、Transform コンポーネントは、Muke プロジェクトの `src/main/resources/schema` フォルダに保存しているフラットファイルスキーマにコピーブックファイルを変換します。フラットファイル形式では、上記のコピーブック定義は次のようになります。
+
+----
+form: COPYBOOK
+id: 'MAILING-RECORD'
+values:
+- { name: 'COMPANY-NAME', type: String, length: 30 }
+- name: 'CONTACTS'
+  values:
+  - name: 'PRESIDENT'
+    values:
+    - { name: 'LAST-NAME', type: String, length: 15 }
+    - { name: 'FIRST-NAME', type: String, length: 8 }
+  - name: 'VP-MARKETING'
+    values:
+    - { name: 'LAST-NAME', type: String, length: 15 }
+    - { name: 'FIRST-NAME', type: String, length: 8 }
+  - name: 'ALTERNATE-CONTACT'
+    values:
+    - { name: 'TITLE', type: String, length: 10 }
+    - { name: 'LAST-NAME', type: String, length: 15 }
+    - { name: 'FIRST-NAME', type: String, length: 8 }
+- { name: 'ADDRESS', type: String, length: 15 }
+- { name: 'CITY', type: String, length: 15 }
+- { name: 'STATE', type: String, length: 2 }
+- { name: 'ZIP', type: Integer, length: 5, format: { justify: ZEROES, sign: UNSIGNED } }
+----
+
+コピーブックをインポートしたら、`schemaPath` プロパティを使用して `output` ディレクティブを介して関連付けられているフラットファイルを参照できます。例: `output application/flatfile schemaPath="src/main/resources/schemas/mailing-record.ffd"`
+
+=== サポートされるコピーブック機能
+
+すべてのコピーブック機能が DataWeave の Cobol コピーブック形式でサポートされるとは限りません。一般に、この形式では次を含む最も一般的な使用方法と簡単なパターンがサポートされます。
+
+* DISPLAY、BINARY (COMP)、COMP-5 および PACKED-DECIMAL (COMP-3) の使用方法。
+文字エンコードの制限については、「<<character_encoding>>」を参照してください。
+* 以下のみで構成される数値の PICTURE 句
+** 「9」- 1 つ以上の数字位置
+** 「S」- 1 つの省略可能な符号文字位置 (先頭または末尾)
+** 「V」- 1 つの省略可能な小数点
+** 「P」- 1 つ以上の 10 進数位取り位置
+* 「X」文字位置のみで構成される英数字値の PICTURE 句
+* PICTURE 句での「9」、「P」、および「X」文字の反復数 (5 桁数値の場合の `9(5)` など)
+* スキーマの controlVal プロパティが含まれる OCCURS DEPENDING ON。含まれる構造内で制御値がネストされている場合、生成されたスキーマを手動で変更して、「container.value」の値のフルパスを指定する必要があります。
+* REDEFINES 句 (レコードデータの同じ部分の異なるビューを提供するために使用 - 以下のセクションの詳細を参照)
+
+次の機能はサポートされていません。
+
+* 英数字で編集された PICTURE 句
+* 挿入または置換を含む、数値で編集された PICTURE 句
+* 特殊なレベル番号:
+** レベル 66 - 項目またはグループの代替名
+** レベル 77 - 独立データ項目
+** レベル 88 - 条件名 (値の列挙に相当)
+* COMP-1 または COMP-2 の使用方法
+* VALUE 句 (リテラルまたは別のデータ項目からデータ項目または条件名の値を定義するために使用)
+
+=== REDEFINES のサポート
+
+REDEFINES は、レコードのデータの動的な解析を促進します。REDEFINES を指定してコピーブックをインポートする場合、生成されたスキーマでは、「*」(同じレベルで複数の REDEFINES グルーピングが指定される場合は、「*1」、「*2」など) という名前の特殊なグルーピングを使用して、異なるすべての解析を結合します。この特殊なグルーピング名は、他のグルーピング名と同様に DataWeave 式で使用します。
+
+REDEFINES グルーピングを使用すると、通常のコピーブックグルーピングよりもオーバーヘッドが大きくなるため、可能な場合は Studio にインポートする前にコピーブックから REDEFINES を削除することをお勧めします。
+
+[[character_encoding]]
+=== 文字エンコード
+
+BINARY (COMP)、COMP-5、または PACKED-DECIMAL (COMP-3) の使用方法は、256 個の文字コード候補の範囲全体を使用する 1 バイト文字エンコードでのみサポートされます。これらの使用方法では、UTF-8 と他の可変長エンコードはサポートされません (1 バイトではないため)。また、ASCII もサポートされません (範囲全体を使用しないため)。サポートされている文字エンコードには、ISO-8859-1 (完全な 8 ビットへの ASCII の拡張) や他の 8859 バリエーションおよび EBCDIC (IBM037) などがあります。
+
+REDEFINES では、データに 1 バイト/文字の文字エンコードを使用する必要がありますが、BINARY、(COMP)、COMP-5、PACKED-DECIMAL (COMP-3) の使用方法がデータに含まれていない限り、任意の 1 バイト/文字の文字エンコードを使用できます。
+
+=== コピーブックのインポートに関する一般的な問題
+
+コピーブックのインポートに関する最も一般的な問題は、入力行領域の Cobol 標準に従っていないことです。コピーブックのインポート解析では、各行の列 1 ～ 6 の内容が無視され、列 7 に「*」(アスタリスク) が含まれているすべての行が無視されます。また、各行の列 72 を超える部分はすべて無視されます。
+つまり、実際のすべてのデータ定義が入力行の列 8 から 72 の間に存在する必要があります。
+
+タブ位置に関する定義された標準はないため、入力内のタブは展開されません。コピーブックの入力列をカウントする場合、各タブ文字は 1 個のスペース文字として処理されます。
+
+コピーブックを処理するときにインデントは無視され、レベル番号のみが有意として処理されます。これは通常は問題ではありませんが、Cobol コンパイラで受け入れられないにも関わらずコピーブックのインポートが受け入れられる可能性があります。
+
+コピーブックのインポートの結果として警告とエラーの両方が報告される場合があります。
+一般に、警告は、有意であるかどうかに関係なく、機能がサポートまたは認識されないことを伝えます。エラーは、生成されたスキーマ (ある場合) がコピーブックの完全に正確な表現ではないことを意味する問題の通知です。報告されたすべての警告またはエラーを確認し、適切な処理を決定する必要があります。スキーマを生成されたとおりに単に受け入れたり、入力のコピーブックを変更したり、生成されたスキーマを変更したりすることができます。
+
+=== リーダープロパティ (Cobol コピーブック)
+
+DataWeave リーダーの `application/flatfile` 入力を定義する場合、「<<reader_properties_flat_file>>」で説明されているプロパティを設定できます。
+
+種別 `Binary` または `Packed` のスキーマでは、改行を検出できないため、`recordParsing` を `lenient` に設定すると、長いレコードのみを処理でき、短いレコードは処理できません。このスキーマは特定の 1 バイト文字エンコードでのみ機能します (つまり、UTF-8 などの複数バイト形式では機能しません)。
+
+=== ライタープロパティ (Cobol コピーブック)
+
+DataWeave スクリプトで `output` 形式として `application/flatfile` を指定する場合、「<<writer_properties_flat_file>>」で説明されているプロパティを追加して、DataWeave パーサーによるデータの処理方法を変更できます。
+
+.例: 出力ディレクティブ
+[source,dataweave,linenums]
+----
+output application/flatfile schemaPath="src/main/resources/schemas/QBReqRsp.esl", structureIdent="QBResponse"
+----
+
+// application/csv ///////////////////////////////////////////////////////
+[[format_csv]]
+== CSV
+
+MIME タイプ: `application/csv`
+
+CSV コンテンツは DataWeave 内でオブジェクトのリストとしてモデル化され、各レコードはオブジェクトになり、レコード内の各項目はプロパティになります。次に例を示します。
+
+.CSV を出力する DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/csv
+---
+[
+  {
+    "Name":"Mariano",
+    "Last Name":"De achaval"
+  },
+  {
+    "Name":"Leandro",
+    "Last Name":"Shokida"
+  }
+]
+----
+
+.CSV 出力:
+[source,text,linenums]
+----
+Name,Last Name
+Mariano,De achaval
+Leandro,Shokida
+----
+
+=== リーダープロパティ (CSV)
+
+CSV では、項目の分離、引用符の切り替え、または引用符のエスケープを行うインジケータとして任意の特殊文字を割り当てることができます。入力内に存在する特殊文字を把握して、DataWeave でその特殊文字を正しく解釈できるようにします。
+
+DataWeave リーダーの `application/csv` 入力を定義する場合、次のプロパティを設定できます。
+
+[cols="1,1,1,3", options="header"]
+|===
+| パラメータ | 型 | Default (デフォルト) | 説明
+| `bodyStartLineNumber` | Number (数値) | `0` a| 本文が開始される行番号。
+| `escape` | Char (文字) | `\` a| 項目値内の区切り文字または引用符などの無効な文字をエスケープするために使用される文字。
+| `ignoreEmptyLine`| Boolean (ブール) | `true` a| 空の行を無視します。
+有効なオプションは `true` または `false` です。
+| `header` | Boolean (ブール) |`true` a| 出力の 1 行目にヘッダー項目名が含まれるかどうかを示します。有効なオプションは `true` または `false` です。
+| `headerLineNumber` | Number (数値) | `0` a| ヘッダーが配置されている行番号。
+| `quote` | Char (文字) | `"` a| 引用符で使用する文字。
+| `separator` | Char (文字) | `,` a| レコード間を分離する文字。
+| `streaming` | Boolean (ブール) | `false` a| 入力 CSV をストリーミングするために使用します。
+有効なオプションは `true` または `false` です (エントリを順次アクセスする場合のみ使用します)。
+|===
+
+* `header=true` の場合、入力内の項目に任意の場所で名前 (`payload.userName` など) を使用してアクセスできます。
+* `header=false` の場合、インデックスを使用して項目にアクセスする必要があります。インデックスは、最初にエントリを参照し、次に項目を参照します (`payload[107][2]` など)。
+
+[[writer_properties_csv]]
+=== ライタープロパティ (CSV)
+
+DataWeave スクリプトで `output` 形式として `application/csv` を指定する場合、次のプロパティを追加して、DataWeave パーサーによるデータの処理方法を変更できます。
+
+[cols="1,1,1,3", options="header"]
+|===
+| パラメータ | 型 | Default (デフォルト) | 説明
+| `bodyStartLineNumber` | Number (数値) | `0` a| 本文が開始される行番号。
+| `bufferSize` | Number (数値) | `8192` a| バッファライターのサイズ。
+| `deferred` | Boolean (ブール) | `false` a| 遅延出力用。
+  有効なオプションは `true` または `false` です。
+| `encoding` | String (文字列) | なし a| このライターで使用されるエンコード (`UTF-8` など)。
+| `escape` | Char (文字) | `\` a| 項目値内の区切り文字または引用符などの無効な文字をエスケープするために使用される文字。
+| `lineSeparator` | String (文字列) | a| CSV を作成するときに使用する行区切り文字 (「\r\n」など)
+| `header` | Boolean (ブール) | `true` a| 出力の 1 行目にヘッダー項目名が含まれるかどうかを示します。有効なオプションは `true` または `false` です。
+| `headerLineNumber` | Number (数値) | `0` a| ヘッダーが配置されている行番号。
+| `ignoreEmptyLine` | Boolean (ブール) | `true` a| 空の行を無視します。
+有効なオプションは `true` または `false` です。
+| `quote` | Char (文字) | `"` a| 引用符で使用する文字。
+| `quoteHeader` | Boolean (ブール) | `false` a| ヘッダー値を引用符で囲むかどうかを示します。
+有効なオプションは `true` または `false` です。
+| `quoteValues` | Boolean (ブール) | `false` a| (特殊文字が含まれている場合でも) 各値を引用符で囲む必要があるかどうかを示します。
+| `separator` | String (文字列) | `,` a| レコード間を分離する文字。
+| `streaming` | Boolean (ブール) | `false` a| 入力をストリーミングするために使用します。
+有効なオプションは `true` または `false` です (エントリを順次アクセスする場合のみ使用します)。
+|===
+
+このすべてのパラメータは省略可能です。
+
+CSV 出力ディレクティブの例は次のようになります。
+
+.例: 出力ディレクティブ
+[source,dataweave,linenums]
+----
+output application/csv separator=";", header=false, quoteValues=true
+----
+
+=== メタデータ型の定義 (CSV)
+
+Transform コンポーネントでは、次の方法を使用して CSV 種別を定義できます。
+
+* サンプルファイルを提供する。
+* 各項目を手動でセットアップできるグラフィカルエディタを使用する。
++
+image::dataweave-formats-4a556.png[]
+
+// application/dw //////////////////////////////////////////////////////////
+[[format_dataweave]]
+== DataWeave (weave)
+
+MIME タイプ: `application/dw`
+
+NOTE: この形式はデバッグのみを目的としてます。この形式を本番環境で使用すると、パフォーマンスに影響する可能性があります。
+
+DataWeave (weave) 形式はすべての変換の正規形式です。
+この形式を使用すると、入力データが新しい形式に変換される前に入力データがどのように解釈されるかを容易に理解できます。
+
+この例は、XML 入力が DataWeave 形式でどのように表現されるかを示しています。
+
+.入力 XML
+[source,xml,linenums]
+----
+<employees>
+  <employee>
+    <firstname>Mariano</firstname>
+    <lastname>DeAchaval</lastname>
+  </employee>
+  <employee>
+    <firstname>Leandro</firstname>
+    <lastname>Shokida</lastname>
+  </employee>
+</employees>
+----
+
+.DataWeave 形式の出力
+[source,dataweave,linenums]
+----
+{
+  employees: {
+    employee: {
+      firstname: "Mariano",
+      lastname: "DeAchaval"
+    },
+    employee: {
+      firstname: "Leandro",
+      lastname: "Shokida"
+    }
+  }
+} as Object {encoding: "UTF-8", mimeType: "text/xml"}
+----
+
+=== ライタープロパティ (weave)
+
+DataWeave スクリプトで `output` 形式として `application/dw` を指定する場合、次のプロパティを追加して、パーサーによるデータの処理方法を変更できます。
+
+[cols="1,1,1,3", options="header"]
+|===
+| パラメータ | 型 | Default (デフォルト) | 説明
+| `bufferSize` | Number (数値) | `8192` a| バッファライターのサイズ。
+| `deferred` | Boolean (ブール) | `false` a| 遅延出力用。
+  有効なオプションは `true` または `false` です。
+| `ignoreSchema` | Boolean (ブール) | `false` a| ライターでスキーマを無視するかどうかを示します。有効なオプションは `true` または `false` です。
+| `indent` | String (文字列) |  a| インデントとして使用される文字列。
+| `maxCollectionSize` | Number (数値) | `-1` a| 配列またはオブジェクトで許容される最大要素数。`-1` は、制限が設定されないことを意味します。
+|===
+
+// application/xlsx //////////////////////////////////////////////////////////
+[[format_excel]]
+== Excel
+
+MIME タイプ: `application/xlsx`
+
+`.xlsx` ファイルのみがサポートされます (Excel 2007)。`.xls` ファイルは Mule ではサポートされません。
+
+Excel ワークブックは一連のシートです。DataWeave では、これはオブジェクトにマップされ、各シートがキーになります。Excel シートごとに 1 つのテーブルのみが許可されます。
+テーブルは行の配列として表現されます。行はオブジェクトであり、そのキーが列、値がセルの内容になります。
+
+.入力:
+image::dataweave-formats-exceltable.png[]
+
+.XLSX を出力する DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+output application/xlsx header=true
+---
+{
+  Sheet1: [
+    {
+      Id: 123,
+      Name: George
+    },
+    {
+      Id: 456,
+      Name: Lucas
+    }
+  ]
+}
+----
+
+=== リーダープロパティ (Excel)
+
+DataWeave リーダーの `application/xlsx` 入力を定義する場合、次のプロパティを設定できます。
+
+[cols="1,1,1,3", options="header"]
+|===
+| パラメータ | 型 | Default (デフォルト) | 説明
+| `header` | Boolean (ブール) | `true` a|	Excel テーブルにヘッダーを含めるかどうかを示します。有効なオプションは `true` または `false` です。
+| `ignoreEmptyLine` | Boolean (ブール) | `true` a| 空の行を無視するかどうかを示します。有効なオプションは `true` または `false` です。
+| `tableOffset` | String (文字列) | なし a| テーブルの最初のセルの位置 (`<Column><Row> example A1`)。
+| `zipBombCheck` | Boolean (ブール) | `true` a| `false` に設定すると、zip 爆弾チェックがオフになります。有効なオプションは `true` または `false` です。
+|===
+
+=== ライタープロパティ (Excel)
+
+DataWeave スクリプトで `output` 形式として `application/xlsx` を指定する場合、次のプロパティを追加して、DataWeave パーサーによるデータの処理方法を変更できます。
+
+[cols="1,1,1,3", options="header"]
+|===
+|パラメータ | 型 | Default (デフォルト) | 説明
+| `bufferSize` | Number (数値) | `8192` a| バッファライターのサイズ。
+| `deferred` | Boolean (ブール) | `false` a| 遅延出力用。
+  有効なオプションは `true` または `false` です。
+| `header` | Boolean (ブール) | `true` a|	Excel テーブルにヘッダーを含めるかどうかを示します。有効なオプションは `true` または `false` です。ヘッダーがない場合、列名が使用されます (例: A、B、C...)。
+| `ignoreEmptyLine` | Boolean (ブール) | `true` |空の行を無視するかどうかを示します。有効なオプションは `true` または `false` です。
+| `tableOffset` | String (文字列) | なし a| テーブルの最初のセルの位置 (`<Column><Row> example A1`)。
+| `zipBombCheck` | Boolean (ブール) | `true` a| `false` に設定すると、zip 爆弾チェックがオフになります。有効なオプションは `true` または `false` です。
+|===
+
+このすべてのパラメータは省略可能です。Excel の DataWeave 出力ディレクティブは次のようになります。
+
+.例: 出力ディレクティブ
+[source,dataweave,linenums]
+----
+output application/xlsx header=true
+----
+
+=== メタデータ型の定義 (Excel)
+
+Transform コンポーネントでは、次の方法を使用して Excel 種別を定義できます。
+
+* 各項目を手動でセットアップできるグラフィカルエディタを使用する。
+
+//TODO: CHECK THIS:
+image:dataweave-formats-excel-metadata.png[]
+
+// application/flatfile //////////////////////////////////////////////////////////
+[[format_fixed_width]]
+== 固定幅
+
+MIME タイプ: `application/flatfile`
+
+固定幅の種別は技術的にはフラットファイル形式の種別とみなされますが、このオプションを選択すると、Transform コンポーネントでは、この形式のニーズに合わせて適切に調整された設定が提供されます。
+
+=== リーダープロパティ (固定幅)
+
+DataWeave リーダーの `application/flatfile` 入力を定義する場合、「<<reader_properties_flat_file>>」で説明されているプロパティを設定できます。
+
+種別 `Binary` または `Packed` のスキーマでは、改行を検出できないため、`recordParsing` を `lenient` に設定すると、長いレコードのみを処理でき、短いレコードは処理できません。このスキーマは特定の 1 バイト文字エンコードでのみ機能します (つまり、UTF-8 などの複数バイト形式では機能しません)。
+
+=== ライタープロパティ (固定幅)
+
+DataWeave スクリプトで `output` 形式として `application/flatfile` を指定する場合、「<<writer_properties_flat_file>>」で説明されているプロパティを追加して、DataWeave パーサーによるデータの処理方法を変更できます。
+
+すべてのプロパティは省略可能です。
+
+DataWeave 出力ディレクティブは次のようになります。
+
+.例: 出力ディレクティブ
+[source,text,linenums]
+----
+output application/flatfile schemaPath="src/main/resources/schemas/payment.ffd", encoding="UTF-8"
+----
+
+=== メタデータ型の定義 (固定幅)
+
+Transform コンポーネントでは、次の方法を使用して固定幅種別を定義できます。
+
+* サンプルファイルを提供する。
+* フラットファイルスキーマファイルを参照する。
+* 各項目を手動でセットアップできるグラフィカルエディタを使用する。
++
+image::dataweave-formats-27b3c.png[]
+// TODO IS IMAGE OKAY?
+
+// application/flatfile //////////////////////////////////////////////////////////
+[[format_flat_file]]
+== フラットファイル
+
+MIME タイプ: `application/flatfile`
+
+[[reader_properties_flat_file]]
+=== リーダープロパティ (フラットファイル)
+
+DataWeave リーダーの `application/flatfile` 入力を定義する場合、次のプロパティを設定できます。
+
+[cols="1,1,1,3", options="header"]
+|===
+| パラメータ | 型 | Default (デフォルト) | 説明
+| `enforceRequires` | Boolean (ブール) | `false` a| 必須値がない場合にエラーになります。
+  有効なオプションは `true` または `false` です。
+| `missingValues` | String (文字列) | コピーブックスキーマの場合は `nulls`、それ以外の場合は `spaces` a| 欠落値を表すために使用される文字を入力します。入力データの欠落値を表すために、以下を使用できます。
+
+* `none`: すべてのデータを実際の値として処理する
+* `spaces`: スペースのみで構成される項目を欠落値として解釈する
+* `zeroes`: 「0」文字のみで構成される数値項目とスペースのみで構成される文字項目を欠落値として解釈する
+* `nulls`: 0 バイトのみで構成される項目を欠落値として解釈する
+
+| `recordParsing` | String (文字列) | `strict` a|
+
+予想される、行/レコード間の分離:
+
+* `strict`: 各レコードの末尾で改行が予想される
+* `lenient`: 改行が使用されるが、レコードがスキーマ仕様よりも短いまたは長い場合がある
+* `noTerminator`: レコードが分離されずに互いに続く
+* `singleRecord`: 入力全体が 1 つのレコード
+
+| `schemaPath` | String (文字列) | なし a| スキーマ定義。入力の解析で使用するスキーマファイルのローカルディスク内の場所。
+| `segmentIdent` | String (文字列) | なし a| 固定幅のスキーマまたはコピーブックスキーマのセグメント識別子 (1 つのセグメント/レコード定義を解析する場合と、スキーマに複数のセグメント定義が含まれている場合にのみ必要)。
+| `structureIdent` | String (文字列) | なし a| フラットファイルスキーマのセグメント識別子 (構造定義を解析する場合と、スキーマに複数の構造定義が含まれている場合にのみ必要)。
+| `truncateDependingOn` | Boolean (ブール) | `false` a| COBOL コピーブックの DEPENDING ON 値を、使用される長さに切り捨てます。  有効なオプションは `true` または `false` です。
+| `zonedDecimalStrict` | Boolean (ブール) | `false` a| COBOL コピーブックのゾーン 10 進数値に署名エンコードの `strict` ASCII 形式を使用します。
+有効なオプションは `true` または `false` です。
+|===
+
+種別 `Binary` または `Packed` のスキーマでは、改行を検出できないため、`recordParsing` を `lenient` に設定すると、長いレコードのみを処理でき、短いレコードは処理できません。現在、このスキーマも特定の 1 バイト文字エンコードでのみ機能します (つまり、UTF-8 などの複数バイト形式では機能しません)。
+
+[[writer_properties_flat_file]]
+=== ライタープロパティ (フラットファイル)
+
+DataWeave スクリプトで `output` 形式として `application/flatfile` を指定する場合、次のプロパティを追加して、DataWeave パーサーによるデータの処理方法を変更できます。
+
+[cols="1,1,1,3", options="header"]
+|===
+| パラメータ | 型 | Default (デフォルト) | 説明
+| `bufferSize` | Number (数値) | `8192` a| バッファライターのサイズ。
+| `deferred` | Boolean (ブール) | `false` a| 遅延出力用。
+  有効なオプションは `true` または `false` です。
+| `encoding` | String (文字列) | なし a| このライターで使用されるエンコード (`UTF-8` など)。
+| `enforceRequires` | Boolean (ブール) | `false` a| 必須値がない場合にエラーになります。
+有効なオプションは `true` または `false` です。
+| `missingValues` | String (文字列) | コピーブックスキーマの場合は `nulls`、それ以外の場合は `spaces` a| 欠落値を表すために使用される文字を入力します。
+
+* `none`: 欠落値の場合に何も書き込まない
+* `spaces`: 項目をスペースで埋める
+* `zeroes`: 数値項目を「0」文字で、文字項目をスペース文字で埋める
+* `nulls`: 項目を 0 バイトで埋める
+
+| `recordTerminator` | String (文字列) | システムプロパティ `line.separator` a| レコード区切り文字 (改行)。有効なオプション:
+
+* `lf`
+* `cr`
+* `crlf`
+* なし
+
+Mule バージョン 4.0.4 以前では、これは、複数のレコードがある場合の区切り文字としてのみ使用されます。値は文字コードに直接変換されます (`none` では各レコードの終端はありません)。
+| `schemaPath` | String (文字列) | なし a| スキーマ定義。使用するスキーマファイルが配置されているパス。
+| `segmentIdent` | String (文字列) | なし a| 固定幅のスキーマまたはコピーブックスキーマのセグメント識別子 (1 つのセグメント/レコード定義を作成する場合と、スキーマに複数のセグメント定義が含まれている場合にのみ必要)。
+| `structureIdent` | String (文字列) | なし a| フラットファイルスキーマのセグメント識別子 (構造定義を作成する場合と、スキーマに複数の構造定義が含まれている場合にのみ必要)。| `trimValues` | Boolean (ブール) | `false` a| 末尾の文字を切り捨てることで、項目の長さを超える文字列値を切り取ります。有効なオプションは `true` または `false` です。
+| `truncateDependingOn` | Boolean (ブール) | `false` a| DEPENDING ON COBOL コピーブック値を、使用される長さに切り捨てます。有効なオプションは `true` または `false` です。
+| `zonedDecimalStrict` | Boolean (ブール) | `false` a| COBOL コピーブックのゾーン 10 進数値に署名エンコードの `strict` ASCII 形式を使用します。有効なオプションは `true` または `false` です。
+|===
+
+.フラットファイルを出力する DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/flatfile schemaPath="src/main/resources/test-data/QBReqRsp.esl", structureIdent="QBResponse"
+---
+payload
+----
+
+=== メタデータ型の定義 (フラットファイル)
+
+Transform コンポーネントでは、スキーマファイルを参照することで、フラットファイル種別を定義できます。
+
+// multipart/form-data //////////////////////////////////////////////////////////
+[[format_form_data]]
+== マルチパート (フォームデータ)
+
+MIME タイプ: `multipart/form-data`
+
+DataWeave ではマルチパートサブタイプ (特に `form-data`) がサポートされます。この形式では、各パートの形式に関係なく、1 つのペイロード内で複数の異なるデータパートを処理できます。パートの開始と終了を区別するには、境界を使用します。各パートのメタデータはヘッダーを介して追加できます。
+
+3 つのパートで構成される `34b21` 境界を含む未加工の `multipart/form-data` ペイロードを以下に示します。
+
+* `text` という名前の `text/plain`
+* `file1` という名前の `application/json` ファイル (`a.json`)
+* `file2` という名前の `text/html` ファイル (`a.html`)
+
+.未加工のマルチパート
+[source,text,linenums]
+----
+--34b21
+Content-Disposition: form-data; name="text"
+Content-Type: text/plain
+
+Book
+--34b21
+Content-Disposition: form-data; name="file1"; filename="a.json"
+Content-Type: application/json
+
+{
+  "title": "Java 8 in Action",
+  "author": "Mario Fusco",
+  "year": 2014
+}
+--34b21
+Content-Disposition: form-data; name="file2"; filename="a.html"
+Content-Type: text/html
+
+<!DOCTYPE html>
+<title>
+  Available for download!
+</title>
+--34b21--
+----
+
+DataWeave スクリプト内で、`parts` 要素を選択し、任意のパートのデータにアクセスし、変換できます。操作は配列に基づくことができます。また、パートを参照するための名前がパートに設定されている場合は、キーに基づくことができます。パートのデータには `content` キーワードを介してアクセスでき、ヘッダーには `headers` キーワードを介してアクセスできます。
+
+たとえば、次のスクリプトでは、上記のペイロードを考慮して `Book:a.json` が生成されます。
+
+.マルチパートコンテンツの読み取り:
+[source,dataweave,linenums]
+----
+%dw 2.0
+output text/plain
+---
+payload.parts.text.content ++ ':' ++ payload.parts[1].headers.'Content-Disposition'.filename
+----
+
+DataWeave がパートのリスト (各パートにヘッダーとコンテンツが含まれる) を含むオブジェクトをビルドするマルチパートコンテンツを生成できます。次の DataWeave スクリプトでは、ペイロード内で HTML データを使用できる場合に、(以前に分析した) 未加工のマルチパートデータを生成します。
+
+.マルチパートコンテンツの書き込み:
+[source,dataweave,linenums]
+----
+%dw 2.0
+output multipart/form-data
+boundary='34b21'
+---
+{
+  parts : {
+    text : {
+      headers : {
+        "Content-Type": "text/plain"
+      },
+      content : "Book"
+    },
+    file1 : {
+      headers : {
+        "Content-Disposition" : {
+            "name": "file1",
+            "filename": "a.json"
+        },
+        "Content-Type" : "application/json"
+      },
+      content : {
+        title: "Java 8 in Action",
+        author: "Mario Fusco",
+        year: 2014
+      }
+    },
+    file2 : {
+      headers : {
+        "Content-Disposition" : {
+            "filename": "a.html"
+        },
+        "Content-Type" : payload.^mimeType
+      },
+      content : payload
+    }
+  }
+}
+----
+
+パートの名前が `Content-Disposition` ヘッダーに明示的に提供されていない場合は、キーによりパートの名前が決まります。また、DataWeave は、サポートされる形式からのコンテンツを処理できるだけでなく、HTML など、サポートされない形式への参照からコンテンツを処理できます。
+
+=== リーダープロパティ (マルチパート)
+
+DataWeave リーダーの `multipart/form-data` 入力を定義する場合、次のプロパティを設定できます。
+
+データの分析時にリーダーで使用する境界を設定できます。
+
+[cols="1,1,1,3", options="header"]
+|===
+| パラメータ | 型 | Default (デフォルト) | 説明
+| `boundary` | String (文字列) | なし a| マルチパートの境界値。パートを区切る文字列。
+|===
+
+DataWeave の `read` 関数では、省略可能なパラメータとしてプロパティを渡すこともできます。プロパティのスコープは、関数をコールする DataWeave スクリプトに制限されます。
+
+=== ライタープロパティ (マルチパート)
+
+DataWeave スクリプトで `output` 形式として `multipart/form-data` を指定する場合、次のプロパティを追加して、DataWeave パーサーによるデータの処理方法を変更できます。
+
+.例: 出力ディレクティブ
+[source,dataweave,linenums]
+----
+output multipart/form-data
+----
+
+出力ディレクティブでは、指定された形式でライターがデータを出力するときに使用するプロパティを設定することもできます。
+
+[cols="1,1,1,3", options="header"]
+|===
+| パラメータ | 型 | Default (デフォルト) | 説明
+| `boundary` | String (文字列) | なし a| マルチパートの境界値。パートを区切る文字列。
+| `bufferSize` | Number (数値) | `8192` a| バッファライターのサイズ。
+| `deferred` | Boolean (ブール) | `false` a| 遅延出力用。
+  有効なオプションは `true` または `false` です。
+|===
+
+たとえば、境界が `34b21` の場合、以下を渡すことができます。
+
+.例: 出力ディレクティブ
+[source,dataweave,linenums]
+----
+output multipart/form-data boundary=34b21
+----
+
+DataWeave の `write` 関数では、省略可能なパラメータとしてプロパティを渡すこともできます。プロパティのスコープは、関数をコールする DataWeave スクリプトに制限されます。
+
+[TIP]
+--
+通常 (ただし、これに限定されない)、マルチパートは、コンテンツの読み取りと書き込みの両方で、`Content-Type` ヘッダーを介して境界が共有されている HTTP で使用されます。
+--
+
+// application/java //////////////////////////////////////////////////////////
+[[format_java]]
+== Java
+
+MIME タイプ: `application/java`
+
+Java オブジェクトと DataWeave 型との間のマッピングを次の表に示します。
+
+[cols="3,1", options="header"]
+|===
+|Java 型
+|DataWeave 型
+
+|`Collections/Array/Iterator/Iterable`
+| xref:dataweave-types.adoc#array[Array]
+
+|`String/CharSequence/Char/Enum/Class`
+| xref:dataweave-types.adoc#string[String]
+
+|`int/Short/Long/BigInteger/Flat/Double/BigDecimal`
+|xref:dataweave-types.adoc#number[Number]
+
+|`Calendar/XmlGregorianCalendar`
+|xref:dataweave-types.adoc#datetime[DateTime]
+
+|`TimeZone`
+|xref:dataweave-types.adoc#timezone[TimeZone]
+
+|`sql.Date/util.Date`
+|xref:dataweave-types.adoc#date[Date]
+
+|`Bean/Map`
+|xref:dataweave-types.adoc#object[Object]
+
+|`InputStream/Array[Byte]`
+|xref:dataweave-types.adoc#binary[Binary]
+
+|`java.lang.Boolean`
+|xref:dataweave-types.adoc#boolean[Boolean]
+|===
+
+=== ライタープロパティ (Java)
+
+DataWeave スクリプトで output 形式として application/java を指定する場合、次のプロパティを追加して、DataWeave パーサーによるデータの処理方法を変更できます。
+
+[cols="1,1,1,3", options="header"]
+|===
+| パラメータ | 型 | Default (デフォルト) | 説明
+| `duplicateKeyAsArray` | Boolean (ブール) | False a| オブジェクトで重複キーが検出されると、ライターはその値をそれらのすべての値が含まれる配列に変更します。
+有効なオプションは `true` または `false` です。
+| `writeAttributes` | Boolean (ブール) | `false` a| キーに属性がある場合、それらを含むキーの子キー - 値ペアとして配置されます。属性キー名の先頭は @ になります。有効なオプションは `true` または `false` です。
+|===
+
+=== カスタム型 (Java)
+
+いくつかのカスタム Java 型があります。
+
+* `class`
+* `Enum`
+
+==== メタデータプロパティ `class` (Java)
+
+Java 開発者は、入力としてどのクラスを作成し、送信する必要があるかについてのヒントとして `class` メタデータキーを使用します。これが明示的に定義されていない場合、DataWeave コンテキストから推定を試みるか、これにデフォルト値を割り当てます。
+
+ * オブジェクトの場合は `java.util.HashMap`
+ * リストの場合は `java.util.ArrayList`
+
+[source,dataweave,linenums]
+----
+%dw 2.0
+type user = Object { class: "com.anypoint.df.pojo.User"}
+output application/json
+---
+{
+  name : "Mariano",
+  age : 31
+} as user
+
+----
+
+上のコードでは、必須入力の種別を `com.anypoint.df.pojo.User` のインスタンスとして定義します。
+
+[[format_enum]]
+==== Enum カスタム型 (Java)
+
+`java.util.Map` に列挙値を配置するには、DataWeave Java モジュールでは、`Enum` と呼ばれるカスタム型を定義します。これを使用すると、提供された文字列を、指定された列挙型の名前として処理する必要があることを指定できます。これは、列挙の Java クラス名を持つクラスプロパティと共に常に使用する必要があります。
+
+=== メタデータ型の定義 (Java)
+
+Transform コンポーネントでは、次の方法を使用して Java 種別を定義できます。
+
+* サンプルオブジェクトを提供する
+
+//START_HERE
+// application/json //////////////////////////////////////////////////////////
+[[format_json]]
+== JSON
+
+MIME タイプ: `application/json`
+
+=== ライタープロパティ (JSON)
+
+DataWeave スクリプトで `output` 形式として `application/json` を指定する場合、次のプロパティを追加して、DataWeave パーサーによるデータの処理方法を変更できます。
+
+[cols="1,1,1,3", options="header"]
+|===
+| パラメータ | 型 | Default (デフォルト) | 説明
+| `bufferSize` | Number (数値) | `8192` a| バッファライターのサイズ。
+| `deferred` | Boolean (ブール) | `false` a| 遅延出力用。
+| `duplicateKeyAsArray` | Boolean (ブール) | `false` a| オブジェクトで重複キーが検出されると、ライターはその値をそれらのすべての値が含まれる配列に変更します。
+有効なオプションは `true` または `false` です。JSON 言語では、1 つの同じ親を持つ重複キーは許可されないため、通常重複により例外が発生します。
+| `encoding` | String (文字列) | `UTF-8` a| 出力で使用する文字セット。
+| `indent` | Boolean (ブール) | `true` a| JSON コードをインデントして読みやすくするか、JSON を 1 行に圧縮するかを示します。
+有効なオプションは `true` または `false` です。
+| `skipNullOn` | String (文字列) | なし a| 指定されたデータ構造の null 値をスキップします。デフォルトでは、スキップしません。有効なオプションは `arrays`、`objects`、`everywhere` です。「<<skip_on_null>>」を参照してください。
+|===
+
+.例: 出力ディレクティブ
+[source,dataweave,linenums]
+----
+output application/json indent=false, skipNullOn="arrays"
+----
+
+=== リーダープロパティ (JSON)
+
+DataWeave リーダーの `application/json` 入力を定義する場合、次のプロパティを設定できます。
+
+[cols="1,1,1,3", options="header"]
+|===
+| パラメータ | 型 | Default (デフォルト) | 説明
+| `streaming` | Boolean (ブール) | `false` a| 入力をストリーミングするために使用します。エントリを順次アクセスする場合のみ使用します。有効なオプションは `true` または `false` です。
+|===
+
+[[skip_on_null]]
+==== Null をスキップ (JSON)
+
+「null」値の項目を含むアウトバウンドメッセージを生成するかどうか、またはこのような項目を完全に無視するかどうかを指定できます。これは、`skipNullOn` という名前の出力ディレクティブ内の属性を介して設定でき、3 つの異なる値 (`elements`、`attributes`、または `everywhere`) に設定できます。
+
+各設定値について説明します。
+
+* `elements`: キーと null 値のペアは無視されます。
+* `attributes`: null 値を含む XML 属性はスキップされます。
+* `everywhere`: このルールが要素と属性の両方に適用されます。
+
+=== メタデータ型の定義 (JSON)
+
+Transform コンポーネントでは、次の方法を使用して JSON 種別を定義できます。
+
+* サンプルファイルを提供する。
+* スキーマファイルを参照する。
+
+// application/x-ndjson //////////////////////////////////////////////////////////
+[[format_ndjson]]
+== 改行区切りの JSON
+
+MIME タイプ: `application/x-ndjson`
+
+=== ライタープロパティ (ndjson)
+
+DataWeave スクリプトで `output` 形式として `application/x-ndjson` を指定する場合、次のプロパティを追加して、DataWeave パーサーによるデータの処理方法を変更できます。
+
+[cols="1,1,1,3", options="header"]
+|===
+| パラメータ | 型 | Default (デフォルト) | 説明
+| `writeAttributes` | Boolean (ブール) | `false` | 有効なオプションは `true` または `false` です。
+| `encoding` | String (文字列) | a|
+| `bufferSize` | Number (数値) | `8192` a| バッファライターのサイズ。
+| `skipNullOn` | String (文字列) | a| 有効なオプションは `arrays` または `objects` です。
+| `deferred` | Boolean (ブール) | `false` a| 遅延出力用。
+有効なオプションは `true` または `false` です。
+|===
+
+=== リーダープロパティ (ndjson)
+
+DataWeave リーダーの `application/x-ndjson` 入力を定義する場合、次のプロパティを設定できます。
+
+[cols="1,1,1,3", options="header"]
+|===
+| パラメータ | 型 | Default (デフォルト) | 説明
+| `skipInvalid` | Boolean (ブール) | `false` | 有効なオプションは true または false です。
+| `ignoreEmptyLine` | Boolean (ブール) | `true` | 有効なオプションは `true` または `false` です。
+|===
+
+// application/octet-stream //////////////////////////////////////////////
+[[format_octet_stream]]
+== オクテットストリーム
+
+MIME タイプ: `application/octet-stream`
+
+=== ライタープロパティ (octet-stream)
+
+DataWeave スクリプトで `output` 形式として `application/octet-stream` を指定する場合、次のプロパティを追加して、DataWeave パーサーによるデータの処理方法を変更できます。
+
+[cols="1,1,1,3", options="header"]
+|===
+| パラメータ | 型 | Default (デフォルト) | 説明
+| `bufferSize` | Number (数値) | `8192` | バッファライターのサイズ。
+| `deferred` | Boolean (ブール) | `false` a| 遅延出力用。
+  有効なオプションは `true` または `false` です。
+|===
+
+// text/plain //////////////////////////////////////////////////////////
+[[format_text_plain]]
+== テキスト/プレーン
+
+MIME タイプ: `text/plain`
+
+=== ライタープロパティ (text/plain)
+
+DataWeave スクリプトで `output` 形式として `text/plain` を指定する場合、次のプロパティを追加して、DataWeave パーサーによるデータの処理方法を変更できます。
+
+[cols="1,1,1,3", options="header"]
+|===
+| パラメータ | 型 | Default (デフォルト) | 説明
+| `encoding` | String (文字列) | なし | 使用するライターのエンコード。
+| `bufferSize` | Number (数値) | `8192` | バッファライターのサイズ。
+| `deferred` | Boolean (ブール) | `false` a| 遅延出力用。
+  有効なオプションは `true` または `false` です。
+|===
+
+// text/x-java-properties //////////////////////////////////////////////
+[[format_x_java_properties]]
+== テキスト Java プロパティ
+
+MIME タイプ: `text/x-java-properties`
+
+=== ライタープロパティ (properties)
+
+DataWeave `output` ディレクティブで `text/x-java-properties` 出力を定義する場合、省略可能なプロパティを追加して、パーサーの動作を変更できます。
+
+[cols="1,1,1,3", options="header"]
+|===
+| パラメータ | 型 | Default (デフォルト) | 説明
+| `encoding` | String (文字列) | なし | 使用するライターのエンコード。
+| `bufferSize` | Number (数値) | `8192` |バッファライターのサイズ。
+| `deferred` | Boolean (ブール) | `false` a| 遅延出力用。
+  有効なオプションは `true` または `false` です。
+|===
+
+// application/xml //////////////////////////////////////////////////////////
+[[format_xml]]
+== XML
+
+MIME タイプ: `application/xml`
+
+XML データ構造は、キーの値として他のオブジェクトが含まれている可能性がある DataWeave オブジェクトにマップされます。反復するキーがサポートされます。
+
+.入力
+[source,xml,linenums]
+----
+<users>
+  <company>MuleSoft</company>
+  <user name="Leandro" lastName="Shokida"/>
+  <user name="Mariano" lastName="Achaval"/>
+</users>
+----
+
+.DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+{
+  users: {
+    company: "MuleSoft",
+    user @(name: "Leandro",lastName: "Shokida"): "",
+    user @(name: "Mariano",lastName: "Achaval"): ""
+  }
+}
+----
+
+=== リーダープロパティ (XML)
+
+DataWeave リーダーの `application/xml` 入力を定義する場合、次のプロパティを設定できます。
+
+[cols="1,1,1,3", options="header"]
+|===
+| パラメータ | 型 | Default (デフォルト) | 説明
+| `maxEntityCount` | Number (数値) | `1` a| エンティティ拡張の最大数。
+この制限は、Billion Laughs 攻撃を回避するために設定されます。
+| `indexedReader` | Boolean (ブール) | `true` a| しきい値に達したときにインデックス付けされた XML リーダーを使用する必要があるかどうか。有効なオプションは `true` または `false` です。
+//| `maxAttributeSize` | Number | `-1` a| Sets the maximum number of characters
+XML 属性で使用できます。Mule 4.2.1 以降で使用できます。
+| `nullValueOn` | String (文字列) | `blank` a| 空または空白のテキストを含むタグを null として読み取るかどうか。有効なオプションは `empty`、`none`、`blank` です。
+| `externalEntities` | Boolean (ブール) | `false` a| 外部エンティティを処理する必要があるかどうかを示します。デフォルトでは、これは XXE 攻撃を回避するために無効になっています。
+有効なオプションは `true` または `false` です。
+|===
+
+=== ライタープロパティ (XML)
+
+DataWeave スクリプトで `output` 形式として `application/xml` を指定する場合、次のプロパティを追加して、DataWeave パーサーによるデータの処理方法を変更できます。
+
+[cols="1,1,1,3a", options="header"]
+|===
+| パラメータ | 型 | Default (デフォルト) | 説明
+| `bufferSize` | Number (数値) | `8192` | バッファライターのサイズ。
+| `encoding` | String (文字列) | なし |使用するライターのエンコード。
+| `deferred` | Boolean (ブール) | `false` |遅延出力用。
+  有効なオプションは `true` または `false` です。
+//| `escapeCR` | Boolean | `false` | Whether to escape a carriage return (CR).
+有効なオプションは `true` または `false` です。Mule 4.2.1 以降で使用できます。
+| `indent` | Boolean (ブール) | `true` |出力をインデントするかどうかを示します。
+有効なオプションは `true` または `false` です。
+| `inlineCloseOn` | String (文字列) | `empty` |どのような場合にライターでインラインの終了タグを使用するか。有効なオプションは `empty` または `none` です。
+| `onInvalidChar` | String (文字列) | なし |有効なオプションは `base64`、`ignore`、`none` です。
+| `writeNilOnNull` | Boolean (ブール) | `false` |値が null の場合に nil 属性を書き込むかどうか。有効なオプションは `true` または `false` です。
+| `skipNullOn` | String (文字列) | なし |指定されたデータ構造の null 値をスキップします。デフォルトでは、スキップしません。有効なオプションは `elements`、`attributes`、`everywhere` です。「<<skip_on_null_xml>>」を参照してください。
+| `writeDeclaration` | Boolean (ブール) | `true` |XML ヘッダーの宣言を書き込むかどうかを示します。有効なオプションは `true` または `false` です。
+|===
+
+.例: 出力ディレクティブ
+[source,dataweave,linenums]
+----
+output application/xml indent=false, skipNullOn="attributes"
+----
+
+`inlineCloseOn` パラメータでは、出力を次のような (デフォルト) 構造にするかどうかを定義します。
+
+[source,xml,linenums]
+----
+<someXml>
+  <parentElement>
+    <emptyElement1></emptyElement1>
+    <emptyElement2></emptyElement2>
+    <emptyElement3></emptyElement3>
+  </parentElement>
+</someXml>
+----
+
+次のような構造にすることもできます (`empty` の値を設定)。
+
+[source,xml,linenums]
+----
+<payload>
+  <someXml>
+    <parentElement>
+      <emptyElement1/>
+      <emptyElement2/>
+      <emptyElement3/>
+    </parentElement>
+  </someXml>
+</payload>
+----
+
+xref:dataweave-cookbook-output-self-closing-xml-tags.adoc[「自己終了 XML タグの出力」の例]も参照してください。
+
+[[skip_on_null_xml]]
+==== Null をスキップ (XML)
+
+「null」値の項目を含むアウトバウンドメッセージを変換で生成するかどうか、またはこのような項目を完全に無視するかどうかを指定できます。
+これは、`skipNullOn` という名前の出力ディレクティブ内の属性を介して設定でき、3 つの異なる値 (`elements`、`attributes`、または `everywhere`) に設定できます。
+
+各設定値について説明します。
+
+* `elements`: キーと null 値のペアは無視されます。
+* `attributes`: null 値を含む XML 属性はスキップされます。
+* `everywhere`: このルールが要素と属性の両方に適用されます。
+
+=== メタデータ型の定義 (XML)
+
+Transform コンポーネントでは、次の方法を使用して XML 種別を定義できます。
+
+* サンプルファイルを提供する。
+* スキーマファイルを参照する。
+
+[[format_cdata]]
+=== CData カスタム型 (XML)
+
+MIME タイプ: `application/xml`
+
+`CData` は、CDATA XML ブロックを識別するために使用する XML のカスタムデータ型です。CDATA 内でコンテンツをラップするか、CDATA ブロック内に入力文字列が到達したかどうかを確認するようにライターに指示することができます。`CData` は型 `String` から継承されます。
+
+.DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+%dw 2.0
+output application/xml
+---
+{
+  users:
+  {
+    user : "Mariano" as CData,
+    age : 31 as CData
+  }
+}
+----
+
+.出力:
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<users>
+  <user><![CDATA[Mariano]]></user>
+  <age><![CDATA[31]]></age>
+</users>
+----
+
+// application/x-www-form-urlencoded //////////////////////////////////
+[[format_url_encoded]]
+== URL エンコード
+
+MIME タイプ: `application/x-www-form-urlencoded`
+
+エンコードされた URL 文字列は DataWeave オブジェクトにマップされます。
+
+* ドットまたはスターセレクタを使用して、値をキーで読み取ることができます。
+* DataWeave オブジェクトを指定して、ペイロードを書き込むことができます。
+
+`x-www-form-urlencoded` データの例を次に示します。
+
+[[raw_data]]
+.データ
+[source,text,linenums]
+----
+key=value&key+1=%40here&key=other+value&key+2%25
+----
+
+次の DataWeave スクリプトでは、上のデータが生成されます。
+
+.DataWeave オブジェクト
+[source,dataweave,linenums]
+----
+output application/x-www-form-urlencoded
+---
+{
+  "key" : "value",
+  "key 1": "@here",
+  "key" : "other value",
+  "key 2%": null
+}
+----
+
+上の<<raw_data>>を次の例の DataWeave スクリプトへの入力として読み取って、結果として `value@here` を返すことができます。
+
+.DataWeave スクリプト:
+[source,dataweave,linenums]
+----
+output text/plain
+---
+payload.*key[0] ++ payload.'key 1'
+----
+
+エンコードされた URL データのリーダープロパティはありません。
+
+=== ライター (エンコードされた URL データ)
+
+DataWeave スクリプトで output 形式として application/x-www-form-urlencoded を指定する場合、次のプロパティを追加して、DataWeave パーサーによるデータの処理方法を変更できます。
+
+
+// TODO: ASK SHOKI ABOUT KB VS BYTES
+[cols="1,1,1,3", options="header"]
+|===
+| パラメータ | 型 | Default (デフォルト) | 説明
+| `encoding` | String (文字列) | なし | 使用するライターのエンコード。
+| `bufferSize` | Number (数値) | `8192` a| バッファライターのサイズ。
+| `deferred` | Boolean (ブール) | `false` a| 遅延出力用。
+  有効なオプションは `true` または `false` です。
+|===
+
+.例: 出力ディレクティブ
+
+* `output application/x-www-form-urlencoded`
+* `output application/x-www-form-urlencoded encoding="UTF-8", bufferSize="500"`
+
+DataWeave の `write` 関数では、省略可能なパラメータとしてプロパティを渡すこともできます。プロパティのスコープは、関数をコールする DataWeave スクリプトに制限されます。
+
+// application/yaml ///////////////////////////////////////////////////////
+[[format_yaml]]
+== YAML
+
+MIME タイプ: `application/yaml`
+
+=== ライタープロパティ (YAML)
+
+DataWeave スクリプトで `output` 形式として `application/yaml` を指定する場合、次のプロパティを追加して、DataWeave パーサーによるデータの処理方法を変更できます。
+
+[cols="1,1,1,3", options="header"]
+|===
+| パラメータ | 型 | Default (デフォルト) | 説明
+| `encoding` | String (文字列) | `UTF-8` a| 使用するライターのエンコード。
+| `bufferSize` | Number (数値) | `8192` a| バッファライターのサイズ。
+| `deferred` | Boolean (ブール) | `false` a| 遅延出力用。
+  有効なオプションは `true` または `false` です。
+| `skipNullOn` | String (文字列) | なし a| 指定されたデータ構造の null 値をスキップします。デフォルトでは、スキップしません。有効なオプションは `arrays`、`objects`、`everywhere` です。
+|===
+
+
+== 関連情報
+
+xref:studio::transform-message-component-concept-studio.adoc[Transform Message コンポーネント]
+
+xref:dataweave-flat-file-schemas.adoc[フラットファイルスキーマ]

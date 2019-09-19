@@ -1,0 +1,32 @@
+= Mule 型 (Mule)
+
+[%header, cols="1,1,4"]
+|===
+| 型 | 定義 | 説明
+
+| Error
+| `type Error = { description?: String, detailedDescription?: String, errorType?: ErrorType, childErrors?: Array<Error&#62; }`
+a| エラーを表す複合型。
+
+* `description?: String` (説明): エラーの簡潔な説明。
+* `detailedDescription?: String`: エラーの詳細な説明。このメッセージには、Java 例外に固有の情報が含まれる可能性があります。
+* `errorType?: ErrorType`: エラーの種別を返します。
+* `childErrors?: Array<Error&#62;`: 子エラーが含まれます (ある場合)。たとえば、
+Scatter&#45;Gather ルータは、そのすべてのルーティングエラーを子として集約し、エラーをスローする場合があります。
+
+失敗したすべてのコンポーネントがエラーを集約するとは限らないため、この型では空のコレクションが返される可能性があります。
+
+| ErrorType
+| `type ErrorType = { identifier?: String, namespace?: String, parentErrorType?: ErrorType }`
+a| Mule コンポーネントがスローする可能性があるエラーの種別。
+
+* エラー種別には、エンドユーザが Mule 設定で指定できる `identifier` 文字列が含まれます。
+* すべてのエラーが `namespace` に属するため、同じ `identifier` 文字列を持ち、別の名前空間に属するエラーとの競合が回避されます。
+* エラー種別はより一般的なエラー種別の特殊化である可能性があり、この場合、`parentErrorType` はより一般的なエラー種別を返します。この種別は、エラーハンドラ内でエラー種別を照合するときに使用されます。このため、エラー処理で一般的なエラー種別を選択した場合、より特殊化されたエラー種別も処理されます。
+
+
+| Message (メッセージ)
+| `type Message = Object {class: "org.mule.runtime.api.message.Message"}`
+| Mule メッセージを表す型。
+
+|===

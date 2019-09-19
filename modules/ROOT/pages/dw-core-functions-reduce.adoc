@@ -1,0 +1,190 @@
+= reduce
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[reduce1]]
+== reduce&#40;Array<T&#62;, &#40;item: T, accumulator: T&#41; &#45;&#62; T&#41;: T &#124; Null
+
+配列の要素に縮小式を適用します。
+
+
+`reduce` は、入力配列の各要素に対して順番に縮小ラムダ式 (関数) を適用し、アキュムュレータを新しい結果で置き換えます。このラムダ式では、現在の入力配列要素と現在のアキュムュレータ値の両方を使用できます。
+
+配列が空で、アキュムュレータパラメータにデフォルト値が設定されていない場合、null 値が返されます。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `item` | 入力配列の項目。縮小する値を提供します。`&#36;` として参照することもできます。
+| `acc` a| アキュムュレータ。`&#36;&#36;` として参照することもできます。減算操作の反復後に毎回、ラムダ式の結果を保存するために使用します。
+
+アキュムュレータパラメータは構文 `acc = initValue` を使用して初期値に設定できます。この場合、ラムダ式は入力配列の最初の要素を使用してコールされます。次に、その結果が新しいアキュムュレータ値として設定されます。
+
+アキュムュレータの初期値が設定されていない場合、アキュムュレータは入力配列の最初の要素に設定されます。次に、ラムダ式は入力配列の 2 番目の要素を使用してコールされます。
+
+アキュムュレータの初期値とラムダ式によって、`reduce` 関数で作成される結果の型が決まります。アキュムュレータが `acc = {}` に設定されている場合、結果は通常 `Object` (オブジェクト) 型になります。アキュムュレータが `acc = []` に設定されている場合、結果は通常 `Array` (オブジェクト) 型になります。アキュムュレータが `acc = ""` に設定されている場合、結果は通常 `String` (文字列) 型になります。
+
+|===
+
+=== 例
+
+次の例では、数値の合計を最初の入力配列に返します。
+
+==== 取得元
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+output application/json
+---
+[2, 3] reduce ($ + $$)
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+5
+----
+
+=== 例
+
+次の `sum` の例では数値を加算し、`concat` の例ではその同じ数値を連結し、`emptyList` の例では空の配列 `[]` (`myEmptyList` で定義) が `null` を返すことを示します。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+var myNums = [1,2,3,4]
+var myEmptyList = []
+output application/json
+---
+{
+   "sum" : myNums reduce ($$ + $),
+   "concat" : myNums reduce ($$ ++ $),
+   "emptyList" : myEmptyList reduce ($$ ++ $)
+}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "sum": 10, "concat": "1234", "emptyList": null }
+----
+
+=== 例
+
+次の例では、最初の入力配列からの最初の要素を `"z"` に設定し、`3` を 2 番目の入力配列の合計に加算します。`multiply` では、配列の各値をその横の値で乗算し (`[2,3,3] reduce ((item, acc) -> acc * item)`)、最終結果の `18` (= `2 * 3 * 3`) を生成する方法を示しています。最後の例 (`multiplyAcc`) では、アキュムレータを `3` に設定し、`acc * item` (= `12`) の結果を `3`で乗算します (つまり、`3 (2 * 2  * 3) = 36`)。出力を参照してください。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+   "concat" : ["a", "b", "c", "d"] reduce ((item, acc = "z") -> acc ++ item),
+   "sum": [0, 1, 2, 3, 4, 5] reduce ((item, acc = 3) -> acc + item),
+   "multiply" : [2,3,3] reduce ((item, acc) -> acc * item),
+   "multiplyAcc" : [2,2,3] reduce ((item, acc = 3) -> acc * item)
+}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "concat": "zabcd", "sum": 18, "multiply": 18, "multiplyAcc": 36 }
+----
+
+=== 例
+
+次の例は、`reduce` のさまざまな使用方法を示します。たとえば、
+Boolean (ブール) 値やオブジェクトの配列への適用例などがあります。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+var myVar =
+{
+  "a": [0, 1, 2, 3, 4, 5],
+  "b": ["a", "b", "c", "d", "e"],
+  "c": [{ "letter": "a" }, { "letter": "b" }, { "letter": "c" }],
+  "d": [true, false, false, true, true]
+}
+---
+{
+  "a" : [0, 1, 2, 3, 4, 5] reduce $$,
+  "b": ["a", "b", "c", "d", "e"] reduce $$,
+  "c": [{ "letter": "a" }, { "letter": "b" }, { "letter": "c" }] reduce ((item, acc = "z") -> acc ++ item.letter),
+  "d": [{ letter: "a" }, { letter: "b" }, { letter: "c" }] reduce $$,
+  "e": [true, false, false, true, true] reduce ($$ and $),
+  "f": [true, false, false, true, true] reduce ((item, acc) -> acc and item),
+  "g": [true, false, false, true, true] reduce ((item, acc = false) -> acc and item),
+  "h": [true, false, false, true, true] reduce $$,
+  "i": myVar.a reduce ($$ + $),
+  "j": myVar.a reduce ((item, acc) -> acc + item),
+  "k": myVar.a reduce ((item, acc = 3) -> acc + item),
+  "l": myVar.a reduce $$,
+  "m": myVar.b reduce ($$ ++ $),
+  "n": myVar.b reduce ((item, acc) -> acc ++ item),
+  "o": myVar.b reduce ((item, acc = "z") -> acc ++ item),
+  "p": myVar.b reduce $$,
+  "q": myVar.c reduce ((item, acc = "z") -> acc ++ item.letter),
+  "r": myVar.c reduce $$,
+  "s": myVar.d reduce ($$ and $),
+  "t": myVar.d reduce ((item, acc) -> acc and item),
+  "u": myVar.d reduce ((item, acc = false) -> acc and item),
+  "v": myVar.d reduce $$,
+  "w": ([0, 1, 2, 3, 4] reduce ((item, acc = {}) -> acc ++ { a: item })) pluck $,
+  "x": [] reduce $$,
+  "y": [] reduce ((item,acc = 0) -> acc + item)
+}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+"a": 0,
+"b": "a",
+"c": "zabc",
+"d": { "letter": "a" },
+"e": false,
+"f": false,
+"g": false,
+"h": true,
+"i": 15,
+"j": 15,
+"k": 18,
+"l": 0,
+"m": "abcde",
+"n": "abcde",
+"o": "zabcde",
+"p": "a",
+"q": "zabc",
+"r": { "letter": "a" },
+"s": false,
+"t": false,
+"u": false,
+"v": true,
+"w": [ 0,1,2,3,4 ],
+"x": null,
+"y": 0
+}
+----
+
+
+[[reduce2]]
+== reduce&#40;Array<T&#62;, &#40;item: T, accumulator: A&#41; &#45;&#62; A&#41;: A

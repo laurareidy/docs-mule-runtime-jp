@@ -1,0 +1,104 @@
+= API ポリシーの移行
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+// authors: Federico Balbi and Nahuel Dalla Vecchia (assigned by Eva)
+
+// Explain generally how and why things changed between Mule 3 and Mule 4.
+Mule 4 では、ポリシーが大幅に変更されています。詳しい説明は、&#8203;https://docs.mulesoft.com/api-manager/custom-policy-4-reference[「Custom Policy General Reference (カスタムポリシーの一般リファレンス)」(2017 年 11 月) ]に記載されています。
+
+== ポリシーの動作の定義
+
+3.x では、特定のポリシー内のロジックが 2 つのブロックに分割されています。次のポリシーまたはフローの前に実行されるブロックと、その後に実行されるブロックです。
+
+.Mule 3 の例
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<policy online="false"
+        xmlns="http://www.mulesoft.org/schema/mule/policy"
+        xmlns:mule="http://www.mulesoft.org/schema/mule/core"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:api-platform-gw="http://www.mulesoft.org/schema/mule/api-platform-gw"
+        xsi:schemaLocation="http://www.mulesoft.org/schema/mule/policy http://www.mulesoft.org/schema/mule/policy/current/mule-policy.xsd
+              http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+              http://www.mulesoft.org/schema/mule/api-platform-gw http://www.mulesoft.org/schema/mule/api-platform-gw/current/mule-api-platform-gw.xsd">
+
+    <before>
+        <mule:set-payload value="(pre)"/>
+    </before>
+
+    <after>
+        <mule:set-payload value="(post)"/>
+    </after>
+
+    <pointcut>
+        <api-platform-gw:api-pointcut apiName="sampleApi" apiVersion="1.0.0"/>
+    </pointcut>
+
+</policy>
+----
+
+Mule 4 では、ポリシーが `before` と `after` ブロックに分けられなくなりました。
+ポリシーは次のポリシーまたはフローに明示的にジャンプするフローとして機能するようになり、ポリシー内でこのジャンプを定義する必要があります。
+
+Mule 4 では、次の設定で同じ動作を実行できます。
+
+.Mule 4 の例
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http-policy="http://www.mulesoft.org/schema/mule/http-policy"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+               http://www.mulesoft.org/schema/mule/http-policy http://www.mulesoft.org/schema/mule/http-policy/current/mule-http-policy.xsd">
+
+    <http-policy:proxy name="policy-deployment">
+        <http-policy:source propagateMessageTransformations="true">
+
+            <set-payload value="(pre)"/>
+
+            <http-policy:execute-next/>
+
+            <set-payload value="(post)"/>
+
+        </http-policy:source>
+    </http-policy:proxy>
+</mule>
+
+----
+
+注意点:
+
+* ロジックは同じブロックに配置されます。フローの前に動作を挿入するには、単に `execute-next` 要素の前にロジックを配置します。フローの後に動作を挿入するには、その要素の後にロジックを配置します。
+
+* `http-policy:source` 要素の `propagateMessageTransformations` 属性: Mule 4 以降、フローを実行する前に Mule メッセージ (ペイロードまたは属性) を変更しても、デフォルトではフローに反映されません。反映されるようにするには、`propagateMessageTransformations` を `true` に設定する必要があります。
+
+* `pointcut` 要素が、ポリシー設定ファイルで定義されなくなりました。現在は、ポリシーが API Manager から取得されたときに、API ゲートウェイがこの要素を解決します。
+
+エンドポイントとアプリケーションの `pointcut` 要素を使用できなくなり、その代わりになるものもありません。
+
+
+== ポリシーテンプレートの Exchange へのアップロード
+
+3.x では、ポリシーが定義されると XML ファイルが生成され、そのファイルを API Manager にアップロードする必要があります。
+
+Mule 4 では、ポリシーの動作が定義されると、そのポリシーをポリシーテンプレート JAR にパッケージ化して Exchange にアップロードし、API Manager で使用可能にする必要があります。
+
+. ポリシーテンプレート JAR を生成する Maven プロジェクトの作成方法は、記事xref:api-manager::custom-policy-packaging-policy.adoc[「Packaging a Custom Policy (カスタムポリシーのパッケージ化)」]に記載されています。
+. JAR の Exchange へのアップロード方法は、記事xref:api-manager::custom-policy-uploading-to-exchange.adoc[「Uploading a Custom Policy to Exchange (カスタムポリシーの Exchange へのアップロード)」]に記載されています。
+
+以前と同様、ポリシーテンプレート JAR が Exchange にアップロードされると、JAR がアップロードされたのと同じ組織に属する API の API Manager に表示されます。
+
+
+== 関連情報
+
+xref:migration-api-gateways.adoc[API ゲートウェイの移行]
+
+xref:migration-api-gateways-autodiscovery.adoc[API ゲートウェイの移行: Autodiscovery]
+
+xref:migration-api-gateways-runtime-config.adoc[API ゲートウェイの移行: Mule Runtime の設定]
+
+xref:migration-core.adoc[コアコンポーネントの移行]

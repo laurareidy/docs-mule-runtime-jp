@@ -1,0 +1,637 @@
+= DataWeave クイックスタート
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, 変換, トランスフォーマ, 形式, xml, json, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング
+
+このガイドでは、サンプルデータに対して DataWeave スクリプトを実行します。外部データソースは使用しません。例を使用して、いくつかの重要な DataWeave の概念について説明します。ユーザは準備が整ったときにこの概念をさらに深く探索することができます。また、これらの例は、Transform Message コンポーネントを DataWeave プレイグラウンドに変換する方法も示しています。
+
+スクリプトを実行するには、スクリプトを xref:7.3@studio::index.adoc[Studio] の Transform Message コンポーネントのソースコード領域にコピーします。その後、結果をコンポーネントの *[Preview (プレビュー)]* ペインで参照します。また、ファイルからコンテンツを読み込んで、DataWeave スクリプトがそのコンテンツに対してアクションを実行できるようにします。ここにある DataWeave の例やドキュメントの他の場所にある例に慣れたら、DataWeave プレイグラウンドを使用して、サンプルデータに対して独自の DataWeave スクリプトを記述する練習をすることができます。
+
+[[example1]]
+image::dw-tut-script-studio-basic.png[簡単なスクリプト]
+
+この図は、センターキャンバスの *testingscriptFlow* 内の Transform Message コンポーネントを示しています。Studio キャンバスの下の *[Transform Message]* タブでは、ソースコード領域に DataWeave スクリプトが表示され、*[Preview (プレビュー)]* ペインに結果が表示されます。
+
+== 前提条件
+
+xref:7.3@studio::to-download-and-install-studio.adoc[Studio 7] が必要です。
+バージョン 7.3 または 7.2.3 をお勧めします。このガイドでは他の Studio 7 バージョンはテストされていません。
+
+Studio をインストールしたら、Transform Message コンポーネントを使用してプロジェクトをセットアップする必要があります。「<<setup>>」を参照してください。
+
+[[setup]]
+== Studio でのプロジェクトのセットアップ
+
+DataWeave プレイグラウンドとして機能する Mule プロジェクトをセットアップします。
+
+. Studio で、*[File (ファイル)]* -> *[New (新規)]* -> *[Mule Project (Mule プロジェクト)]* をクリックして、Mule プロジェクトを作成します。
+. プロジェクトの名前 `testscript` を入力して、*[Finish (完了)]* をクリックします。
+. 新しいプロジェクトの *[Mule Palette (Mule パレット)]* タブから *[Core (コア)]* をクリックし、*[Transform Message]* コンポーネントを Studio キャンバスにドラッグします。
++
+image::dw-tut-script-studio.png[Transform コンポーネントを含む Studio UI]
++
+(A) *[Mule Palette (Mule パレット)]* タブ
++
+(B) Transform Message コンポーネントを含む Studio キャンバス
++
+// &#40;C&#41; avoids conversion to copyright symbol:
+&#40;C&#41; *[Transform Message]* タブ
++
+. *[Transform Message]* タブで *[Preview (プレビュー)]* (右端) をクリックして [Preview (プレビュー)] ペインを開き、*[Preview (プレビュー)]* の横にある _空_ の長方形をクリックしてソースコード領域を展開します。
++
+[[studio_source_only]]
+image::studio-transform-msg-tab.png[Studio の [Transform Message] タブ]
++
+左のソースコード領域で DataWeave スクリプトを追加し、右の [Preview (プレビュー)] ペインでスクリプトの出力を参照します。
++
+. 「<<start_scripting>>」に進みます。
+
+[[start_scripting]]
+== スクリプティングの開始
+
+. <<step_1>>
+. <<step_2>>
+. <<step_3>>
+. <<step_4>>
+. <<step_5>>
+. <<step_6>>
+. <<step_7>>
+. <<step_8>>
+. <<step_9>>
+. <<step_10>>
+
+[[step_1]]
+=== 1 つの文字列への 2 つの文字列の連結
+
+2 つの文字列 (「hello」と「World」) を 1 つの文字列 (「helloWorld」) に連結する簡単な DataWeave スクリプトから始めます。
+
+image::dw-tut-helloWorld.png[JSON の helloWorld の例]
+
+. *[Transform Message]* タブのソースコード領域内の現在のスクリプトを次のスクリプトに置き換えます。
++
+[source,dw,linenums]
+----
+%dw 2.0
+output application/json
+---
+{ myString: ("hello" ++ "World") }
+----
++
+* DataWeave スクリプトの本文にはキー-値ペア (`{ myString: ("hello" &#43;&#43; "World") }`) が含まれます。この入力オブジェクトの値は、文字列「hello」と「World」を 1 つの文字列「helloWorld」に連結するための DataWeave 式 (`("hello" &#43;&#43; "World")`) です。
++
+準備が整ったら、文字列の連結で使用する DataWeave xref:dw-core-functions-plusplus.adoc[++] 関数についての詳細を確認してください。
++
+* 3 つのダッシュ (`---`) の上にあるすべてのコンテンツがスクリプトのヘッダーです。
+これには、出力形式 `application/json` を指定するディレクティブを含め、重要なディレクティブが含まれます。準備が整ったら、xref:dataweave-language-introduction.adoc[DataWeave スクリプト]についての詳細を確認してください。
++
+. *[Preview (プレビュー)]* ペインで JSON 出力を参照します。
++
+[source,json,linenums]
+----
+{ "myString": "helloWorld" }
+----
++
+. 「<<step_2>>」に進みます。
+
+[[step_2]]
+=== XML 出力への JSON 入力の変換
+
+多くのインテグレーションで形式間の変換が必要とされます。この手順では、`output` ディレクティブを使用して、JSON 入力から XML 出力を生成します。
+
+image::dw-tut-helloWorld-xml.png[XML の helloWorld の例]
+
+.  ソースコード領域内の現在のスクリプトの本文を「<<step_1>>」の JSON 出力に置き換えて、`output application/json` ディレクティブを `output application/xml` に変更します。
++
+[source,dw,linenums]
+----
+%dw 2.0
+output application/xml
+---
+{ "myString" : ("helloWorld") }
+----
++
+. *[Preview (プレビュー)]* ペインで XML 出力を参照します。
++
+[source,xml,linenums]
+----
+<?xml version='1.0' encoding='UTF-8'?>
+<myString>helloWorld</myString>
+----
++
+入力 JSON オブジェクト `{ "myString" : ("helloWorld") }` の `"myString"` キーは XML 出力のルート要素に変換され、連結された文字列はその XML オブジェクトの値になります。したがって、XML 出力は `<myString>helloWorld</myString>` になります。この出力の前に、XML バージョンとエンコードを特定する標準 XML 宣言が配置されています。
++
+NOTE: XML 出力のルートノードとして機能する _単一_ キーがない場合 (たとえば、入力が単に `("helloWorld")` の場合)、XML への変換は失敗し、ソースコード領域に黄色の警告 (*!*) が表示されます。警告メッセージは、`Trying to output non-whitespace characters outside main element tree` です。必要に応じて、この警告が生成されるように自分で試してみることができます。
++
+DataWeave では、多くの出力形式と入力形式がサポートされます。準備が整ったら、xref:dataweave-formats.adoc[DataWeave の出力形式とライタープロパティ]についての詳細を確認してください。
++
+. 「<<step_3>>」に進みます。
+
+[[step_3]]
+=== サポートされるデータ型について
+
+ここでは、サポートされるさまざまなデータ型を紹介し、スクリプトへのコメントの追加方法を示す簡単な DataWeave スクリプトを提供します。
+
+. *[Transform Message]* タブのソースコード領域内の現在のスクリプトを次のスクリプトに置き換えます。
++
+[source,dw,linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  /*
+   * A multi-line
+   * comment here.
+   */
+  myString: "hello world",
+  myNumber: 123,
+  myFloatingPointNumber: 123.456,
+  myVeryBigNumber: 12341234134123412341234123,
+  myDate: |2018-12-07|,
+  myTime: |11:55:56|,
+  myDateTime: |2018-10-01T23:57:59-03:00|,
+  myBoolean: true,
+  myArray: [ 1, 2, 3, 5, 8],
+  myMixedArray: [ 1, 2, "blah", { hello: "there" } ],
+  myObjectKeyValuePair: { innerKey: "innerValue" },
+  myObjectWithConditionalField: { a : { b : 1, ( c : 2 ) if true, (d : 4) if false } },
+  myNull: null,
+  myBinary: "abcd1234123" as Binary
+  //A one-line comment here.
+}
+----
++
+DataWeave では、`/* */` マークアップ内の複数行のコメントと、スラッシュ (`//`) の後の単一行のコメントがサポートされます。また、キー-値ペア (`myString: "hello world"`、`myNumber: 123` など) 内のコロン (`:`) の後に表示される多くのデータ型もサポートされます。この型には、文字列 (引用符 `""` で囲まれる)、数値、日時構造 (パイプ `||` 内)、ブール (`true` と `false`)、配列 (角括弧 `[]` 内)、JSON に似たオブジェクト (中括弧 `{}` 内のキー-値構造)、`null`、バイナリがあります。このトピックについての詳細を確認する準備が整ったら、xref:dataweave-types.adoc[「DataWeave の型」]を参照してください。
++
+. *[Preview (プレビュー)]* ペインで JSON 出力を参照します。
++
+[source,json,linenums]
+----
+{
+  "myString": "hello world",
+  "myNumber": 123,
+  "myFloatingPointNumber": 123.456,
+  "myVeryBigNumber": 12341234134123412341234123,
+  "myDate": "2018-12-07",
+  "myTime": "11:55:56",
+  "myDateTime": "2018-10-01T23:57:59-03:00",
+  "myBoolean": true,
+  "myArray": [ 1, 2, 3, 5, 8 ],
+  "myMixedArray": [ 1, 2, "blah", { "hello": "there" } ],
+  "myObjectKeyValuePair": { "innerKey": "innerValue" },
+  "myObjectWithConditionalField": { "a": { "b": 1, "c": 2 } },
+  "myNull": null,
+  "myBinary": "abcd1234123"
+}
+----
++
+. 「<<step_4>>」に進みます。
+
+[[step_4]]
+=== 入力としての DataWeave 変数の定義および使用
+
+ここでは、DataWeave 変数 `myJson` の値を出力する簡単な DataWeave スクリプトを試します。スクリプトのヘッダー内の `var` ディレクトリを使用して、変数を設定します。
+
+. *[Transform Message]* タブのソースコード領域内の現在のスクリプトを次のスクリプトに置き換えます。
++
+[source,dw,linenums]
+----
+%dw 2.0
+var myJson = { "hello" : "world" }
+output application/json
+---
+myJson
+----
++
+JSON オブジェクト (`{ "hello" : "world" }`) は、スクリプトのヘッダー内の `myJson` 変数として定義されます。準備が整ったら、xref:dataweave-variables.adoc[DataWeave 変数]についての詳細を確認してください。
++
+. *[Preview (プレビュー)]* ペインで出力を参照します。
++
+[source,json,linenums]
+----
+{
+  "hello": "world"
+}
+----
++
+. 「<<step_5>>」に進みます。
+
+[[step_5]]
+=== DataWeave 変数での DataWeave 関数の使用
+
+ここでは、DataWeave 変数 (`myJson`) 内で DataWeave `avg` 関数を使用して、2 つの数値セットの平均を取得するスクリプトを試します。
+
+image::dw-tut-script-studio-var.png[var を使用するスクリプト]
+
+. ソースコード領域内の現在のスクリプトを次のスクリプトに置き換えます。
++
+[source,dw,linenums]
+----
+%dw 2.0
+var myJson = {
+  a: avg([1, 1000]),
+  b: avg([1, 2, 3])
+}
+output application/json
+---
+myJson
+----
++
+スクリプトの本文に `myJson` を追加すると、ここの `avg` 関数が呼び出され、計算された平均が JSON オブジェクト内に生成されます。これは、*[Preview (プレビュー)]* ペインで参照できます。構造 `[1, 1000]` および `[1, 2, 3]` はxref:dataweave-types#dw_type_array[配列]です。準備が整ったら、xref:dw-core-functions-avg.adoc[avg] についての詳細を確認してください。
++
+. 出力をプレビューします。
++
+[source,json,linenums]
+----
+{
+  "a": 500.5,
+  "b": 2.0
+}
+----
++
+. 「<<step_6>>」に進みます。
+
+[[step_6]]
+=== 入力からのコンテンツの読み取り、変換、選択
+
+ここでは、XML 入力を読み取って JSON に変換し、`car` 要素のコンテンツのみを選択する、より複雑なスクリプトを試します。
+
+. ソースコード領域内の現在のスクリプトを次のスクリプトに置き換えます。
++
+[source,dw,linenums]
+----
+%dw 2.0
+var myRead = read("<car><color>red</color></car>",
+                "application/xml")
+output application/json
+---
+{
+  mySelection : myRead.car
+}
+----
++
+この例のプレビューで問題が発生した場合は、`myRead.car` を `myRead."car"` に変更してください。準備が整ったら、xref:dw-core-functions-read.adoc[read] 関数、xref:dataweave-formats.adoc[DataWeave の出力形式とライタープロパティ]、xref:dataweave-selectors.adoc[DataWeave セレクタ]についての詳細を確認してください。
++
+. 出力をプレビューします。
++
+[source,json,linenums]
+----
+{
+  "mySelection": {
+    "color": "red"
+  }
+}
+----
++
+. 「<<step_7>>」に進みます。
+
+[[step_7]]
+=== DataWeave 関数を使用したファイルの内容の読み取り
+
+[[readurl_ex]] ここでは、`readUrl` を使用して、Studio の `src/main/resources` フォルダ内のファイルの内容を読み取ります。この内容を DataWeave スクリプトのサンプルデータとして使用できます。
+
+. ファイルを追加するには、*[Package Explorer]* タブで `src/main/resources` フォルダを右クリックし、*[New (新規)]* -> *[File (ファイル)]* に移動して、該当のファイルのファイル名 `myJson.json` を入力し、*[Finish (完了)]* をクリックします。
+. `src/main/resources` から、*[myJson.json]* タブ (または *[myJson.json]* タブの *[Source (ソース)]* サブタブ内(ある場合)) に次のサンプルコンテンツを入力して保存します。
++
+[source,json,linenums]
+----
+{
+  "hello": "world"
+}
+----
++
+.Studio 内の myJson.json
+image::dw-tut-sample-file.png[DataWeave サンプルファイル]
++
+. *[testscript]* タブ内の Transform Message コンポーネントに戻り、現在のスクリプトを、`readUrl` を使用してファイルから JSON コンテンツを読み取るスクリプトに置き換えます。
++
+[source,dw,linenums]
+----
+%dw 2.0
+output application/json
+---
+readUrl("classpath://myJson.json", "application/json")
+----
++
+準備が整ったら、xref:dw-core-functions-readurl.adoc[readUrl] 関数についての詳細を確認してください。
++
+. *[Preview (プレビュー)]* ペインで一致の出力を参照します。
++
+[source,json,linenums]
+----
+{
+  "hello": "world"
+}
+----
++
+Transform Message コンポーネントのメタデータ型を介してファイルの内容を読み込むこともできます。この手順については、後で「<<med_large_payload>>」で説明します。この手順では、ここで作成した `myJson.json` ファイルを使用します。
++
+. 「<<step_8>>」に進みます。
+
+[[step_8]]
+=== 配列からオブジェクトへの要素のマップ
+
+ほぼすべてのインテグレーションでデータマッピングが必要とされます。ここでは、配列内の要素を JSON オブジェクトのキーと値にマップします。
+
+. [[input_map]] ソースコード領域内の現在のスクリプトを次のスクリプトに置き換えます。
++
+[source,dw,linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  (
+    ["a", "b", "c"] map ((value, index) -> {
+        (index): value
+    })
+  )
+}
+----
++
+`map` 関数は左の配列を反復処理し、右のラムダ (匿名関数) (`((value, index) -> { (index): value })`) をその配列の要素に適用します。ラムダは xref:dataweave-functions-lambdas.adoc#_use_named_parameters_in_a_lambda[名前付きパラメータ] (`value` および `index`) を使用して、配列から値とインデックスを選択し、JSON オブジェクトにキー-値ペアを入力します。xref:dw-core-functions-map.adoc[map] についての詳細を確認し、準備が整ったら、`map` を xref:dw-core-functions-mapobject.adoc[mapObject] と比較してください。これはオブジェクトを入力として使用します。
++
+. [[output_map]] 出力をプレビューします。
++
+[source,json,linenums]
+----
+{
+  "0": "a",
+  "1": "b",
+  "2": "c"
+}
+----
++
+. 「<<step_9>>」に進みます。
+
+[[step_9]]
+=== オブジェクトから配列への値の取り込み
+
+ここでは、DataWeave `pluck` 関数を使用して JSON オブジェクトの値を反復処理し、値を配列に出力します。
+
+. ソースコード領域のコンテンツを、JSON オブジェクトで `pluck` を使用するスクリプトに置き換えます。
++
+[source,dw,linenums]
+----
+%dw 2.0
+output application/json
+---
+{
+  "0": "a",
+  "1": "b",
+  "2": "c"
+} pluck ((value) -> value)
+----
++
+入力オブジェクトが `map` の例の<<output_map, 出力>>に一致し、出力の配列が `map` の例の<<input_map, 入力>>に一致します。準備が整ったら、xref:dw-core-functions-pluck.adoc[pluck] についての詳細を確認してください。
++
+. 出力をプレビューします。
++
+[source,json,linenums]
+----
+[
+  "a",
+  "b",
+  "c"
+]
+----
++
+. 「<<step_10>>」に進みます。
+
+[[step_10]]
+=== 項目のマップとマージ
+
+ここでは、別々の配列内のアイテムから項目をマップおよびマージする、より複雑な例を試します。ここでの重要な点を簡単に述べると、一部のインテグレーションで必要とされる、より複雑なマッピングと変換の処理に DataWeave 機能の味わいを提供していることです。
+
+. ソースコード領域内の現在のスクリプトを次のスクリプトに置き換えます。
++
+[source,dw,linenums]
+----
+%dw 2.0
+var myVar = [
+  { bookId: 101,
+    title: "world history",
+    price: "19.99"
+  },
+  {
+    bookId: 202,
+    title: 'the great outdoors',
+    price: "15.99"
+  }
+]
+var myVar2 = [
+  {
+    bookId: 101,
+    author: "john doe"
+  },
+  {
+    bookId: 202,
+    author: "jane doe"
+  }
+]
+output application/json
+---
+myVar map (item, index) -> using (id = item.bookId) {
+	"id" : id,
+	"topic" : item.title,
+	"cost" : item.price as Number,
+	(myVar2 filter ($.*bookId contains id) map (item) -> {
+		author : item.author
+	})
+}
+----
++
+この言語をさらに探索する準備が整ったら、終了間近で使用する xref:dw-core-functions-filter.adoc[filter] 関数が `myVar2` 変数の配列から `author` 値をどのように返すかについて確認してください。`as` が行 `"cost" : item.price as Number,` 内のデータ型と連携し、`"19.99"` のような入力文字列を `19.99` のような数値に強制的に変換する方法についての詳細は、xref:dataweave-types-coercion.adoc[DataWeave の型強制]について確認してください。(`using (id = item.bookId)` に示されている) `using` を使用してスクリプト内でxref:dataweave-variables#example_local_variable[ローカル DataWeave 変数]をどのように作成できるかを確認してください。
++
+. 出力をプレビューします。
++
+[source,json,linenums]
+----
+[
+  {
+    "id": "101",
+    "topic": "world history",
+    "cost": 19.99,
+    "author": "john doe"
+  },
+  {
+    "id": "202",
+    "topic": "the great outdoors",
+    "cost": 15.99,
+    "author": "jane doe"
+  }
+]
+----
++
+. 「<<more_examples>>」に進みます。
+
+[[more_examples]]
+== DataWeave の他の例を試す
+
+これで DataWeave の例を自分で実行する準備ができました。DataWeave 言語についてさらに多くのことを知りたい場合は、DataWeave プレイグラウンドでドキュメント内にある例をいつでも実行できます。例をカスタマイズし、それを使用して独自のスクリプトを開始できます。
+
+注意: `payload` を使用して入力データを参照する例 (xref:dw-core-functions-contains.adoc#contains1[contains] や xref:dw-core-functions-mapobject.adoc[mapObject] 関数の例など) の場合、「<<provide_payload>>」で説明されている技法を使用してペイロード関連の問題を回避できます。
+
+. Studio で試すことができるさらに多くの例があります。
++
+ * xref:dw-operators.adoc[DataWeave の演算子]
+ * xref:dw-functions.adoc[DataWeave リファレンス]: DataWeave 関数モジュールに関するドキュメントには、DataWeave 関数を使用する多くの例が用意されています。
+ * xref:dataweave-flow-control.adoc[DataWeave のフローコントロール]
+ * xref:dataweave-pattern-matching.adoc[DataWeave のパターンマッチング]
+ * xref:dataweave-cookbook.adoc[DataWeave の解説書]
+ * xref:dataweave-functions.adoc[DataWeave 関数の定義]
++
+. 「<<next_steps>>」に進みます。
+
+[[provide_payload]]
+=== ペイロードに対してアクションを実行する例の実行
+
+DataWeave では、`payload` は、xref:about-mule-message#_message_payload[Mule メッセージ]のコンテンツを保持する組み込み Mule Runtime 変数です。これを使用すると、`payload` を DataWeave スクリプトに入力するだけでメッセージの本文を取得できます。多くの場合、このコンテンツはドキュメントで「ペイロード」と呼ばれます。
+
+`payload` を使用して Mule メッセージのコンテンツを取得する DataWeave の例を試すには、いくつかのオプションがあります。
+
+* <<small_payload>>: DataWeave 変数を使用できます。
+* <<med_large_payload>>: ファイルを介してペイロードコンテンツを追加します。この技法は、短いペイロードでも機能します。
+
+実行中の Mule アプリケーションを必要とする選択肢 (xref:set-payload-transformer-reference.adoc[Set Payload] の使用など) は、ここでは対象になっていませんが、「<<next_steps>>」で紹介されています。
+
+[[small_payload]]
+==== 短いペイロードを使用する例の実行
+
+数行のサンプルデータを使用する短い例では、入力ペイロードを変数に変換できます。DataWeave スクリプトのヘッダー内の DataWeave 変数 (`var`) にペイロードのコンテンツをコピーするだけです。次にスクリプトの本文で、その変数を参照する新しい変数の名前で `payload` を置き換えます。
+
+. [[payload_to_var]] ソースコード領域で次のスクリプトから開始します。
++
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+ContainsRequestedItem: payload.root.*order.*items contains "3"
+----
++
+これをまだプレビューすることはできません。
++
+image::dw-tut-payload-example.png[入力ペイロードのないスクリプト]
++
+. [[modify_payload]] ここでは、`payload` を使用して、存在しない Mule メッセージのコンテンツを入力するのではなく、何らかのサンプル入力を使用するようにこの例を変更します。
++
+.. スクリプトで読み取ることができる入力データを提供する `myInput` DataWeave 変数を追加し、スクリプトの本文内の Mule `payload` 変数を DataWeave `myInput` 変数に変更します。
++
+[source,DataWeave, linenums]
+----
+%dw 2.0
+var myInput = read("<root>
+    <order>
+      <items>1</items>
+      <items>3</items>
+    </order>
+    <order>
+      <items>2</items>
+    </order>
+</root>",
+"application/xml")
+output application/json
+---
+ContainsRequestedItem: myInput.root.*order.*items contains "3"
+----
+.. 結果をプレビューします。
++
+[source,json,linenums]
+----
+{
+  "ContainsRequestedItem": true
+}
+----
++
+準備が整ったら、xref:dw-core-functions-contains.adoc[contains] 関数および組み込み `payload` 変数に関する詳細をxref:dataweave-variables-context.adoc[「定義済み変数」]で確認してください。
+
+[[med_large_payload]]
+==== 長いペイロードを使用する例の実行
+
+多数の行があるサンプルデータを使用する DataWeave 例では、Transform Message を介してメタデータ型を作成することを考慮します。メタデータ型は、サンプルデータを含むローカルファイルを受け入れることができます。
+
+. <<readurl_ex, readUrl>> の例を使用して、Studio で `src/main/resources/myJson.json` を作成します。
++
+Studio にファイルがすでにある場合は、このステップを省略できます。次のステップでは、このファイルの内容をペイロードとして使用する方法を示します。
++
+. ここで、Transform Message のソースコード領域の現在のスクリプトを、
+入力のペイロードを選択するスクリプトに置き換えます。
++
+[source,dw,linenums]
+----
+%dw 2.0
+output application/json
+---
+payload
+----
++
+. ペイロードはまだ存在しないため、ここでペイロードをプレビューすることはできません。
++
+image::dw-tut-payload-example2.png[入力ペイロードのないスクリプト]
++
+. ここで、簡単な JSON オブジェクトを Transform Message のペイロードとして提供します。
++
+.. *[Transform Message]* タブで、*[Preview (プレビュー)]* ボタンの _左端_ の長方形をクリックすると、列形式のグラフィカルビューがソースコード領域の横に開きます。
++
+image::studio-define-payload.png[Studio でのメタデータの定義]
++
+長方形の上にマウスポインタを置くと、*[Show Graphic (グラフィックを表示)]* の表示ラベルが表示されます。
++
+.. *[Transform Message]* タブの左端の列で *[Payload: Unknown (ペイロード: 不明)]* を見つけて、*[Define metadata (メタデータを定義)]* をクリックします。
++
+*[Define metadata (メタデータを定義)]* リンクが表示されない場合は、左端の列で *[Payload: (ペイロード:)]* エントリを右クリックし、*[Set Metadata (メタデータを設定)]* をクリックすると、*[Select metadata type (メタデータ型を選択)]* ダイアログが開きます。
++
+. ここで、(<<readurl_ex, readUrl>> の例で作成した) `myJson.json` のコンテンツを Transform Message コンポーネントに読み込みます。
++
+.. *[+Add (+追加)]* をクリックして、*[Create new type (新しい型の作成)]* ダイアログを開きます。
+.. ダイアログで *[Type id (型 id)]* に「`myJsonType`」と入力し、*[Create type (型を作成)]* をクリックします。
++
+image::studio-create-type.png[新しい型の作成]
++
+.. 開いている *[Select metadata type (メタデータ型を選択)]* に戻り、*[Type (型)]* ドロップダウンメニューから *[JSON]* を選択します。
++
+image::studio_select_metadata_type.png[メタデータ型の選択]
++
+.. 新しい型の下で、*[Schema (スキーマ)]* を *[Example (例)]* に変更します (上の図を参照)。
+.. 省略記号 (*...*) のあるナビゲーションボタンを使用して `src/main/resources/myJson.json` を見つけて、*[Open (開く)]* をクリックします。ファイルの内容の構造 (`hello: _String_`) が *[Select metadata type (メタデータ型を選択)]* ウィンドウに表示されます。
+.. ここで、*[Select (選択)]* をクリックし、ファイルの内容をメッセージペイロードに読み込みます。
+.. [Preview (プレビュー)] ペインに `myJson.json` からの JSON オブジェクトが表示されます。
++
+必要に応じて、*[Preview (プレビュー)]* をクリックして、[Preview (プレビュー)] ペインを開くことができます。
++
+.. ここで、*[Preview (プレビュー)]* ボタンの横にある _空_ の長方形をクリックし、ソースコード領域を開きます。スクリプトの本文を `payload.hello` に変更し、既存の DataWeave ヘッダーコンテンツを保持します。
++
+[Preview (プレビュー)] ペインにはペイロードの値 (`"world"`) のみが含まれます。
++
+以下は、Studio にこの例がどのように表示されるかを示しています。
++
+image::dw-tut-world.png[例: ファイルからのペイロード]
++
+準備が整ったら、xref:dataweave-selectors.adoc[DataWeave セレクタ]についての詳細を確認してください。
+
+[[next_steps]]
+== 次のステップ
+
+* Studio UI で Mule アプリケーションの開発とデータマッピングを開始するには、
+xref:mule-app-tutorial.adoc[「Mule アプリケーション開発チュートリアル」]を参照してください。
+* Transform Message コンポーネント以外にも多くの Mule コネクタ、モジュール、
+コアコンポーネントが*「fx」*項目で DataWeave セレクタと短い DataWeave 式を受け入れます。
++
+コンポーネントについて学ぶには、xref:mule-application-about.adoc[「Mule アプリケーション」]から始めることができます。
++
+実行中の Mule アプリケーションでサンプルデータを試す場合、Transform Message と連携するかどうかにかかわらず、外部データソースを使用するのではなく以下のコアコンポーネントを使用できます。
++
+** xref:set-payload-transformer-reference.adoc[Set Payload]。Mule イベントのペイロードのコンテンツを提供します。
+** xref:variable-transformer-reference.adoc[Set Variable]。Mule イベントのxref:about-mule-variables.adoc[変数]内でコンテンツを作成します。
+** xref:scheduler-concept.adoc[Scheduler]。Mule イベントの通常の生成をトリガします。
+** xref:logger-component-reference.adoc[Logger]。Studio コンソールで、記録された出力と問題を参照します。
+
+このいくつかのコンポーネントの使用例を以下に示します。
+
+image::studio-hello-world.png[Studio での Hello World]
+
+* Set Payload の​*「fx」*​値を `output application/json --- { hello : "world"}` に設定します。
+* Logger の​*「fx」*​値を `payload` に設定します。
+*  _実行中_ の Mule アプリケーション (`testscript`) の *[Console (コンソール)]* タブに Set Payload からのペイロードが表示されます。

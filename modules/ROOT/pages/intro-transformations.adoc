@@ -1,0 +1,49 @@
+= Mule 4 の概要: 変換とストリーミング
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+Mule 4 ではデータについての考え方が根本的に Mule 3 とは異なります。Mule 3 では多くの場合、基本的な Java データ型、InputStream の管理方法、ペイロードがメモリ量を上回っていないか、MEL でアクセス可能にするためにデータを Java オブジェクトに変換する方法を認識している必要があります。
+
+Mule 4 では、次のベストプラクティスが推奨されます。
+
+* Java データ型への不要な変換を回避し、データを直接操作する。
+* ランタイムにストリーミングを処理させる。
+* カスタム Java コードとの直接的なインテグレーションを実行している場合を除き、バイナリデータ型を `String`、`byte[]`、`InputStream` に変換しない。
+
+== 透過的なストリーミング
+
+xref:intro-expressions.adoc[「Mule 4 の概要: DataWeave 式言語」]で、DataWeave を使用してデータを直接操作する方法を説明しました。各種のデータ形式にアクセスできるこの機能を Mule 4 のストリーミング機能と組み合わせれば、データを最初に Java オブジェクトに変換する必要がなくなります。この改善によって次のことが可能になるため、ランタイムでのデータの操作が大幅に簡素化されます。
+
+* DataWeave 式言語を使用してデータを数回読み取ったり、ランダムにアクセスすることができ、副次的影響がない。
+* データを最初にメモリにキャッシュしなくても、複数の場所に送信できる。
+* メモリ量を超えるデータに透過的にアクセスできる。
+
+Mule 4 でのストリーミングのしくみについての詳細は、xref:streaming-about.adoc[「Mule 4.0 でのストリーミングについて」]を参照してください。
+
+== データ型とオブジェクトから String/Byte/InputStream へのトランスフォーマ
+
+Mule でデータストリームが自動的に管理されるようになったことため、データに簡単にアクセスできます。そのデータ型の基本的な Java 表現が `byte[]`、`InputStream`、`String` なのか、それとも他の形式なのかを気にする必要がありません。
+
+Mule 3 アプリケーションで多くみられたパターンは、データをログに記録したり、いずれかのトランスポート経由で送信したりするために、ユーザがデータを文字列に変換するというものです。ストリームを 2 回コンシュームすることができなかったためこの処理が必要でした。つまり、トランスフォーマが必要でした。
+
+[source,xml,linenums]
+----
+<http:listener ... /> <!-- Obtains an InputStream payload -->
+<object-to-string/> <!-- consume the stream and convert it to a String -->
+<logger message="#[payload]"/> <!-- log the String -->
+<http:request .../> <!-- send the String somewhere else-->
+----
+
+Mule 4 では、基になるデータ型やストリームのコンシューム回数を気にすることなく、データを簡単に記録や送信することができます。ペイロードを `InputStream` ではなく、単なるバイナリデータと考えます。また、コンテンツタイプがわかっている場合は、そのまま JSON、XML、あるいはそのコンテンツタイプに対応するデータ型と考えることができます。
+
+[source,xml,linenums]
+----
+<http:listener ... /> <!-- payload is JSON document -->
+<logger message="#[payload]"/> <!-- log the JSON document -->
+<http:request .../> <!-- send the JSON document somewhere else-->
+----
+
+== 関連情報
+
+* xref:streaming-about.adoc[Mule アプリケーションでのストリーミング]

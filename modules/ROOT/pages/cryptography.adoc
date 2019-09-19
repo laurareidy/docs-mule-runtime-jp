@@ -1,0 +1,32 @@
+= 暗号化モジュールについて
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: 暗号化, モジュール, 署名, 暗号化, pgp, jce, AES
+
+このモジュールは、Mule アプリケーションに暗号化機能を提供します。この主な機能は次のとおりです。
+
+* メッセージの対称暗号化および対称復号化
+* メッセージの非対称暗号化および非対称復号化
+* メッセージの署名と署名されたメッセージの署名検証
+
+このモジュールでは、メッセージを暗号化および署名する 3 つの異なる戦略がサポートされています。
+
+* xref:cryptography-pgp.adoc[PGP]: PGP を使用して署名/暗号化する。
+* xref:cryptography-xml.adoc[XML]: XML ドキュメントまたは要素の署名または暗号化する。
+* xref:cryptography-jce.adoc[JCE]: Java Cryptography Extension によって提供される広範な暗号化機能を使用する。
+
+また、このモジュールには、ストリームチェックサムを計算および検証する 2 つ一般的な操作があります。 +
+詳細は、xref:cryptography-reference.adoc[「一般的な操作」]を参照してください。
+
+== Anypoint Studio 7 での拡張モジュールの使用
+
+この拡張モジュールを使用するには、Mule アプリケーションでの連動関係を追加します。
+
+=== 拡張モジュールのインストール
+
+1. Anypoint Studio で Mule プロジェクトを開きます。
+1. [Mule Palette (Mule パレット)] に移動します。
+1.**[Search in Exchange (Exchange で検索)]** を選択して、暗号化モジュールを検索します。
+1. 拡張モジュールを追加します。
+1. これで、[Mule Palette (Mule パレット)] で暗号化モジュールの操作を検索できるようになります。 

@@ -1,0 +1,24 @@
+= Remove Variable トランスフォーマ
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Anypoint Studio, Studio, Mule, 変数とトランスフォーマ, 変数, 変数の設定, 変数の編集, 変数の削除
+
+Remove Variable コンポーネントは、変数名を受け入れて、Mule イベントから変数を削除します。
+
+[%header,cols="30a,70a"]
+|===
+|項目 | 説明
+
+| Display Name (表示名) (`doc:name`)
+| このコンポーネントの一意の名前をフローで表示するようにカスタマイズします。デフォルトは Remove Variable です。
+
+| Name (名前) (`variableName`)
+| 削除する変数の名前。
+|===
+
+
+== 関連情報
+
+* xref:about-mule-variables.adoc[Mule イベントの変数]
+* xref:target-variables.adoc[Target パラメータを使用したデータの強化]

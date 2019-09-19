@@ -1,0 +1,23 @@
+= 分散ファイルのポーリング
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: ファイルポーリング, クラスタ
+
+*_Enterprise Edition_*
+
+ファイルコネクタや FTP コネクタなど、ディレクトリをポーリングし、ポーリングしたディレクトリにファイルが作成されたときにその特定のファイルを読み取るコネクタがあります。このファイルは、Mule 高可用性 (HA) クラスタに属するノードのファイルシステムなどのリモートファイルシステムに存在できます。
+
+Mule 4 の分散ファイルポーリングでは、すべてのクラスタノードのファイルをポーリングできます。デフォルトで有効になっているこの機能は、次のコネクタで使用されます。
+
+* xref:connectors::file/file-connector.adoc[ファイルコネクタ]
+* xref:connectors::ftp/ftp-connector.adoc[FTP コネクタ]
+* xref:connectors::sftp/sftp-connector.adoc[SFTP コネクタ]
+
+プライマリノード (`@PrimaryNodeOnly`) からのみポーリングするようにコネクタを設定できます。この場合、Mule Runtime Engine で設定されたデフォルト設定は無視されます。この機能は、Mule 4.x でのみ使用できます。
+
+== 関連情報
+* xref:creating-and-managing-a-cluster-manually.adoc[手動によるクラスタの作成および管理]
+* xref:mule-high-availability-ha-clusters.adoc[Mule 高可用性 (HA) クラスタ]
+* xref:migration-connectors-file.adoc[ファイルコネクタの移行]
+* xref:migration-connectors-ftp-sftp.adoc[FTP および SFTP コネクタの移行]

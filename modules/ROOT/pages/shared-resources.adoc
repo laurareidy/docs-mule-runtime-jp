@@ -1,0 +1,233 @@
+= 共有リソース
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Anypoint Studio, 共有リソース, ドメイン, 複数のアプリケーション, ポートの共有, ドメインプロジェクト
+
+Mule では、選択したコネクタを共通リソースとして、同じドメインでデプロイされているすべてのアプリケーションに公開することができます。これらのリソースは共有リソースと呼ばれます。共有リソースをホストするには、Mule ドメインプロジェクトを作成して、これらの要素を使用する各プロジェクトからドメインプロジェクトを参照します。ドメインを定義すれば、そのドメインに関連付けられているすべての Mule アプリケーションは、このドメインのリソースにアクセスできるようになります。Mule アプリケーションは、一度に 1 つのドメインにしか関連付けることができませんので注意してください。
+
+共有リソースにより、同じ再利用可能なコネクタを使用して、複数の開発チームが並行して作業を行うことができます。これらのコネクタをドメインレベルで共有リソースとして定義することで、チームは以下のことが可能になります。
+
+* ドメイン内の複数のサービスを同じポートから公開できます。
+* 永続的なストレージへの接続を共有できます。
+* きちんと定義されたインターフェースを通してアプリケーション間でサービスを共有できます。
+* 設定を 1 箇所のみで行うため、変更があってもアプリケーション間の一貫性を保証できます。
+
+メタデータを共有する場合は、Mule ドメインプロジェクトを Anypoint Studio で開いたままにしておいてください。そうでないと、リンク先の Mule プロジェクトでメタデータを手動で入力しなければなりません。
+
+== 前提条件
+
+このドキュメントでは、読者が Anypoint Studio 7 で Mule Runtime 4 を使用しているか、または Studio 7 を使用してアプリケーションを構築して Mule 4 Standalone ランタイムにデプロイしようとしていることを前提としています。
+
+== 制限事項
+
+フロー、サブフロー、またはメッセージプロセッサを共有リソースとして定義することはできません。ドメインでは、動作を共有することはできません。共有できるのはリソースのみです。
+
+== 基本構造
+
+=== Studio プロジェクト
+
+Mule ドメインプロジェクトの主要なファイルは次の通りです。
+
+[%autowidth.spread]
+|===
+|`/src/main/mule/mule-domain-config.xml` |共有リソース設定ファイル。ファイル名は `mule-domain-config.xml` でなければなりません。
+|`pom.xml` |連動関係ファイル記述子。ドメインプロジェクトに必要なプラグインが格納された Maven POM ファイルです。
+|`/mule-artifact.json` |ドメインアーチファクトの記述子。
+|===
+
+=== ドメインアーチファクト
+
+ドメインを JAR ファイルにパッケージする際には次のファイルを使用します。
+
+[%autowidth.spread]
+|===
+|`mule-domain-config.xml` |共有リソース設定ファイル。ファイル名は `mule-domain-config.xml` でなければなりません。
+|`/repository` |ドメインのすべての連動関係が登録された Maven に似たリポジトリ。
+|`/META-INF/maven/groupId/artifactId/pom.xml` |アーチファクトの Maven 記述子ファイル。
+|`/META-INF/mule-artifact/classloader-model.json` |連動関係の管理に使用する内部 Mule ファイル。
+|`/META-INF/mule-artifact/mule-artifact.json` |ドメインアーチファクトの記述子。
+|===
+
+== Configuration (設定)
+
+アプリケーションで共有リソースを使用するには、次の作業を完了する必要があります。
+
+. <<Creating a New Domain,新しいドメインを作成します>>。
+. そのドメインで 1 つまたは複数の共有リソースを定義します。
+. <<assoc_apps_domain,アプリケーションをドメインに関連付けます>>。
+. アプリケーションで<<Referencing Shared Resources,共有リソースを参照します>>。
+. ドメインとアプリケーションを共有リソースと共に<<Deploying with Shared Resources,デプロイします>>。ドメインとアプリケーションは<<Deploying Domain Bundles,ドメインバンドル>>で一緒にデプロイすることもできます。
+
+以下のセクションでは、これらの手順を説明します。
+
+[[create_domain_project]]
+== 新規ドメインの作成
+
+Anypoint Studio で新しいドメインを作成するには、次の手順を実行します。
+
+. 上部のメニューバーで [File (ファイル)] > [New (新規)] > [Mule Domain Project (Mule ドメインプロジェクト)] を選択します。
++
+image::new-domain.png[新規 + ドメイン]
++
+. 通常の Mule プロジェクトの作成時と同じ項目に値を入力します。
++
+image::create-new-domain.png[作成 + 新規 + ドメイン]
++
+* プロジェクト名を入力して Mule Runtime バージョンを選択します。
+//NOT IN STUDIO 7, YET ANYWAY...
+//* Optionally, create a `.gitignore` file if you plan to share this project through git or GitHub.
+
+
+=== 共有リソースの定義
+
+<<create_domain_project,ドメインプロジェクト>>を設定するには、`mule-domain-config.xml` ファイルで共有リソースを定義します。この設定ファイルでは複数のリソースを定義できます。Anypoint Studio では、このファイルをいくつかの方法で編集できます。
+
+* 設定ファイル: Mule アプリケーション用の XML設定ファイルと同様の XML を使用します。例:
++
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<domain:mule-domain
+        xmlns="http://www.mulesoft.org/schema/mule/core"
+        xmlns:domain="http://www.mulesoft.org/schema/mule/ee/domain"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+        xsi:schemaLocation="
+               http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+               http://www.mulesoft.org/schema/mule/ee/domain http://www.mulesoft.org/schema/mule/ee/domain/current/mule-domain-ee.xsd">
+
+    <!-- configure here resource to be shared within the domain -->
+
+</domain:mule-domain>
+----
++
+* グローバル要素: このビューは、共有リソースを定義するためのグラフィカルインターフェースを提供します。
+
+モジュールやコネクタの連動関係をドメインプロジェクトに追加して、共有リソースとして使用できます。
+
+[[assoc_apps_domain]]
+=== Studio でのアプリケーションとドメインとの関連付け
+
+アプリケーションは、一度に 1 つのドメインにしか関連付けることができませんので注意してください。
+
+既存のアプリケーションをドメインに関連付けるには、次の手順を実行します。
+
+. [Project Explorer] または [Package Explorer] ビューで Mule アプリケーションをダブルクリックします。
+. メニューが開きますので、[Properties (プロパティ)] をクリックします。
+. [Properties (プロパティ)] で [Mule Project (Mule プロジェクト)] をクリックします。
+. [Domain (ドメイン)] 項目でプロジェクトのドメインを選択します。
++
+image::assign-domain.png[割り当て + ドメイン]
++
+ドメインを選択すると、プロジェクトのサーバランタイムがドメインのサーバランタイムと自動的に一致します。
+
+ドメインは、プロジェクトの `pom.xml` に自動的に登録されます。例:
+
+[source,xml,linenums]
+----
+<dependencies>
+  ...
+  <dependency>
+      <groupId>com.mycompany</groupId>
+      <artifactId>mymuledomain</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+      <classifier>mule-domain</classifier>
+      <scope>provided</scope>
+  </dependency>
+</dependencies>
+----
+
+== Mule アプリケーションとドメインとの関連付け (Studio 外)
+
+Studio 外で Mule アプリケーションを作成する場合は、`domain` プロパティを `mule-artifact.json` ファイルに記述することで、アプリケーションとドメインを関連付ける必要があります。
+
+`domain: <name of domain folder>`
+
+例:
+
+`domain: mule-test-domain`
+
+=== 共有リソースの参照
+
+次の `mule-domain-config.xml` の例では、HTTP リスナおよび HTTP 要求設定を共有リソースとして定義します。
+
+[source,xml,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<mule-domain xmlns="http://www.mulesoft.org/schema/mule/domain"
+             xmlns:core="http://www.mulesoft.org/schema/mule/core"
+             xmlns:http="http://www.mulesoft.org/schema/mule/http"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="
+               http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+                     http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+               http://www.mulesoft.org/schema/mule/domain http://www.mulesoft.org/schema/mule/domain/current/mule-domain.xsd">
+
+    <http:listener-config name="listenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8080"/>
+    </http:listener-config>
+
+    <http:request-config name="domainLevel">
+        <http:request-connection host="localhost" port="9090"/>
+    </http:request-config>
+
+</mule-domain>
+----
+
+ドメインに関連付けられているすべての Mule アプリケーションは、プロジェクト自身の中でリソースを参照するように、設定内でリソースを参照することによって共有リソースを利用できます。次の例では、HTTP リスナコネクタが `listenerConfig` という名前の共有リソースを参照しています。
+
+[source,xml,linenums]
+----
+<mule>
+   <flow name="httpService">
+      <http:listener config-ref="listenerConfig" path="/" doc:name="HTTP"/>
+      <set-payload value="success" />
+   </flow>
+</mule>
+----
+
+Studio のビジュアルエディタでは、コネクタのプロパティエディタの *[Connector Configuration (コネクタ設定)]* 項目にあるドロップダウンリストから共有リソースを選択できます。
+
+image::pick-resource.png[選択 + リソース]
+
+== 共有リソースとのデプロイ
+
+ドメインに関連付けられているアプリケーションを Anypoint Studio でデプロイすると、デフォルトではアプリケーションとドメインが一緒にデプロイされます。また、ドメインプロジェクトを Studio でデプロイすると、デフォルトではそのプロジェクトに関連付けられているすべてのアプリケーションがデプロイされます。このデフォルト動作を変更するには、[Run Configuration (設定の実行)] の設定を変更します。実際には、同じドメインを共有していなくても、ワークスペース内のアプリケーションを自由に組み合わせてデプロイできます。
+
+[NOTE]
+Mule ドメインプロジェクトは、Runtime Manager ではインストールできません。
+
+Studio で、再生ボタンの隣にあるドロップダウンメニューを開き、*[Run Configurations (設定の実行)]* を選択します。
+
+image::run-configurations-1.png[実行 + 設定 + 1]
+
+次に *[General (一般)]* タブを選択し、右側のナビゲーションメニューで現在選択されているアプリケーションと常に一緒にデプロイしたいプロジェクトのボックスを選択します。
+
+image::run-configuration-3.png[実行 + 設定 + 3]
+
+Studio 外で ドメインプロジェクトとアプリケーションを Standalone Mule にデプロイする手順は次の通りです。
+
+. Studio で `File > Export` を選択します。*Mule* というフォルダで *[Anypoint Studio Project to Mule Deployable Archive (includes Studio metadata) (Anypoint Studio プロジェクトを Mule のデプロイ可能アーカイブに (Studio メタデータと一緒に) 移動)]* を選択します。Standalone Mule にデプロイできる zip ファイルが作成されます。
++
+image::export.png[]
++
+[NOTE]
+====
+ドメインを Studio 外で作成した場合は、`mule-domain-config.xml` ファイルと、`lib` フォルダがあればその内容も一緒に選択して 1 つの zip ファイルに圧縮することで、ドメインプロジェクトのコンポーネントを zip ファイルにまとめます。この zip ファイルにはドメインの名前を付けてください。この zip ファイルを `MULE_HOME/domains` にコピーします。
+
+フォルダを右クリックして *[Compress (圧縮)]* を選択した場合は、Mule がファイルを展開したときに新しいフォルダがフォルダ構造に追加されてしまい、デプロイメントの問題が発生することがあります。コマンドラインを使用してファイルを再帰的に圧縮するか、または Studio からアプリケーションを zip ファイルにパッケージしてください。
+====
++
+. このドメインを参照する各アプリケーションを保存して zip に圧縮し、圧縮した zip ファイルを `MULE_HOME/apps` フォルダにコピーします。
+. コマンドコンソールから Mule を起動します。
++
+Mule が起動すると、アプリケーションの起動前にすべてのドメインが完全に起動しているようにするため、先に `MULE_HOME/domains` フォルダで見つかったドメインをすべてデプロイしてから、次に `MULE_HOME/apps` フォルダで見つかったアプリケーションをすべてデプロイします。
+
+=== ドメインバンドルのデプロイ
+
+ドメインに関連付けられているアプリケーションをドメインフォルダのドメインにバンドルして、フォルダ全体をバンドルされた単位としてデプロイすることもできます。この場合は、`apps` フォルダをドメインのフォルダ構造に含めて、アプリケーションの zip ファイルをこのフォルダに配置します。
+
+image::domainbundle.png[domainBundle]
+
+デプロイメント動作は、ドメインとアプリケーションを別々にデプロイする場合と同じで、Mule はドメイン自身を先にデプロイしてからアプリケーションをデプロイします。ドメインバンドルのデプロイにより、アプリケーションを別々にデプロイするという手動の手順を排除することで、チームのデプロイメントメカニズムを簡素化できます。

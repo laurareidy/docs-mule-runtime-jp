@@ -1,0 +1,232 @@
+= contains
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[contains1]]
+== contains&#40;Array<T&#62;, Any&#41;: Boolean
+
+入力に特定の値が含まれる場合は `true`、それ以外の場合は `false` を返します。
+
+
+このバージョンの `contains` は、入力として配列を受け入れます。その他のバージョンは文字列を受け入れ、別の文字列または正規表現を使用して一致があるかどうかを判別できます。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `items` | 入力配列。
+| `elements` | 配列内で検索する要素。サポートされている任意のデータ型にできます。
+|===
+
+=== 例
+
+次の例では、入力配列内の `2` を検索し、`true` を返します。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+[ 1, 2, 3, 4 ] contains(2)
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+true
+----
+
+=== 例
+
+次の例では、入力配列に「3」が含まれるかどうかを示します。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+ContainsRequestedItem: payload.root.*order.*items contains "3"
+----
+
+==== 入力
+
+[source,XML,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <order>
+      <items>155</items>
+    </order>
+    <order>
+      <items>30</items>
+    </order>
+    <order>
+      <items>15</items>
+    </order>
+    <order>
+      <items>5</items>
+    </order>
+    <order>
+      <items>4</items>
+      <items>7</items>
+    </order>
+    <order>
+      <items>1</items>
+      <items>3</items>
+    </order>
+    <order>
+        null
+    </order>
+</root>
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "ContainsRequestedItem": true }
+----
+
+
+[[contains2]]
+== contains&#40;String, String&#41;: Boolean
+
+文字列に特定のサブ文字列が含まれるかどうかを示します。`true` 
+または `false` を返します。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `text` | 入力文字列 (`String` (文字列))。
+| `toSearch` | 入力文字列内で検索するサブ文字列 (`String` (文字列))。
+|===
+
+=== 例
+
+次の例では、入力文字列「mulesoft」内の「mule」を検索し、`true` を返します。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+"mulesoft" contains("mule")
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+true
+----
+
+=== 例
+
+次の例では、`"some string"` 内のサブ文字列 `"me"` を検索し、`true` を返します。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{ ContainsString : payload.root.mystring contains("me") }
+----
+
+==== 入力
+
+[source,XML,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<root><mystring>some string</mystring></root>
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "ContainsString": true }
+----
+
+
+[[contains3]]
+== contains&#40;String, Regex&#41;: Boolean
+
+文字列に正規表現との一致が含まれる場合は `true`、
+それ以外の場合は `false` を返します。
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `text` | 入力文字列。
+| `matcher` | 入力 `text` (テキスト) 内の文字を照合する Java 正規表現。
+|===
+
+=== 例
+
+次の例では、入力の `mulesoft` 内に `e` から `g` までの任意の文字があるかどうかを確認し、`true` を返します。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+contains("mulesoft", /[e-g]/)
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+true
+----
+
+=== 例
+
+次の例では、`"A very long string"` 内の `/s[t|p]rin/` との一致を検索し、
+`true` を返します。正規表現内の `[t|p]` は `t` または `p` を意味します。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+ContainsString: payload.root.mystring contains /s[t|p]rin/
+----
+
+==== 入力
+
+[source,XML,linenums]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<root><mystring>A very long string</mystring></root>
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "ContainsString": true }
+----
+

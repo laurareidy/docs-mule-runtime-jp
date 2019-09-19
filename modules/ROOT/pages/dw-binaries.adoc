@@ -1,0 +1,22 @@
+= Binaries (dw::core::Binaries)
+
+このモジュールには、バイナリを処理するためのヘルパー関数が含まれます。
+
+このモジュールを使用するには、DataWeave コードにインポートする必要があります。その方法として、たとえば、行 `import * from dw::core::Binaries` を DataWeave スクリプトの
+ヘッダーに追加します。
+
+== 関数
+
+[%header, cols="1,3"]
+|===
+| Name (名前)  | 説明
+| xref:dw-binaries-functions-frombase64.adoc[fromBase64] | Base64 文字列をバイナリ値に変換します。
+| xref:dw-binaries-functions-fromhex.adoc[fromHex] | 16 進文字列をバイナリに変換します。
+| xref:dw-binaries-functions-readlineswith.adoc[readLinesWith] | 指定されたバイナリコンテンツを複数の行に分割し、結果を配列で返します。
+| xref:dw-binaries-functions-tobase64.adoc[toBase64] | バイナリ値を Base64 文字列に変換します。
+| xref:dw-binaries-functions-tohex.adoc[toHex] | バイナリ値を 16 進文字列に変換します。
+| xref:dw-binaries-functions-writelineswith.adoc[writeLinesWith] | 指定された行を書き込んで、バイナリコンテンツを返します。
+|===
+
+
+

@@ -1,0 +1,154 @@
+= &#45;&#45;
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[minusminus1]]
+== &#45;&#45;&#40;Array<S&#62;, Array<Any&#62;&#41;: Array<S&#62;
+
+指定された値を入力値から削除します。
+
+
+このバージョンの `--` は、指定された項目を配列から削除します。その他のバージョンは、DataWeave でサポートされるオブジェクト、文字列、およびさまざまな日付と時刻の形式で動作します。
+
+[source,JSON,linenums]
+|===
+| Name (名前)   | 説明
+| `source` | 削除する項目を含む配列。
+| `toRemove` | リストから削除する項目。
+|===
+
+=== 例
+
+次の例では、指定された項目を配列から削除します。具体的には、`--` の右側の配列に含まれる項目のすべてのインスタンスをこの関数の左側の配列から削除します。結果として `[0]` が残ります。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+{ "a" : [0, 1, 1, 2] -- [1,2] }
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "a": [0] }
+----
+
+
+[[minusminus2]]
+== &#45;&#45;&#40;{ &#40;K&#41;?: V }, Object&#41;: { &#40;K&#41;?: V }
+
+オブジェクトから指定されたキー-値ペアを削除します。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `source` | 削除するオブジェクト。
+| `toRemove` | 取得元オブジェクトから削除するオブジェクト。
+|===
+
+=== 例
+
+次の例では、取得元オブジェクトからキー-値ペアを削除します。
+
+==== 取得元
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{ "hello" : "world", "name" : "DW" } -- { "hello" : "world"}
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "name": "DW" }
+----
+
+
+[[minusminus3]]
+== &#45;&#45;&#40;Object, Array<String&#62;&#41;
+
+オブジェクトから指定されたキー-値ペアを削除します。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `source` | 取得元オブジェクト (`Object` (オブジェクト) 型)。
+| `toRemove` | 取得元オブジェクトから削除するキー-値ペアのキー。
+|===
+
+=== 例
+
+次の例では、取得元オブジェクトから 2 つのキー-値ペアを削除します。
+
+==== 取得元
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{ "yes" : "no", "good" : "bad", "old" : "new" } -- ["yes", "old"]
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "good": "bad" }
+----
+
+
+[[minusminus4]]
+== &#45;&#45;&#40;Object, Array<Key&#62;&#41;
+
+オブジェクトから指定されたキー-値ペアを削除します。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `source` | 取得元オブジェクト (`Object` (オブジェクト) 型)。
+| `keys` | 取得元オブジェクトから削除するキー-値ペアのキー。
+|===
+
+=== 例
+
+次の例では、取得元オブジェクトから削除するキー-値ペアを指定します。
+
+==== 取得元
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{ "hello" : "world", "name" : "DW" } -- ["hello" as Key]
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "name": "DW" }
+----
+

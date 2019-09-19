@@ -1,0 +1,101 @@
+= デフォルト値の設定
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, 変換, トランスフォーマ, 形式, 集約, 名前変更, 分割, 変換の絞り込み, xml, json, csv, pojo, java オブジェクト, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング, 例
+
+デフォルト値は、いくつかの方法で指定できます。
+
+* `default` キーワードを使用する。
+* `if-else` または `else-if` ステートメントでデフォルトを設定する。
+* パターンを照合するときに `else` を使用する。
+
+== default キーワードの使用
+
+この例では、ペイロード値が `null` の場合に `default` を使用してペイロードのデフォルト値を設定します。
+
+.DataWeave スクリプト:
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+
+(payload.someField default "my default value")
+----
+
+.出力
+[source,JSON,linenums]
+----
+"my default value"
+----
+
+次の例をコピーして Transform Message コンポーネントに貼り付けることができます。
+変数 `myNullExample` を使用してサンプルの入力を指定します。 
+
+.DataWeave スクリプト:
+[source,DataWeave, linenums]
+----
+%dw 2.0
+var myNullExample = { someField : null }
+output application/json
+---
+
+(myNullExample.someField default "my default value")
+----
+
+この例では、デフォルト値を返します。
+
+.出力
+[source,JSON,linenums]
+----
+"my default value"
+----
+
+
+== if-else および else-if ステートメント内でのデフォルトの設定
+
+xref:dataweave-flow-control.adoc#control_flow_if_else[if-else] および xref:dataweave-flow-control.adoc#control_flow_else_if[else-if] ステートメントを使用して、デフォルト値を指定できます。
+
+次の例では、文字列 `"value is even"` をそのデフォルトとして使用します。
+
+.DataWeave スクリプト:
+[source,DataWeave, linenums]
+----
+%dw 2.0
+var myVar = (1 + 1)
+output application/json
+---
+if (isOdd(myVar)) "value is odd"
+else "value is even"
+----
+
+.出力:
+[source,JSON,linenums]
+----
+"value is even"
+----
+
+== パターンを照合するときのデフォルトの設定
+
+xref:dataweave-pattern-matching.adoc[パターンを照合するスクリプト]の場合、DataWeave の `case` ステートメントは `else` 式で終了します。これは、先行するすべての `case` 式で `false` が返された場合に返されるデフォルトとして機能します。
+
+.DataWeave スクリプト:
+[source,DataWeave, linenums]
+----
+%dw 2.0
+var myVar = "someString"
+output application/json
+---
+myVar match {
+    case myVarOne if (myVar == "some") -> ("some" ++ "is myVar")
+    case myVarOne if (myVar == "strings") -> ("strings" ++ "is myVar")
+    else -> myVar ++ " is myVar"
+}
+----
+
+.出力:
+[source,JSON,linenums]
+----
+"someString is myVar"
+----

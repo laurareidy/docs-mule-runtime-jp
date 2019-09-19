@@ -1,0 +1,87 @@
+= DataWeave セレクタ
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Studio, Anypoint, esb, 変換, トランスフォーマ, 形式, 集約, 名前変更, 分割, 変換の絞り込み, xml, json, csv, pojo, java オブジェクト, メタデータ, DataWeave, data weave, datamapper, dwl, dfl, dw, 出力構造, 入力構造, map, マッピング
+
+DataWeave 2.0 セレクタはオブジェクトと配列の構造をトラバースし、一致する値を返します。
+
+セレクタは常にコンテキスト内で動作し、コンテキストには、変数への参照、オブジェクトリテラル、配列リテラル、または DataWeave 関数の呼び出しとすることができます。
+
+[NOTE]
+====
+以下で説明するセレクタの例については、xref:dataweave-cookbook-extract-data#[「データの抽出」]を参照してください。
+====
+
+[%header,cols="30,30,40"]
+|===
+|セレクタ種別 |構文 |戻り値のデータ型
+
+| 単一値 | `.keyName` | 一致するキーに属する値の任意の型
+| 複数値 | `.*keyName` | すべての一致するキーの値の配列
+| 下位 | `..keyName` | すべての一致する下位キーの値の配列
+| キー-値ペア | `.&keyName` | 一致するキーを持つオブジェクト
+| インデックス | `[<index>]` | 選択された配列インデックスの位置にある任意の型の値
+| 範囲 | `[<index> to <index>]`| 選択されたインデックスからの値を含む配列
+| XML 属性 | `@`、`.@keyName` | 選択された属性の文字列値
+| 名前空間 | `keyName.#` | 選択されたキーの名前空間の文字列値
+| キーの存在 | `keyName?`、`keyName.@type?` | ブール (オブジェクトまたは XML 属性の選択されたキーが存在する場合は `true`、存在しない場合は `false`)
+| アサートの存在 | `keyName!` | 文字列: キーが存在しない場合の例外メッセージ
+| 検索条件 |`keyName[?(boolean_expression)]` | DataWeave 式が `true` を返す _場合_ 、キー-値ペアを含む配列またはオブジェクト。それ以外の場合、`null` を返します。
+
+| メタデータ | `.^someMetadata` a|
+Mule ペイロード、変数、属性の指定したメタデータの値を返します。セレクタは、クラス (`.^class`)、コンテンツ長 (`.^contentLength`)、エンコード (`.^encoding`)、MIME タイプ (`.^mimeType`)、メディア種別 (`.^mediaType`)、未加工 (`.^raw`)、およびカスタムメタデータ (`.^myCustomMetadata`) の値を返すことができます。詳細は、xref:dataweave-cookbook-extract-data#selector_metadata[「データの抽出」]を参照してください。
+
+|===
+
+[[selectors_variables]]
+== 変数に保存されたコンテンツでのセレクタの使用
+
+すべてのセレクタが、xref:dataweave-variables-context.adoc[定義済みの Mule Runtime 変数] (`payload`、`attributes` など) および xref:dataweave-variables.adoc[DataWeave 変数]で機能します。たとえば、`var myVar = { "id" : "1234", "name" : "somebody" }` として定義された DataWeave 変数があるとします。DataWeave 式 `myVar.name` は `"name"` の値を返し、その値は `"somebody"` です。
+
+Mule Runtime 変数を使用することで、xref:about-mule-event.adoc[Mule イベント]データを選択できます。
+
+抽出された値は、サポートされる DataWeave 値の型のいずれかのリテラル値 (たとえば、変数とは対照的) として処理されます。
+
+[cols="1,4", options="header"]
+|===
+| 抽出するデータ | 構文
+
+| *ペイロード*
+a| `payload` (例: `payload.name`)
+
+`payload` が `{"name" : "somebody"}` の場合、`payload.name` は `"somebody"` を返します。
+
+Mule ペイロードについての詳細は、xref:about-mule-message#_message_payload[「メッセージペイロード」]を参照してください。
+
+| *属性*
+a| `attributes.<myAttributeName>`
+
+例については、xref:about-mule-message#_attributes[「属性」]を参照してください。
+
+| *変数*
+a|
+
+`<myVariableName>`
+
+名前の競合を回避するには、`variables` を先頭に追加することができます。
+
+`variables.<myVariableName>`
+
+Muke 変数についての詳細は、xref:about-mule-variables.adoc[「Mule アプリケーションの変数」]を参照してください。
+
+| *エラーオブジェクト*
+
+a| `error`
+
+フローでのエラーに関する情報については、`#[error.cause]` を使用できます。
+
+| *フロー*
+a| `flow`
+
+Logger でのフロー名: `#[flow.name]`
+
+`flow.name` は一部の Core コンポーネント (Set Payload、Transform Message など) では機能しません。
+
+フローについての詳細は、xref:about-flows.adoc[「フローおよびサブフロー」]を参照してください。
+|===

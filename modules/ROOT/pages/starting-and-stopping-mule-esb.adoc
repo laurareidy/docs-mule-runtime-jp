@@ -1,0 +1,199 @@
+= Mule の開始と停止
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Mule, esb, デプロイ, 起動, 実行, 終了
+
+[NOTE]
+====
+このセクションでは、Mule の開始と停止およびアプリケーションのデプロイについて説明します。管理機能および監視機能を最大限に活用するために、Runtime Manager を使用して同じ Mule にデプロイできます。
+====
+
+Mule は Java サービスラッパーを使用してネイティブ OS から Java 仮想マシン (JVM) を制御します。ラッパーには Mule を Unix デーモンとして実行する機能や Mule を Windows サービスとしてインストールまたは削除する機能を含めて、多くのオプションと機能があります。ラッパーはシステムシグナルを処理してパラメータを開始するため、全体的に JVM と基礎となる OS 間のインタラクションが大幅に向上します。
+
+== スクリプトの起動とシャットダウン
+
+ラッパーは `$MULE_HOME/bin` のスクリプトによってコールされます。
+
+次の表に、スクリプトが受け入れるすべてのパラメータを示します。
+
+[%header,cols="30a,70a"]
+|===
+|パラメータ |説明
+| `start` |ターミナルのバックグラウンドで Mule を起動します。
+| `stop` |Mule を停止します。インバウンドエンドポイントは Mule がシャットダウンする前にインフライトメッセージを処理します。ただし、タイムアウト期間後に、完了していないインフライトメッセージが破棄され、Mule がシャットダウンします。
+| `restart` |Mule を再起動します。
+| `status` | ​*(Linux/Unix のみ)*​Mule サーバ (`running` または `not running`) および実行している場合はプロセスの PID の状況を表示します。
+| `dump` | ​*(Linux/Unix のみ)*​Mule ラッパーのコアを `$MULE_HOME/log/mule_ee.log` にダンプします。
+| `console` |ターミナルのフォアグラウンドで Mule を起動します (コンソールモード)。パラメータを指定せずに `mule` を実行するのと同じです。
+| `install` | Mule を Windows サービスまたは Linux/Unix デーモンとしてインストールします。
+| `remove` | Mule を Windows サービスまたは Linux/Unix デーモンから削除します。
+|===
+
+== Mule の実行
+
+Mule ソフトウェア配布物を展開した場所にディレクトリを変更してから bin ディレクトリに変更して、コマンドラインから Mule を起動します。次のコマンドを実行します。
+
+* Windows 環境:
++
+[source,powershell]
+----
+$ $MULE_HOME\bin\mule.bat
+----
+
+* Linux/Unix 環境:
++
+[source,console]
+----
+$ $MULE_HOME/bin/mule
+----
+
+これらのコマンドは、Mule をフォアグランドで実行し、起動スクリプトによってターミナルの標準出力に情報が表示されます。Mule の動作中は、他のコマンドを実行することはできません。
+
+Mule を停止するには、スクリプトが動作しているターミナルで `CTRL-C` を押します。
+
+== Windows サービスとしての Mule の実行
+
+Windows サービスとして Mule を実行するには、まず次のように実行して Mule をインストールします。
+
+[source,powershell]
+----
+$ $MULE_HOME\bin\mule.bat install
+----
+
+インストール後、Mule をサービスとして実行することができます。
+
+[source,powershell]
+----
+$ $MULE_HOME\bin\mule.bat start
+----
+
+[NOTE]
+====
+Windows が再起動すると、`mule stop` コマンドを使用した場合と同じように Mule サービスが停止します。
+唯一異なる状況は、Windows がタイムアウトによってプロセスをキルした場合です。
+====
+
+=== インストール後の wrapper.conf ファイルへのプロパティの追加
+
+Mule を Windows サービスとしてインストールした後で、`wrapper.additional.conf` ファイルで新しいプロパティを宣言することで `wrapper.conf` ファイルのプロパティを上書きできます。
+
+使用している Mule エディションによって動作が異なります。
+
+* Mule Community Edition
++
+. 新しいプロパティを追加したら、Windows サービスを再インストールまたは再起動します。
+. プロパティを追加し、そのインデックスが `wrapper-additional.conf` ファイルの最大インデックスより大きいことを確認します。そうでなければ、プロパティは上書きされません。
++
+たとえば、`wrapper-additional.conf` に次のプロパティがあるとします。
++
+`wrapper.java.additional.n=-Dproperty=value`
++
+`n` が最大のインデックスであれば、`wrapper.conf` ファイルにはインデックスを増やしてプロパティを追加する必要があります。
++
+`wrapper.java.additional.n+1=-DyourProperty=valueOfYourProperty`
+
+* Mule Enterprise Edition
++
+. デフォルトでは、Mule をサービスとしてインストールした後で 20 個のプロパティを追加できます。
+. サービスをインストールする際に、次のコマンドライン引数を使用して、必要な追加プロパティを設定します。
++
+`-additionalJavaProperties=numberOfExtraProperties`
+
+== Linux/Unix デーモンとしての Mule の起動
+
+Mule を Linux/Unix デーモンとして実行するには、まず次のように実行して Mule をインストールします。
+
+[source,console]
+----
+$ $MULE_HOME/bin/mule install
+----
+
+インストール後、Mule をデーモンとして実行することができます。
+
+[source,console]
+----
+$ $MULE_HOME/bin/mule start
+----
+
+[NOTE]
+====
+また、インストールせずに Mule を実行することもできます。この場合は、現在のユーザセッションのバックグラウンドとして Mule が起動します。
+====
+
+次の例では、Mule を Unix コンソールから起動しています。
+
+[source,console,linenums]
+----
+$ $MULE_HOME/bin/mule start
+MULE_HOME is set to ~/Downloads/mule-enterprise-standalone-4.2.0
+MULE_BASE is set to ~/Downloads/mule-enterprise-standalone-4.2.0
+Starting Mule Enterprise Edition...
+Waiting for Mule Enterprise Edition.................
+running: PID:87318
+----
+== スクリプトからの Mule の起動
+Java サービスラッパーを使用せずに Mule をスクリプトまたは IDE から起動するために、`org.mule.MuleServer` クラスを使用できます。このクラスはいくつかのパラメータを受け入れます。
+
+----
+org.mule.MuleServer -config mule-config.xml
+----
+
+または
+
+----
+org.mule.MuleServer -builder <fully qualified classname> -config appContext.xml
+----
+
+* *-config* は使用する 1 つ以上の設定ファイルを指定します。この引数を省略した場合、`mule-config.xml` が存在する場合はこれを探して使用します。
+
+* *-builder* は使用する設定ビルダーの完全修飾されたクラス名です。この引数を設定しなかった場合、デフォルトの `org.mule.config.builders.AutoConfigurationBuilder` が使用され、使用可能なビルダーに基づいて設定ファイルの自動検出を試みます。最も一般的なシナリオでは、これは `org.mule.config.spring.SpringXmlConfigurationBuilder` に解決されます。
+
+クラスパスを設定する最も簡単な方法は、配布の `./lib/mule` ディレクトリと `./lib/opt` ディレクトリにすべての JAR を含めることです。サーバと各モジュールの連動関係レポートを確認して、どの JAR が特定のモジュールに必要かを正確に把握できます。
+
+== Mule アプリケーションのデプロイ
+
+. Mule を起動します。
+. Mule が起動したら、パッケージ化された JAR ファイルを `$MULE_HOME` の下にある `apps` ディレクトリに移動することで、Mule アプリケーションをデプロイできます。
+
+== Mule の停止
+
+Mule を停止するには `stop` コマンドを使用します。
+
+次の例では、Mule を Unix コンソールから停止しています。
+
+[source,console,linenums]
+----
+$ $MULE_HOME/bin/mule stop
+MULE_HOME is set to /Applications/mule-enterprise-standalone-4.2.0
+MULE_BASE is set to /Applications/mule-enterprise-standalone-4.2.0
+Stopping Mule Enterprise Edition...
+Stopped Mule Enterprise Edition.
+----
+
+== Mule サービスまたはデーモンの削除
+
+システムからサービスまたはデーモンを削除するには、`remove` コマンドを使用します。
+
+次の例では、Mule を Unix コンソールから削除しています。
+
+[source,console,linenums]
+----
+$ $MULE_HOME/bin/mule remove
+MULE_HOME is set to /Applications/mule-enterprise-standalone-4.2.0
+MULE_BASE is set to /Applications/mule-enterprise-standalone-4.2.0
+Detected Mac OSX:
+Mule Enterprise Edition is not running.
+Removing Mule Enterprise Edition daemon...
+----
+
+== Anypoint Monitoring の有効化
+
+必要に応じて、オンプレミスランタイムのクラウド管理対応バージョン用の xref:monitoring::am-installing.adoc[Anypoint Monitoring をインストール]して、サーバ上で動作するアプリケーションを監視できます。
+
+== 関連情報
+
+* xref:monitoring::am-installing.adoc[Anypoint Monitoring]
+* xref:runtime-manager::index.adoc[Runtime Manager]
+* xref:runtime-manager::deployment-strategies.adoc[デプロイメント戦略]
+* xref:passing-additional-arguments-to-the-jvm-to-control-mule.adoc[JVM に追加の引数を渡して Mule を制御]

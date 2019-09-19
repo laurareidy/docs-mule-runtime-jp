@@ -1,0 +1,80 @@
+= スタック追跡の設定
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Anypoint, Studio, Mule, オンプレミス, オンプレミス, amc, ログ, スタック追跡, verbose
+
+デフォルトでは、一部のスタック追跡は Mule に表示されません。Mule にスタック追跡が表示さている場合でも、わかりやすい出力を生成するために一部の内部クラスの参照が除外されています。
+
+Mule スタック追跡の動作は、次の 2 つの方法で制御できます。
+
+* コマンドライン引数を使用する
+
+* Anypoint Studio でプロパティを設定する
+
+== コマンドライン引数を使用する
+
+次のコマンドライン引数と共に `-M-DpropertyName` を使用して、スタック追跡の動作を制御します。
+
+* `mule.verbose.exceptions` - *true* に設定すると、絞り込まれたスタック追跡が Mule に表示されます。
+
+* `mule.stacktrace.filter` - スタック追跡から削除するパッケージやクラスのカンマ区切りリスト。`string.startsWith()` を使用して照合されます。
+
+[NOTE]
+=====================================================================
+これらの引数は、Mule 開発者および管理者がトラブルシューティング時に使用できます。これらは、エンドユーザが使用することを想定していません。
+=====================================================================
+
+== Anypoint Studio でプロパティを設定する
+
+Studio で、上記で指定したプロパティを設定し、スタック追跡の提供や、削除するパッケージまたはクラスの除外を行うように Mule に指示できます。これらの設定を調整する手順は、次のとおりです。
+
+. *[Run (実行)]* > *[Run Configurations... (設定を実行...)]* を選択します。
+. プロパティを定義して、目的の動作を指定します。
+
+以下の例では、`mule.verbose.exceptions` プロパティが *true* に設定されています。
+
+image::stack-traces-studio.png[Studio-config-stacktrace]
+
+== スタック追跡とスレッドダンプを取得する
+
+Mule が停止して、その原因を見つけるために詳細情報が必要な場合、以下の手順に従って Mule をトラブルシューティングします。
+
+. Mule プロセス ID (`MULE_PID`) を識別します。
+. スレッドダンプを取得します。
+. Mule サーバでメモリ不足エラー `java.lang.OutOfMemoryError: Java heap space` がスローされた場合、ヒープダンプを取得します。
+
+=== Mule プロセス ID の識別
+
+Mule プロセス ID を識別するには、Unix/Linux `ps` コマンドを使用するか、ターミナルから `jps` コマンドを実行します。`jps` ツールは、Mule を実行するために使用される JDK に付属しています。
+  たとえば、`MuleContainerBootstrap` や `ApplicationDeployer` などが含まれる行で Mule プロセスを識別します。
+
+=== スレッドダンプの取得
+
+最新の JDK で入手できる `jstack` ツールを使用して、スレッドダンプを取得します。
+
+----
+jstack -l MULE_PID > filename.tdump
+----
+
+=== ヒープダンプの取得
+
+Mule サーバでメモリ不足エラー `java.lang.OutOfMemoryError: Java heap space` がスローされた場合、ヒープダンプを取得します。
+
+Oracle JVM は、この情報を収集する JVM 修飾子を提供します。この変更を適用したら Mule サーバを再起動して、メモリ不足エラーをもう一度再現する必要があります。
+
+Mule が使用する JVM にこの修飾子を適用するには、ヒープダンプの作成が自動的にトリガされるように Mule の `/conf/wrapper.conf` ファイルで次のパラメータを設定します。
+
+----
+wrapper.java.additional.<n>=-XX:+HeapDumpOnOutOfMemoryError
+wrapper.java.additional.<n+1>=-XX:HeapDumpPath=path/to/dumps
+----
+
+パラメータを設定する場合、<n> を `wrapper.conf` の順序の次の数値に変更します。
+
+[NOTE]
+=====================================================================
+デフォルトでは、Mule には `HeapDumpOnOutOfMemoryError` プロパティが含まれていますが、ヒープダンプのパスは定義されていません。
+=====================================================================
+
+ヒープダンプのパスが定義されていない場合、java プロセスが起動したディレクトリにファイルが作成されます。その後、ヒープダンプファイルが `java_pid<pid>.hprof.<unique number>` として生成されます。

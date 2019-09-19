@@ -1,0 +1,17 @@
+= JVM に追加の引数を渡して Mule を制御
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+:keywords: Anypoint Studio, esb, デプロイ, 設定, JVM 引数, システムプロパティ, properties
+
+
+追加の引数を Mule を実行する JVM に渡す場合は、`wrapper.java.additional.n` エントリを `${MULE_HOME}/conf` ディレクトリの `wrapper.conf` ファイルに追加するか、`-M` スイッチを追加してコマンドラインで引数を渡すことができます。
+
+たとえば、Mule のエンコーディングを設定するには、次の手順を実行します。
+
+* `wrapper.java.additional.1=-Dmule.encoding=ISO-8859-1` をラッパー設定ファイルに追加するか、コマンドラインで `-M-Dmule.encoding=ISO-8859-1` を Mule スクリプトに追加することもできます。
+
+[CAUTION]
+設定ファイルに `wrapper.java.additional.n` エントリを追加する場合、`n` の各インスタンスを、連続する番号に変更する必要があります。それ以外の場合、Java はプロパティを正しく解析しません。
+
+実装するラッパーで Java サービスラッパープロパティを設定できます。

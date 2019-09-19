@@ -1,0 +1,44 @@
+= pow
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[pow1]]
+== pow&#40;Number, Number&#41;: Number
+
+`base` (基数) の数値を、指定された `power` (指数) で累乗します。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `base` |  基数となる数値 (`Number` (数値) 型)。
+| `power` |  指数となる数値 (`Number` (数値) 型)。
+|===
+
+=== 例
+
+次の例では、`base` (基数) の数値を、指定された `power` (指数) で累乗します。
+`pow(base,power)` 表記を使用することもできます (たとえば、`pow(2,3)` では `8` を返します)。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+output application/json
+---
+[ (2 pow 3), (3 pow 2), (7 pow 3) ]
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+[ 8, 9, 343 ]
+----
+

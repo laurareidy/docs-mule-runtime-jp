@@ -1,0 +1,43 @@
+= fromBase64
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[frombase641]]
+== fromBase64&#40;String&#41;: Binary
+
+Base64 文字列をバイナリ値に変換します。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前) | 説明
+| `base64String` | 変換する Base64 文字列。
+|===
+
+=== 例
+
+次の例では、Base64 文字列を入力してバイナリに変換します。
+
+==== 取得元
+
+[source,DataWeave, linenums]
+----
+%dw 2.0
+import * from dw::core::Binaries
+output application/json
+---
+{ "BinaryFromBase64" : fromBase64("TXVsZQ==") }
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "BinaryFromBase64": "Mule" }
+----
+

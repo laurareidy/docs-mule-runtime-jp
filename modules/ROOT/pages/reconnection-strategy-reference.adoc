@@ -1,0 +1,104 @@
+= 再接続戦略リファレンス
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+このセクションでは、Mule アプリケーションの XML 設定ファイルを編集することで設定できる再接続戦略について説明します。
+
+== Reconnect (再接続)
+
+再接続戦略は、接続を再試行する回数と、再試行と再試行の間の時間を設定します。
+
+=== reconnect の属性
+
+[%header%autowidth.spread]
+|===
+|Name (名前) |型 |必須 |Default (デフォルト) |説明
+|`blocking` |boolean (ブール) |no (いいえ) |true |false の場合、再接続戦略が個別の非ブロックスレッドで実行されます。
+|`frequency` |long (ロング) |no (いいえ) |2000 |再接続を試みるまでの待ち時間 (ミリ秒)
+|`count` |integer (整数) |no (いいえ) |2 |再接続を試みる回数
+|===
+
+=== reconnect の子要素
+
+[%header%autowidth.spread]
+|===
+|Name (名前) |基数 |説明
+|`abstract-reconnect-notifier` |0..1 |reconnection-notifier (再接続通知) 要素のプレースホルダ。RetryNotifier インターフェースは、再接続の各試行後にアクション (成功時または失敗時のサーバ通知イベントの生成など) を実行できるようにするコールバックです。
+|===
+
+例:
+
+[source,xml,linenums]
+----
+<jms:activemq-connector name="AMQConnector">
+    <reconnect count="5" frequency="1000"/>
+</jms:activemq-connector>
+----
+
+== Reconnect Forever (繰り返し再接続)
+
+指定間隔で無制限に再接続を試行する再接続戦略。
+
+=== reconnect-forever の属性
+
+[%header%autowidth.spread]
+|===
+|Name (名前) |型 |必須 |Default (デフォルト) |説明
+|`blocking` |boolean (ブール) |no (いいえ) |true |false の場合、再接続戦略が個別の非ブロックスレッドで実行されます。
+|`frequency` |long (ロング) |no (いいえ) |2000 |再接続を試みるまでの待ち時間 (ミリ秒)
+|===
+
+== Reconnect Custom Strategy (再接続カスタム戦略)
+
+ユーザ定義の再接続戦略。
+
+=== <reconnect-custom-strategy...> の属性
+
+[%header%autowidth.spread]
+|===
+|Name (名前) |型 |必須 |Default (デフォルト) |説明 |
+|`blocking` |boolean (ブール) |no (いいえ) |true |false の場合、再接続戦略が個別の非ブロックスレッドで実行されます。
+|`class` |class name (クラス名) |はい |
+|===
+
+`RetryPolicyTemplate` インターフェースを実装するクラス。
+
+=== reconnect-custom-strategy の子要素
+
+[%header%autowidth.spread]
+|===
+|Name (名前) |基数 |説明
+|`abstract-reconnect-notifier` |0..1 |reconnection-notifier (再接続通知) 要素のプレースホルダ。RetryNotifier インターフェースは、再接続の各試行後にアクション (成功時または失敗時のサーバ通知イベントの生成など) を実行できるようにするコールバックです。
+|`spring:property` |0..* |
+|===
+
+例:
+
+[source,xml,linenums]
+----
+<jms:activemq-connector name="AMQConnector">
+    <reconnect-custom-strategy class="org.mule.retry.test.TestRetryPolicyTemplate">
+        <spring:property name="fooBar" value="true"/>
+        <spring:property name="revolutions" value="500"/>
+    </reconnect-custom-strategy>
+</jms:activemq-connector>
+----
+
+== reconnect-notifier (再接続通知)
+
+reconnect-notifier は、再接続の試行ごとに呼び出され、設定可能です。`org.mule.api.retry.RetryNotifier` インターフェースを実装するカスタム reconnect-notifier を作成できます。
+
+reconnect-notifier 要素は、再接続の試行のたびに `ConnectionNotification` を起動します。
+reconnect-notifier 要素には属性や子要素はありません。
+
+例:
+
+[source,xml,linenums]
+----
+<jms:activemq-connector name="AMQConnector">
+    <reconnect>
+        <reconnect-notifier/>
+    </reconnect>
+</jms:activemq-connector>
+----

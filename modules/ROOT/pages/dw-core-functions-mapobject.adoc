@@ -1,0 +1,112 @@
+= mapObject
+ifndef::env-site,env-github[]
+include::_attributes.adoc[]
+endif::[]
+
+
+
+[[mapobject1]]
+== mapObject&#40;{ &#40;K&#41;?: V }, &#40;value: V, key: K, index: Number&#41; &#45;&#62; Object&#41;: Object
+
+オブジェクトのキー、値、またはインデックスで動作するマッパーを使用して、オブジェクトを反復処理します。
+
+
+=== パラメータ
+
+[%header, cols="1,3"]
+|===
+| Name (名前)   | 説明
+| `object` | マップするオブジェクト。
+| `mapper` | 指定されたオブジェクトを出力オブジェクトにマップするために使用する `key`、`value`、または `index` を提供する式またはセレクタ。
+|===
+
+=== 例
+
+次の例では、入力の `{ "a":"b","c":"d"}` を反復処理し、匿名マッパー関数 (`(value,key,index) -> { (index) : { (value):key} }`) を使用して、指定された各オブジェクトのキーと値を反転し、オブジェクトのインデックスをキーとして返します。マッパーは名前付きパラメータを使用して、入力オブジェクトのキー、値、インデックスを識別します。`{"a":"b","c":"d"} mapObject { (&#36;&#36;&#36;) : { (&#36;):&#36;&#36;} }` のように、匿名パラメータを使用して同じ式を記述することができます。
+
+==== 取得元
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+output application/json
+---
+{"a":"b","c":"d"} mapObject (value,key,index) -> { (index) : { (value):key} }
+----
+
+==== 出力
+
+[source,JSON,linenums]
+----
+{ "0": { "b": "a" }, "1": { "d": "c" } }
+----
+
+=== 例
+
+次の例では、各価格に 5 を加え、常に小数点以下 2 桁が表示されるように数値に書式を設定します。
+
+==== 取得元
+
+[source,DataWeave,linenums]
+----
+%dw 2.0
+output application/xml
+---
+{
+    prices: payload.prices mapObject (value, key) -> {
+        (key): (value + 5) as Number {format: "##.00"}
+    }
+}
+----
+
+==== 入力
+
+[source,XML,linenums]
+----
+<?xml version='1.0' encoding='UTF-8'?>
+<prices>
+    <basic>9.99</basic>
+    <premium>53</premium>
+    <vip>398.99</vip>
+</prices>
+----
+
+==== 出力
+
+[source,XML,linenums]
+----
+<?xml version='1.0' encoding='UTF-8'?>
+<prices>
+  <basic>14.99</basic>
+  <premium>58.00</premium>
+  <vip>403.99</vip>
+</prices>
+----
+
+
+[[mapobject2]]
+== mapObject&#40;Null, &#40;value: Nothing, key: Nothing, index: Number&#41; &#45;&#62; Nothing&#41;: Null
+
+`mapObject` を null 値に使用できるようにするヘルパー関数。
+
+=== 例
+
+前述の例を使用して、`mapObject` の入力が `null` の場合に出力結果も `null` であることをテストできます。XML では、`null` 値は空のタグとして記述されます。この値は、ライタープロパティ `writeNilOnNull=true` を使用して変更できます。
+
+==== 入力
+
+[source,XML,linenums]
+----
+<?xml version='1.0' encoding='UTF-8'?>
+<prices>
+</prices>
+----
+
+==== 出力
+
+[source,XML,linenums]
+----
+<?xml version='1.0' encoding='UTF-8'?>
+<prices>
+</prices>
+----
